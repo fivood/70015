@@ -368,6 +368,35 @@ body {
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
 }
 
+/* Navigation */
+.nav {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.nav__link {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav__link:hover {
+  color: var(--text);
+}
+
+.nav__link.is-active {
+  background: var(--primary);
+  color: #0a0a0a;
+}
+
 /* Segmented control */
 .segmented {
   display: flex;
