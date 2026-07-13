@@ -14,6 +14,7 @@
   const formatNote = document.getElementById('formatNote');
   const icoSizePanel = document.getElementById('icoSizePanel');
   const icoSizeSelector = document.getElementById('icoSizeSelector');
+  const icoCropSelector = document.getElementById('icoCropSelector');
   const qualityInput = document.getElementById('quality');
   const qualityValue = document.getElementById('qualityValue');
   const resizeModeSelector = document.getElementById('resizeModeSelector');
@@ -42,6 +43,7 @@
     width: null,
     height: null,
     icoSizes: [32, 256],
+    icoCropMode: 'cover',
   };
 
   const FORMAT_NOTES = {
@@ -49,7 +51,7 @@
     avif: 'AVIF 压缩率最高，但 Safari 16+ / Firefox 93+ / Chrome 85+ 才支持导出；不支持的浏览器会自动降级为 WebP。',
     jpeg: 'JPEG 通用性最强，适合照片；不支持透明背景，透明区域会变成白色。',
     png: 'PNG 是无损格式，保留透明通道，但体积通常较大。',
-    ico: 'ICO 用于网站 favicon，支持多尺寸（PNG 编码）。推荐同时包含 32×32 与 256×256。',
+    ico: 'ICO 用于网站 favicon，支持多尺寸（PNG 编码）。非方形图片可选择居中裁剪或等比缩放。推荐同时包含 32×32 与 256×256。',
   };
 
   const FORMAT_MIMES = {
@@ -161,6 +163,16 @@
       } else {
         state.icoSizes = selected;
       }
+      reconvertAll();
+    });
+  });
+
+  // ICO 非方形图片处理模式
+  icoCropSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      icoCropSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      state.icoCropMode = btn.dataset.value;
       reconvertAll();
     });
   });
@@ -386,7 +398,7 @@
       canvas.height = size;
       const c = canvas.getContext('2d');
       c.clearRect(0, 0, size, size);
-      drawCoverSquare(c, img, size);
+      drawSquareImage(c, img, size, state.icoCropMode);
 
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('无法生成 ICO 所需的 PNG 数据');
@@ -441,11 +453,28 @@
     };
   }
 
-  // 居中裁剪并缩放成正方形
-  function drawCoverSquare(c, img, size) {
+  // 把图片绘制成正方形：cover 居中裁剪 / contain 等比缩放透明填充
+  function drawSquareImage(c, img, size, mode) {
     const ratio = img.naturalWidth / img.naturalHeight;
-    let sx, sy, sWidth, sHeight;
 
+    if (mode === 'contain') {
+      let dw, dh;
+      if (ratio > 1) {
+        dw = size;
+        dh = size / ratio;
+      } else {
+        dh = size;
+        dw = size * ratio;
+      }
+      const dx = (size - dw) / 2;
+      const dy = (size - dh) / 2;
+      c.clearRect(0, 0, size, size);
+      c.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, dw, dh);
+      return;
+    }
+
+    // cover 模式：居中裁剪
+    let sx, sy, sWidth, sHeight;
     if (ratio > 1) {
       sHeight = img.naturalHeight;
       sWidth = sHeight;

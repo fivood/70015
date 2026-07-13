@@ -238,6 +238,14 @@ body {
   gap: var(--space-sm);
 }
 
+.settings__subgroup {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space);
+  padding-top: var(--space);
+  border-top: 1px solid var(--border);
+}
+
 .settings__label {
   display: block;
   font-size: 13px;

@@ -80,7 +80,14 @@
               <label class="chip"><input type="checkbox" value="128"><span>128×128</span></label>
               <label class="chip"><input type="checkbox" value="256" checked><span>256×256</span></label>
             </div>
-            <p class="settings__note">favicon 推荐 32×32 与 256×256；多尺寸 ICO 可自动适配浏览器标签页、桌面快捷方式等场景。</p>
+            <div class="settings__subgroup">
+              <label class="settings__label">非方形图片处理</label>
+              <div class="segmented" id="icoCropSelector">
+                <button class="segmented__btn is-active" data-value="cover" type="button">居中裁剪</button>
+                <button class="segmented__btn" data-value="contain" type="button">等比缩放</button>
+              </div>
+              <p class="settings__note">居中裁剪会填满正方形；等比缩放会保留完整画面，四周透明填充。</p>
+            </div>
           </div>
 
           <div class="settings__group">
