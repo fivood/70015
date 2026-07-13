@@ -290,6 +290,50 @@ body {
   box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.15);
 }
 
+/* Chips */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.chip span {
+  display: inline-flex;
+  padding: 8px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.chip input:checked + span {
+  background: var(--primary);
+  color: #1a0f00;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
+}
+
+.chip input:focus-visible + span {
+  box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.25);
+}
+
 /* Segmented control */
 .segmented {
   display: flex;

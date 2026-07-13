@@ -1,6 +1,6 @@
 /**
  * Web Toolbox — Image Converter
- * 纯前端图片格式转换器
+ * 纯前端图片格式转换器（支持 WebP / AVIF / JPEG / PNG / ICO）
  * 参考实现：HTML5 Canvas API + JSZip + FileSaver
  */
 
@@ -12,6 +12,8 @@
   const fileInput = document.getElementById('fileInput');
   const formatSelector = document.getElementById('formatSelector');
   const formatNote = document.getElementById('formatNote');
+  const icoSizePanel = document.getElementById('icoSizePanel');
+  const icoSizeSelector = document.getElementById('icoSizeSelector');
   const qualityInput = document.getElementById('quality');
   const qualityValue = document.getElementById('qualityValue');
   const resizeModeSelector = document.getElementById('resizeModeSelector');
@@ -39,6 +41,7 @@
     resizeMode: 'original',
     width: null,
     height: null,
+    icoSizes: [32, 256],
   };
 
   const FORMAT_NOTES = {
@@ -46,6 +49,7 @@
     avif: 'AVIF 压缩率最高，但 Safari 16+ / Firefox 93+ / Chrome 85+ 才支持导出；不支持的浏览器会自动降级为 WebP。',
     jpeg: 'JPEG 通用性最强，适合照片；不支持透明背景，透明区域会变成白色。',
     png: 'PNG 是无损格式，保留透明通道，但体积通常较大。',
+    ico: 'ICO 用于网站 favicon，支持多尺寸（PNG 编码）。推荐同时包含 32×32 与 256×256。',
   };
 
   const FORMAT_MIMES = {
@@ -53,6 +57,7 @@
     avif: 'image/avif',
     jpeg: 'image/jpeg',
     png: 'image/png',
+    ico: 'image/x-icon',
   };
 
   const FORMAT_EXTENSIONS = {
@@ -60,7 +65,10 @@
     avif: 'avif',
     jpeg: 'jpg',
     png: 'png',
+    ico: 'ico',
   };
+
+  const DEFAULT_ICO_SIZES = [32, 256];
 
   // 工具函数
   function formatBytes(bytes) {
@@ -81,13 +89,17 @@
     setTimeout(() => toast.classList.remove('is-visible'), duration);
   }
 
-  function getExtension(filename) {
-    const ext = filename.split('.').pop();
-    return ext ? ext.toLowerCase() : '';
-  }
-
   function getBaseName(filename) {
     return filename.replace(/\.[^/.]+$/, '');
+  }
+
+  function blobToArrayBuffer(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
   }
 
   // 检测浏览器是否支持某种 canvas 输出格式
@@ -128,6 +140,27 @@
       btn.classList.add('is-active');
       state.format = btn.dataset.value;
       formatNote.textContent = FORMAT_NOTES[state.format];
+      toggleIcoPanel();
+      reconvertAll();
+    });
+  });
+
+  function toggleIcoPanel() {
+    icoSizePanel.hidden = state.format !== 'ico';
+  }
+
+  // ICO 尺寸选择
+  icoSizeSelector.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      const selected = Array.from(icoSizeSelector.querySelectorAll('input:checked')).map((c) => parseInt(c.value, 10));
+      if (selected.length === 0) {
+        // 至少保留一个，默认 32
+        cb.checked = true;
+        state.icoSizes = [32];
+        showToast('至少选择一个 ICO 尺寸');
+      } else {
+        state.icoSizes = selected;
+      }
       reconvertAll();
     });
   });
@@ -207,7 +240,7 @@
       const zip = new JSZip();
       const folder = zip.folder('converted-images');
       readyItems.forEach((item) => {
-        const name = `${getBaseName(item.file.name)}.${FORMAT_EXTENSIONS[state.format]}`;
+        const name = `${getBaseName(item.file.name)}.${FORMAT_EXTENSIONS[item.result.format]}`;
         folder.file(name, item.result.blob);
       });
 
@@ -291,11 +324,15 @@
         const img = new Image();
         img.onload = () => {
           try {
+            if (format === 'ico') {
+              resolve(convertToIco(img));
+              return;
+            }
+
             const { width, height } = calculateDimensions(img.naturalWidth, img.naturalHeight);
             workCanvas.width = width;
             workCanvas.height = height;
 
-            // 清空画布，避免 JPEG/PNG 出现透明残影
             ctx.clearRect(0, 0, width, height);
             if (format === 'jpeg') {
               ctx.fillStyle = '#ffffff';
@@ -335,6 +372,93 @@
       reader.onerror = () => reject(new Error('文件读取失败'));
       reader.readAsDataURL(file);
     });
+  }
+
+  // ICO 生成：PNG 编码的多尺寸图标（Vista+ 兼容）
+  async function convertToIco(img) {
+    const sizes = [...state.icoSizes].sort((a, b) => a - b);
+    if (sizes.length === 0) sizes.push(32);
+
+    const pngBuffers = [];
+    for (const size of sizes) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const c = canvas.getContext('2d');
+      c.clearRect(0, 0, size, size);
+      drawCoverSquare(c, img, size);
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('无法生成 ICO 所需的 PNG 数据');
+      const buf = await blobToArrayBuffer(blob);
+      pngBuffers.push({ size, buffer: new Uint8Array(buf) });
+    }
+
+    const count = pngBuffers.length;
+    const headerSize = 6;
+    const dirSize = count * 16;
+    let dataOffset = headerSize + dirSize;
+
+    const header = new DataView(new ArrayBuffer(headerSize));
+    header.setUint16(0, 0, true); // Reserved
+    header.setUint16(2, 1, true); // Type: icon
+    header.setUint16(4, count, true); // Count
+
+    const dir = new DataView(new ArrayBuffer(dirSize));
+    const parts = [new Uint8Array(header.buffer)];
+
+    let dirOffset = 0;
+    for (let i = 0; i < count; i++) {
+      const { size, buffer } = pngBuffers[i];
+      const w = size >= 256 ? 0 : size;
+      const h = size >= 256 ? 0 : size;
+
+      dir.setUint8(dirOffset, w);
+      dir.setUint8(dirOffset + 1, h);
+      dir.setUint8(dirOffset + 2, 0); // ColorCount
+      dir.setUint8(dirOffset + 3, 0); // Reserved
+      dir.setUint16(dirOffset + 4, 1, true); // Planes
+      dir.setUint16(dirOffset + 6, 32, true); // BitCount
+      dir.setUint32(dirOffset + 8, buffer.length, true); // BytesInRes
+      dir.setUint32(dirOffset + 12, dataOffset, true); // ImageOffset
+
+      parts.push(buffer);
+      dataOffset += buffer.length;
+      dirOffset += 16;
+    }
+
+    parts.splice(1, 0, new Uint8Array(dir.buffer));
+    const icoBlob = new Blob(parts, { type: 'image/x-icon' });
+
+    return {
+      blob: icoBlob,
+      width: sizes[sizes.length - 1],
+      height: sizes[sizes.length - 1],
+      icoSizes: sizes,
+      originalWidth: img.naturalWidth,
+      originalHeight: img.naturalHeight,
+      format: 'ico',
+    };
+  }
+
+  // 居中裁剪并缩放成正方形
+  function drawCoverSquare(c, img, size) {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    let sx, sy, sWidth, sHeight;
+
+    if (ratio > 1) {
+      sHeight = img.naturalHeight;
+      sWidth = sHeight;
+      sx = (img.naturalWidth - sWidth) / 2;
+      sy = 0;
+    } else {
+      sWidth = img.naturalWidth;
+      sHeight = sWidth;
+      sx = 0;
+      sy = (img.naturalHeight - sHeight) / 2;
+    }
+
+    c.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, size, size);
   }
 
   function calculateDimensions(originalWidth, originalHeight) {
@@ -404,9 +528,16 @@
     const reduction = isReady
       ? `，节省 ${Math.max(0, 100 - Math.round((item.result.blob.size / item.file.size) * 100))}%`
       : '';
-    const meta = isReady
-      ? `${item.result.width}×${item.result.height} · ${formatBytes(item.result.blob.size)}${reduction}`
-      : `${formatBytes(item.file.size)}`;
+
+    let meta = `${formatBytes(item.file.size)}`;
+    if (isReady) {
+      if (item.result.format === 'ico' && item.result.icoSizes) {
+        const sizesText = item.result.icoSizes.join('、') + ' px';
+        meta = `ICO（${sizesText}） · ${formatBytes(item.result.blob.size)}${reduction}`;
+      } else {
+        meta = `${item.result.width}×${item.result.height} · ${formatBytes(item.result.blob.size)}${reduction}`;
+      }
+    }
 
     el.innerHTML = `
       <img class="file__thumb" src="${thumbSrc}" alt="" loading="lazy">
@@ -477,5 +608,6 @@
   }
 
   // 初始化
+  toggleIcoPanel();
   updateDimensionFields();
 })();
