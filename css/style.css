@@ -61,6 +61,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space);
+  color: var(--text);
+  text-decoration: none;
 }
 
 .header__logo {
@@ -91,27 +93,150 @@ body {
   color: var(--text-muted);
 }
 
-.header__github {
+.menu-btn {
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
   color: var(--text);
   background: var(--surface-2);
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  cursor: pointer;
   transition: background 0.2s, transform 0.15s;
 }
 
-.header__github:hover,
-.header__github:focus-visible {
+.menu-btn:hover,
+.menu-btn:focus-visible {
   background: var(--surface-3);
   transform: scale(1.05);
 }
 
-.header__github svg {
+.menu-btn svg {
   width: 22px;
   height: 22px;
+}
+
+/* Menu overlay */
+.menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  display: grid;
+  place-items: center;
+  padding: var(--space);
+}
+
+.menu.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.menu__inner {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-lg);
+}
+
+.menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.menu__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.menu__close {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.menu__close:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.menu__close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.menu__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space);
+}
+
+.menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.menu__item:hover {
+  background: var(--surface-3);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.menu__item.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #0a0a0a;
+}
+
+.menu__icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.menu__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.menu__label {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* Cards */
@@ -366,35 +491,6 @@ body {
   color: #0a0a0a;
   border-color: var(--primary);
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
-}
-
-/* Navigation */
-.nav {
-  display: flex;
-  gap: var(--space-xs);
-  padding: 4px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.nav__link {
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: background 0.2s, color 0.2s;
-}
-
-.nav__link:hover {
-  color: var(--text);
-}
-
-.nav__link.is-active {
-  background: var(--primary);
-  color: #0a0a0a;
 }
 
 /* Segmented control */
