@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Base64 图片互换 · 70015</title>
-  <meta name="description" content="浏览器端图片与 Base64 DataURL 互转工具。上传图片生成 Base64，或粘贴 Base64 还原为图片。数据不上传服务器。">
+  <title>Base64 Swap · 70015</title>
+  <meta name="description" content="Convert images to Base64 Data URLs or decode Base64 back to images. All in the browser, no upload.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
   <script>
@@ -35,13 +35,13 @@
         </div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="打开菜单" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="5" cy="12" r="2"/>
           <circle cx="12" cy="12" r="2"/>
@@ -54,8 +54,8 @@
     <nav class="menu" id="menu" aria-hidden="true">
       <div class="menu__inner">
         <div class="menu__header">
-          <span class="menu__title">70015 Tools</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="关闭菜单">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <path d="M18 6 L6 18"/>
               <path d="M6 6 L18 18"/>
@@ -72,7 +72,7 @@
                 <rect x="14" y="14" width="6" height="6" rx="1"/>
               </svg>
             </span>
-            <span class="menu__label">首页</span>
+            <span class="menu__label">Home</span>
           </a>
           <a class="menu__item" href="converter">
             <span class="menu__icon">
@@ -81,7 +81,7 @@
                 <path d="M3 15 L8 10 L12 14 L21 5"/>
               </svg>
             </span>
-            <span class="menu__label">图片转换</span>
+            <span class="menu__label">Image Converter</span>
           </a>
           <a class="menu__item" href="palette">
             <span class="menu__icon">
@@ -92,7 +92,7 @@
                 <circle cx="12" cy="12" r="4"/>
               </svg>
             </span>
-            <span class="menu__label">配色板</span>
+            <span class="menu__label">Color Palette</span>
           </a>
           <a class="menu__item is-active" href="base64">
             <span class="menu__icon">
@@ -103,7 +103,7 @@
                 <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>
               </svg>
             </span>
-            <span class="menu__label">Base64 图片互换</span>
+            <span class="menu__label">Base64 Swap</span>
           </a>
         </div>
       </div>
@@ -113,14 +113,14 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h2 class="hero__title">Base64 图片互换</h2>
-          <p class="hero__desc">上传图片生成 Base64 DataURL，或粘贴 Base64 字符串还原为图片。所有处理在浏览器内完成。</p>
+          <h2 class="hero__title">Base64 Swap</h2>
+          <p class="hero__desc">Image ↔ Base64 Data URL. Drop an image or paste a string.</p>
         </div>
       </section>
 
       <section class="panel card" id="imgToBase64">
         <div class="settings__group">
-          <span class="settings__label">图片 → Base64</span>
+          <span class="settings__label">Image → Base64</span>
           <div class="upload" id="imgUpload">
             <input class="upload__input" id="imgInput" type="file" accept="image/*" multiple>
             <div class="upload__content">
@@ -131,15 +131,15 @@
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <p class="upload__title">拖拽图片到此处，或点击上传</p>
-              <p class="upload__hint">支持多张图片同时处理</p>
+              <p class="upload__title">Drop images here or click to upload</p>
+              <p class="upload__hint">Multiple images supported</p>
             </div>
           </div>
 
           <div class="settings__row">
             <label class="chip chip--btn" id="prefixToggle">
               <input type="checkbox" checked>
-              <span>包含 data:image/xxx;base64, 前缀</span>
+              <span>Include data:image/xxx;base64, prefix</span>
             </label>
           </div>
         </div>
@@ -149,21 +149,21 @@
 
       <section class="panel card" id="base64ToImg">
         <div class="settings__group">
-          <span class="settings__label">Base64 → 图片</span>
+          <span class="settings__label">Base64 → Image</span>
           <div class="field">
-            <label for="base64Input">粘贴 Base64 字符串</label>
-            <textarea class="field__textarea" id="base64Input" rows="6" placeholder="支持 data:image/...;base64,xxx 或纯 Base64 内容"></textarea>
+            <label for="base64Input">Paste Base64 string</label>
+            <textarea class="field__textarea" id="base64Input" rows="6" placeholder="Supports data:image/...;base64,xxx or raw Base64"></textarea>
           </div>
-          <p class="settings__note" id="b64Hint">输入后会自动解析并预览。</p>
+          <p class="settings__note" id="b64Hint">Preview updates automatically.</p>
         </div>
 
         <div class="preview" id="imgPreview" hidden>
           <div class="preview__media">
-            <img id="previewImg" alt="Base64 预览">
+            <img id="previewImg" alt="Base64 preview">
           </div>
           <div class="preview__info">
             <span id="previewSize">—</span>
-            <button class="btn btn--primary btn--sm" id="downloadImgBtn" type="button">下载图片</button>
+            <button class="btn btn--primary btn--sm" id="downloadImgBtn" type="button">Download image</button>
           </div>
         </div>
       </section>

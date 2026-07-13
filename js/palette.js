@@ -1,6 +1,6 @@
 /**
  * 70015 — Palette Generator
- * 从图片中提取配色方案
+ * Extract dominant colors from images
  */
 
 (function () {
@@ -27,7 +27,7 @@
     samplePrecision: 2,
   };
 
-  const SAMPLE_LABELS = { 1: '低', 2: '中', 3: '高' };
+  const SAMPLE_LABELS = { 1: 'Low', 2: 'Med', 3: 'High' };
   const SAMPLE_SIZES = { 1: 32, 2: 64, 3: 128 };
 
   function showToast(message, duration = 2000) {
@@ -48,7 +48,7 @@
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   }
 
-  // 上传事件
+  // Upload events
   let originalTitle = '';
   let originalHint = '';
 
@@ -57,8 +57,8 @@
       originalTitle = uploadTitle.textContent;
       originalHint = uploadHint.textContent;
     }
-    uploadTitle.textContent = '释放文件以上传';
-    uploadHint.textContent = '支持多张图片和文件夹';
+    uploadTitle.textContent = 'Drop files to upload';
+    uploadHint.textContent = 'Multiple images and folders supported';
   });
 
   dropZone.addEventListener('dragover', (e) => {
@@ -109,12 +109,12 @@
     });
     state.items = [];
     render();
-    showToast('已清空');
+    showToast('Cleared');
   });
 
   exportBtn.addEventListener('click', () => {
     if (state.items.length === 0) {
-      showToast('没有可导出的数据');
+      showToast('Nothing to export');
       return;
     }
     const data = state.items.map((item) => ({
@@ -128,13 +128,13 @@
     a.download = `70015-palettes-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('已导出 JSON');
+    showToast('JSON exported');
   });
 
   function handleFiles(fileListObj) {
     const accepted = Array.from(fileListObj).filter((file) => file.type.startsWith('image/'));
     if (accepted.length === 0) {
-      showToast('请选择图片文件');
+      showToast('Please select image files');
       return;
     }
 
@@ -183,10 +183,10 @@
             reject(err);
           }
         };
-        img.onerror = () => reject(new Error('无法读取图片'));
+        img.onerror = () => reject(new Error('Could not read image'));
         img.src = e.target.result;
       };
-      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.onerror = () => reject(new Error('File read failed'));
       reader.readAsDataURL(file);
     });
   }
@@ -195,7 +195,7 @@
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    // 等比缩放到 sampleSize 以内
+    // Downsample to sampleSize
     const ratio = img.naturalWidth / img.naturalHeight;
     let w, h;
     if (ratio > 1) {
@@ -212,15 +212,15 @@
     const imageData = ctx.getImageData(0, 0, w, h).data;
     const buckets = new Map();
 
-    // 量化并统计颜色频率
-    for (let i = 0; i < imageData.length; i += 16) { // 跳过部分像素加快速度
+    // Quantize and count colors
+    for (let i = 0; i < imageData.length; i += 16) { // Skip pixels for speed
       const r = imageData[i];
       const g = imageData[i + 1];
       const b = imageData[i + 2];
       const a = imageData[i + 3];
       if (a < 128) continue;
 
-      // 量化到 6bit，合并相似色
+      // Quantize to 6bit, merge similar colors
       const qr = Math.round(r / 32) * 32;
       const qg = Math.round(g / 32) * 32;
       const qb = Math.round(b / 32) * 32;
@@ -229,12 +229,12 @@
       buckets.set(key, (buckets.get(key) || 0) + 1);
     }
 
-    // 按频率排序
+    // Sort by frequency
     const sorted = Array.from(buckets.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, colorCount * 3);
 
-    // 合并过于相似的颜色，避免重复
+    // Merge overly similar colors
     const unique = [];
     for (const [key] of sorted) {
       const [r, g, b] = key.split(',').map(Number);
@@ -279,14 +279,14 @@
     const colorsHtml = item.colors
       .map(
         (color) => `
-        <div class="color-swatch" style="background-color: ${color.hex};" data-hex="${color.hex}" title="点击复制 ${color.hex}">
+        <div class="color-swatch" style="background-color: ${color.hex};" data-hex="${color.hex}" title="Copy ${color.hex}">
           <span class="color-swatch__label">${color.hex}</span>
         </div>
       `
       )
       .join('');
 
-    const loading = item.colors.length === 0 ? '<p class="palette-card__name">提取中…</p>' : '';
+    const loading = item.colors.length === 0 ? '<p class="palette-card__name">Extracting…</p>' : '';
 
     el.innerHTML = `
       <img class="palette-card__thumb" src="${item.blobUrl}" alt="" loading="lazy">
@@ -295,8 +295,8 @@
         ${loading}
         <div class="palette-card__colors">${colorsHtml}</div>
         <div class="palette-card__actions">
-          <button class="btn btn--secondary btn--sm" data-action="copy-css" data-id="${item.id}" type="button">复制 CSS</button>
-          <button class="btn btn--secondary btn--sm" data-action="remove" data-id="${item.id}" type="button">移除</button>
+          <button class="btn btn--secondary btn--sm" data-action="copy-css" data-id="${item.id}" type="button">Copy CSS</button>
+          <button class="btn btn--secondary btn--sm" data-action="remove" data-id="${item.id}" type="button">Remove</button>
         </div>
       </div>
     `;
@@ -328,8 +328,8 @@
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(
-      () => showToast(`已复制 ${text}`),
-      () => showToast('复制失败')
+      () => showToast(`Copied ${text}`),
+      () => showToast('Copy failed')
     );
   }
 
@@ -345,7 +345,7 @@
   function updateActions() {
     const count = state.items.length;
     actionsPanel.hidden = count === 0;
-    fileCount.textContent = `${count} 张图片`;
+    fileCount.textContent = `${count} images`;
   }
 
   function escapeHtml(str) {

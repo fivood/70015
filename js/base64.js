@@ -50,7 +50,7 @@
   async function handleImageFiles(files) {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
     if (!validFiles.length) {
-      showToast('请选择图片文件');
+      showToast('Please select image files');
       return;
     }
 
@@ -60,7 +60,7 @@
         const output = getPrefix() ? dataUrl : stripPrefix(dataUrl);
         addBase64Item(file, output);
       } catch (err) {
-        showToast(file.name + ' 读取失败');
+        showToast('Failed to read ' + file.name);
       }
     }
   }
@@ -76,11 +76,11 @@
       <img class="file__thumb" src="${url}" alt="" loading="lazy">
       <div class="file__info">
         <p class="file__name">${escapeHtml(file.name)}</p>
-        <p class="file__meta">Base64 长度：${base64.length.toLocaleString()} · 约 ${sizeText}</p>
+        <p class="file__meta">Base64 length: ${base64.length.toLocaleString()} · ~${sizeText}</p>
       </div>
       <div class="file__actions">
-        <button class="btn btn--primary btn--sm" type="button" data-copy>复制</button>
-        <button class="btn btn--secondary btn--sm" type="button" data-download>下载 .txt</button>
+        <button class="btn btn--primary btn--sm" type="button" data-copy>Copy</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-download>Download .txt</button>
       </div>
     `;
 
@@ -90,9 +90,9 @@
     copyBtn.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(base64);
-        showToast('已复制到剪贴板');
+        showToast('Copied to clipboard');
       } catch (e) {
-        showToast('复制失败，请手动复制');
+        showToast('Copy failed');
       }
     });
 
@@ -161,19 +161,19 @@
 
     if (!dataUrl) {
       imgPreview.hidden = true;
-      b64Hint.textContent = '输入后会自动解析并预览。';
+      b64Hint.textContent = 'Preview updates automatically.';
       return;
     }
 
     previewImg.onload = () => {
       imgPreview.hidden = false;
       previewSize.textContent = `${previewImg.naturalWidth} × ${previewImg.naturalHeight} px`;
-      b64Hint.textContent = '解析成功，点击下方按钮下载原图。';
+      b64Hint.textContent = 'Parsed. Click the button to download the image.';
     };
 
     previewImg.onerror = () => {
       imgPreview.hidden = true;
-      b64Hint.textContent = '无法解析该 Base64 内容，请检查格式。';
+      b64Hint.textContent = 'Could not parse this Base64 content.';
     };
 
     previewImg.src = dataUrl;

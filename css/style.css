@@ -54,7 +54,7 @@ html {
 
 body {
   margin: 0;
-  font-family: "Inter", "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.55;
@@ -285,9 +285,11 @@ body {
 
 .hero {
   position: relative;
-  padding: var(--space-lg);
+  padding: var(--space-lg) 0;
   margin-bottom: var(--space-lg);
-  background: linear-gradient(135deg, var(--surface) 60%, var(--surface-2) 100%);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .hero__blob {
@@ -297,7 +299,7 @@ body {
   width: 160px;
   height: 160px;
   background: var(--primary);
-  opacity: 0.12;
+  opacity: 0.08;
   border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
   filter: blur(28px);
   pointer-events: none;

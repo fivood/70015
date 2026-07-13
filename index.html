@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>70015 — Web Toolbox</title>
-  <meta name="description" content="70015 是一个暖灰色调的个人 Web 工具箱，提供图片转换、配色板等设计师与产品经理常用工具。">
+  <meta name="description" content="A browser-based toolbox for designers. Convert images, extract colors, swap Base64. No upload.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
   <script>
@@ -35,7 +35,7 @@
         </div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -48,15 +48,15 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h2 class="hero__title">个人 Web 工具箱</h2>
-          <p class="hero__desc">针对设计师与产品经理的日常需求，提供图片转换、配色提取、Base64 图片互换等纯前端小工具。所有处理在浏览器内完成，数据不上传服务器。</p>
+          <h2 class="hero__title">Web Toolbox</h2>
+          <p class="hero__desc">Drop files in your browser. Fast, private, no server.</p>
         </div>
       </section>
 
       <section class="tools card">
         <div class="tools__header">
-          <h3 class="tools__title">全部工具</h3>
-          <span class="tools__count">3 个模块</span>
+          <h3 class="tools__title">Tools</h3>
+          <span class="tools__count">3 tools</span>
         </div>
         <div class="tools__grid">
           <a class="tool-card" href="converter">
@@ -67,8 +67,8 @@
               </svg>
             </span>
             <div class="tool-card__info">
-              <h4 class="tool-card__name">图片转换</h4>
-              <p class="tool-card__desc">WebP / AVIF / JPEG / PNG / ICO 批量转换，支持压缩、裁剪与打包下载</p>
+              <h4 class="tool-card__name">Image Converter</h4>
+              <p class="tool-card__desc">Batch convert to WebP / AVIF / JPEG / PNG / ICO. Resize, compress, zip.</p>
             </div>
             <span class="tool-card__arrow" aria-hidden="true">→</span>
           </a>
@@ -83,8 +83,8 @@
               </svg>
             </span>
             <div class="tool-card__info">
-              <h4 class="tool-card__name">配色板</h4>
-              <p class="tool-card__desc">从参考图中提取主色调，生成 Web 设计色板，支持复制与导出 JSON</p>
+              <h4 class="tool-card__name">Color Palette</h4>
+              <p class="tool-card__desc">Extract dominant colors from images. Copy HEX, export JSON.</p>
             </div>
             <span class="tool-card__arrow" aria-hidden="true">→</span>
           </a>
@@ -98,8 +98,8 @@
               </svg>
             </span>
             <div class="tool-card__info">
-              <h4 class="tool-card__name">Base64 图片互换</h4>
-              <p class="tool-card__desc">图片转 Base64 DataURL，或粘贴 Base64 字符串还原为图片</p>
+              <h4 class="tool-card__name">Base64 Swap</h4>
+              <p class="tool-card__desc">Image → Base64 Data URL, or paste Base64 to get the image back.</p>
             </div>
             <span class="tool-card__arrow" aria-hidden="true">→</span>
           </a>

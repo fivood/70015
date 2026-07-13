@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>图片转换 · 70015</title>
-  <meta name="description" content="针对 Web 使用的浏览器端图片格式转换工具，支持 WebP / AVIF / JPEG / PNG，批量处理、压缩、缩放，数据不上传服务器。">
+  <title>Image Converter · 70015</title>
+  <meta name="description" content="Convert images to WebP / AVIF / JPEG / PNG / ICO in the browser. Batch resize, compress, and download as ZIP. No upload.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
   <script>
@@ -35,13 +35,13 @@
         </div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="打开菜单" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="5" cy="12" r="2"/>
           <circle cx="12" cy="12" r="2"/>
@@ -54,8 +54,8 @@
     <nav class="menu" id="menu" aria-hidden="true">
       <div class="menu__inner">
         <div class="menu__header">
-          <span class="menu__title">70015 Tools</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="关闭菜单">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <path d="M18 6 L6 18"/>
               <path d="M6 6 L18 18"/>
@@ -72,7 +72,7 @@
                 <rect x="14" y="14" width="6" height="6" rx="1"/>
               </svg>
             </span>
-            <span class="menu__label">首页</span>
+            <span class="menu__label">Home</span>
           </a>
           <a class="menu__item is-active" href="converter">
             <span class="menu__icon">
@@ -81,7 +81,7 @@
                 <path d="M3 15 L8 10 L12 14 L21 5"/>
               </svg>
             </span>
-            <span class="menu__label">图片转换</span>
+            <span class="menu__label">Image Converter</span>
           </a>
           <a class="menu__item" href="palette">
             <span class="menu__icon">
@@ -92,7 +92,7 @@
                 <circle cx="12" cy="12" r="4"/>
               </svg>
             </span>
-            <span class="menu__label">配色板</span>
+            <span class="menu__label">Color Palette</span>
           </a>
           <a class="menu__item" href="base64">
             <span class="menu__icon">
@@ -103,7 +103,7 @@
                 <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>
               </svg>
             </span>
-            <span class="menu__label">Base64 图片互换</span>
+            <span class="menu__label">Base64 Swap</span>
           </a>
         </div>
     </div>
@@ -113,14 +113,14 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h2 class="hero__title">Web 图片格式转换</h2>
-          <p class="hero__desc">把任意图片转成 WebP / AVIF / JPEG / PNG / ICO，全部在浏览器内完成，不上传服务器。适合裁剪博客封面、压缩作品集图片、生成 favicon 与网页素材。</p>
+          <h2 class="hero__title">Image Converter</h2>
+          <p class="hero__desc">Drop images, pick a format, download. Works entirely in your browser.</p>
         </div>
       </section>
 
       <section class="panel card">
         <div class="upload" id="dropZone">
-          <input type="file" id="fileInput" class="upload__input" accept="image/*" multiple aria-label="选择图片">
+          <input type="file" id="fileInput" class="upload__input" accept="image/*" multiple aria-label="Choose images">
           <div class="upload__content">
             <div class="upload__icon" aria-hidden="true">
               <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -129,27 +129,27 @@
                 <path d="M12 44 L12 50 H52 V44"/>
               </svg>
             </div>
-            <p class="upload__title">拖拽图片到这里，或点击上传</p>
-            <p class="upload__hint">支持 JPG、PNG、WebP、GIF、AVIF、SVG 等浏览器可读格式</p>
+            <p class="upload__title">Drop images here or click to upload</p>
+            <p class="upload__hint">JPG, PNG, WebP, GIF, AVIF, SVG supported</p>
           </div>
         </div>
 
         <div class="settings">
           <div class="settings__group">
-            <label class="settings__label">快速预设</label>
+            <label class="settings__label">Presets</label>
             <div class="chips" id="presetSelector">
-              <button class="chip chip--btn is-active" data-preset="custom" type="button"><span>自定义</span></button>
-              <button class="chip chip--btn" data-preset="webp-only" type="button"><span>仅转 WebP</span></button>
-              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span>博客封面 1200×630</span></button>
-              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span>缩略图 300×300</span></button>
-              <button class="chip chip--btn" data-preset="social" type="button"><span>社媒 1080×1080</span></button>
+              <button class="chip chip--btn is-active" data-preset="custom" type="button"><span>Custom</span></button>
+              <button class="chip chip--btn" data-preset="webp-only" type="button"><span>WebP only</span></button>
+              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span>Blog cover 1200×630</span></button>
+              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span>Thumbnail 300×300</span></button>
+              <button class="chip chip--btn" data-preset="social" type="button"><span>Social 1080×1080</span></button>
               <button class="chip chip--btn" data-preset="favicon" type="button"><span>Favicon ICO</span></button>
             </div>
-            <p class="settings__note">点击预设会自动填充格式、尺寸与适配方式。</p>
+            <p class="settings__note">Presets auto-fill format, size, and fit.</p>
           </div>
 
           <div class="settings__group">
-            <label class="settings__label" for="outputFormat">输出格式</label>
+            <label class="settings__label" for="outputFormat">Output format</label>
             <div class="segmented" id="formatSelector">
               <button class="segmented__btn is-active" data-value="webp" type="button">WebP</button>
               <button class="segmented__btn" data-value="avif" type="button">AVIF</button>
@@ -157,11 +157,11 @@
               <button class="segmented__btn" data-value="png" type="button">PNG</button>
               <button class="segmented__btn" data-value="ico" type="button">ICO</button>
             </div>
-            <p class="settings__note" id="formatNote">WebP 兼容性最好，体积通常比 JPEG 小 25%–35%。</p>
+            <p class="settings__note" id="formatNote">WebP has the best balance of size and compatibility.</p>
           </div>
 
           <div class="settings__group ico-sizes" id="icoSizePanel" hidden>
-            <label class="settings__label">ICO 尺寸（多选）</label>
+            <label class="settings__label">ICO sizes</label>
             <div class="chips" id="icoSizeSelector">
               <label class="chip"><input type="checkbox" value="16" checked><span>16×16</span></label>
               <label class="chip"><input type="checkbox" value="32" checked><span>32×32</span></label>
@@ -171,64 +171,64 @@
               <label class="chip"><input type="checkbox" value="256" checked><span>256×256</span></label>
             </div>
             <div class="settings__subgroup">
-              <label class="settings__label">非方形图片处理</label>
+              <label class="settings__label">Non-square images</label>
               <div class="segmented" id="icoCropSelector">
-                <button class="segmented__btn is-active" data-value="cover" type="button">居中裁剪</button>
-                <button class="segmented__btn" data-value="contain" type="button">等比缩放</button>
+                <button class="segmented__btn is-active" data-value="cover" type="button">Cover</button>
+                <button class="segmented__btn" data-value="contain" type="button">Contain</button>
               </div>
-              <p class="settings__note">居中裁剪会填满正方形；等比缩放会保留完整画面，四周透明填充。</p>
+              <p class="settings__note">Cover crops to fill; Contain scales with transparent padding.</p>
             </div>
           </div>
 
           <div class="settings__group">
             <div class="settings__row">
-              <label class="settings__label" for="quality">压缩质量 <span class="settings__value" id="qualityValue">85</span>%</label>
+              <label class="settings__label" for="quality">Quality <span class="settings__value" id="qualityValue">85</span>%</label>
               <input class="range" type="range" id="quality" min="1" max="100" value="85">
             </div>
           </div>
 
           <div class="settings__group">
-            <label class="settings__label">尺寸调整</label>
+            <label class="settings__label">Resize</label>
             <div class="segmented" id="resizeModeSelector">
-              <button class="segmented__btn is-active" data-value="original" type="button">原尺寸</button>
-              <button class="segmented__btn" data-value="width" type="button">按宽度</button>
-              <button class="segmented__btn" data-value="height" type="button">按高度</button>
-              <button class="segmented__btn" data-value="max" type="button">限制最大边</button>
-              <button class="segmented__btn" data-value="custom" type="button">自定义</button>
+              <button class="segmented__btn is-active" data-value="original" type="button">Original</button>
+              <button class="segmented__btn" data-value="width" type="button">By width</button>
+              <button class="segmented__btn" data-value="height" type="button">By height</button>
+              <button class="segmented__btn" data-value="max" type="button">Max edge</button>
+              <button class="segmented__btn" data-value="custom" type="button">Custom</button>
             </div>
             <div class="settings__dimensions" id="dimensionsPanel">
               <div class="field" id="widthField">
-                <label for="widthInput">宽度 px</label>
-                <input type="number" id="widthInput" min="1" max="16384" placeholder="例如 1200">
+                <label for="widthInput">Width px</label>
+                <input type="number" id="widthInput" min="1" max="16384" placeholder="e.g. 1200">
               </div>
               <div class="field" id="heightField">
-                <label for="heightInput">高度 px</label>
-                <input type="number" id="heightInput" min="1" max="16384" placeholder="例如 800">
+                <label for="heightInput">Height px</label>
+                <input type="number" id="heightInput" min="1" max="16384" placeholder="e.g. 800">
               </div>
             </div>
             <div class="settings__subgroup" id="customFitPanel" hidden>
-              <label class="settings__label">自定义尺寸适配</label>
+              <label class="settings__label">Custom fit</label>
               <div class="segmented" id="customFitSelector">
-                <button class="segmented__btn is-active" data-value="contain" type="button">保持比例</button>
-                <button class="segmented__btn" data-value="cover" type="button">裁剪填充</button>
+                <button class="segmented__btn is-active" data-value="contain" type="button">Contain</button>
+                <button class="segmented__btn" data-value="cover" type="button">Cover</button>
               </div>
-              <p class="settings__note">保持比例会完整显示图片；裁剪填充会按目标尺寸居中裁剪并填满画面。</p>
+              <p class="settings__note">Contain keeps the full image; Cover crops to fill the target size.</p>
             </div>
-            <p class="settings__note" id="resizeNote">尺寸调整默认保持原图比例，不会拉伸变形。</p>
+            <p class="settings__note" id="resizeNote">Aspect ratio is preserved by default.</p>
           </div>
         </div>
       </section>
 
       <section class="actions card" id="actionsPanel" hidden>
         <div class="actions__info">
-          <span id="fileCount">0 张图片</span>
+          <span id="fileCount">0 images</span>
           <span class="dot" aria-hidden="true"></span>
           <span id="totalSize">0 MB</span>
         </div>
         <div class="actions__btns">
-          <button class="btn btn--secondary" id="clearBtn" type="button">清空</button>
+          <button class="btn btn--secondary" id="clearBtn" type="button">Clear</button>
           <button class="btn btn--primary" id="downloadAllBtn" type="button">
-            <span>打包下载 ZIP</span>
+            <span>Download ZIP</span>
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
           </button>
         </div>

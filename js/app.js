@@ -1,13 +1,13 @@
 /**
  * Web Toolbox — Image Converter
- * 纯前端图片格式转换器（支持 WebP / AVIF / JPEG / PNG / ICO）
- * 参考实现：HTML5 Canvas API + JSZip + FileSaver
+ * Browser-based image converter (WebP / AVIF / JPEG / PNG / ICO)
+ * Uses HTML5 Canvas API + JSZip + FileSaver
  */
 
 (function () {
   'use strict';
 
-  // DOM 元素
+  // DOM elements
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const uploadTitle = dropZone.querySelector('.upload__title');
@@ -39,7 +39,7 @@
 
   const ctx = workCanvas.getContext('2d');
 
-  // 状态
+  // State
   const state = {
     files: [], // { id, file, status, result, error, blobUrl }
     format: 'webp',
@@ -53,11 +53,11 @@
   };
 
   const FORMAT_NOTES = {
-    webp: 'WebP 兼容性最好（~95%），体积通常比 JPEG 小 25%–35%。',
-    avif: 'AVIF 压缩率最高，但 Safari 16+ / Firefox 93+ / Chrome 85+ 才支持导出；不支持的浏览器会自动降级为 WebP。',
-    jpeg: 'JPEG 通用性最强，适合照片；不支持透明背景，透明区域会变成白色。',
-    png: 'PNG 是无损格式，保留透明通道，但体积通常较大。',
-    ico: 'ICO 用于网站 favicon，支持多尺寸（PNG 编码）。非方形图片可选择居中裁剪或等比缩放。推荐同时包含 32×32 与 256×256。',
+    webp: 'WebP offers the best size-to-compatibility ratio.',
+    avif: 'AVIF has the highest compression, but export requires a supported browser; otherwise falls back to WebP.',
+    jpeg: 'JPEG is the most compatible format for photos; transparent areas become white.',
+    png: 'PNG is lossless and keeps transparency, but files are usually larger.',
+    ico: 'ICO is used for favicons. Include 32×32 and 256×256 for best coverage.',
   };
 
   const FORMAT_MIMES = {
@@ -87,7 +87,7 @@
     favicon: { format: 'ico', resizeMode: 'original', icoSizes: [32, 256], icoCropMode: 'cover', quality: 0.9 },
   };
 
-  // 工具函数
+  // Utilities
   function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -119,7 +119,7 @@
     });
   }
 
-  // 检测浏览器是否支持某种 canvas 输出格式
+  // Check if browser supports a canvas output format
   async function isFormatSupported(mime) {
     try {
       const blob = await new Promise((resolve) => workCanvas.toBlob(resolve, mime));
@@ -129,7 +129,7 @@
     }
   }
 
-  // 事件绑定：上传
+  // Upload events
   let originalTitle = '';
   let originalHint = '';
 
@@ -138,8 +138,8 @@
       originalTitle = uploadTitle.textContent;
       originalHint = uploadHint.textContent;
     }
-    uploadTitle.textContent = '释放文件以上传';
-    uploadHint.textContent = '支持多张图片和文件夹';
+    uploadTitle.textContent = 'Drop files to upload';
+    uploadHint.textContent = 'Multiple images and folders supported';
   });
 
   dropZone.addEventListener('dragover', (e) => {
@@ -163,10 +163,10 @@
 
   fileInput.addEventListener('change', (e) => {
     handleFiles(e.target.files);
-    fileInput.value = ''; // 允许重复选择同一文件
+    fileInput.value = ''; // Allow re-selecting the same file
   });
 
-  // 格式选择
+  // Format selection
   formatSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       formatSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
@@ -183,7 +183,7 @@
     icoSizePanel.hidden = state.format !== 'ico';
   }
 
-  // 快速预设
+  // Presets
   presetSelector.querySelectorAll('[data-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
       applyPreset(btn.dataset.preset);
@@ -197,7 +197,7 @@
       return;
     }
 
-    // 应用预设值
+    // Apply preset values
     if (preset.format) state.format = preset.format;
     if (preset.resizeMode) state.resizeMode = preset.resizeMode;
     if (preset.width !== undefined) state.width = preset.width;
@@ -219,52 +219,52 @@
   }
 
   function updateUI() {
-    // 格式
+    // Format
     formatSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.value === state.format);
     });
     formatNote.textContent = FORMAT_NOTES[state.format];
     toggleIcoPanel();
 
-    // 尺寸模式
+    // Resize mode
     resizeModeSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.value === state.resizeMode);
     });
     updateDimensionFields();
 
-    // 宽高输入
+    // Dimension inputs
     widthInput.value = state.width || '';
     heightInput.value = state.height || '';
 
-    // 自定义适配
+    // Custom fit
     customFitSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.value === state.customFit);
     });
 
-    // ICO 尺寸
+    // ICO sizes
     icoSizeSelector.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
       cb.checked = state.icoSizes.includes(parseInt(cb.value, 10));
     });
 
-    // ICO 裁剪模式
+    // ICO crop mode
     icoCropSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.value === state.icoCropMode);
     });
 
-    // 质量
+    // Quality
     qualityInput.value = Math.round(state.quality * 100);
     qualityValue.textContent = qualityInput.value;
   }
 
-  // ICO 尺寸选择
+  // ICO size selection
   icoSizeSelector.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
     cb.addEventListener('change', () => {
       const selected = Array.from(icoSizeSelector.querySelectorAll('input:checked')).map((c) => parseInt(c.value, 10));
       if (selected.length === 0) {
-        // 至少保留一个，默认 32
+        // Keep at least one, default to 32
         cb.checked = true;
         state.icoSizes = [32];
-        showToast('至少选择一个 ICO 尺寸');
+        showToast('Select at least one ICO size');
       } else {
         state.icoSizes = selected;
       }
@@ -273,7 +273,7 @@
     });
   });
 
-  // ICO 非方形图片处理模式
+  // ICO non-square image handling
   icoCropSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       icoCropSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
@@ -284,7 +284,7 @@
     });
   });
 
-  // 质量滑块
+  // Quality slider
   qualityInput.addEventListener('input', () => {
     state.quality = parseInt(qualityInput.value, 10) / 100;
     qualityValue.textContent = qualityInput.value;
@@ -295,7 +295,7 @@
     reconvertAll();
   });
 
-  // 尺寸模式
+  // Resize mode
   resizeModeSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       resizeModeSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
@@ -315,14 +315,14 @@
     customFitPanel.hidden = mode !== 'custom';
 
     if (mode === 'width') {
-      widthField.querySelector('label').textContent = '目标宽度 px';
+      widthField.querySelector('label').textContent = 'Target width px';
     } else if (mode === 'height') {
-      heightField.querySelector('label').textContent = '目标高度 px';
+      heightField.querySelector('label').textContent = 'Target height px';
     } else if (mode === 'max') {
-      widthField.querySelector('label').textContent = '最大边 px';
+      widthField.querySelector('label').textContent = 'Max edge px';
     } else if (mode === 'custom') {
-      widthField.querySelector('label').textContent = '宽度 px';
-      heightField.querySelector('label').textContent = '高度 px';
+      widthField.querySelector('label').textContent = 'Width px';
+      heightField.querySelector('label').textContent = 'Height px';
     }
   }
 
@@ -338,7 +338,7 @@
     reconvertAll();
   });
 
-  // 自定义尺寸适配方式
+  // Custom fit mode
   customFitSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       customFitSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
@@ -349,27 +349,27 @@
     });
   });
 
-  // 清空
+  // Clear
   clearBtn.addEventListener('click', () => {
     state.files.forEach((item) => {
       if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
     });
     state.files = [];
     render();
-    showToast('已清空全部图片');
+    showToast('All images cleared');
   });
 
-  // 打包下载
+  // Download ZIP
   downloadAllBtn.addEventListener('click', async () => {
     const readyItems = state.files.filter((f) => f.status === 'ready' && f.result);
     if (readyItems.length === 0) {
-      showToast('没有可下载的文件');
+      showToast('No files ready for download');
       return;
     }
 
     downloadAllBtn.disabled = true;
     const originalText = downloadAllBtn.innerHTML;
-    downloadAllBtn.innerHTML = '<span>打包中…</span>';
+    downloadAllBtn.innerHTML = '<span>Zipping…</span>';
 
     try {
       const zip = new JSZip();
@@ -381,21 +381,21 @@
 
       const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, `web-toolbox-images-${state.format}-${Date.now()}.zip`);
-      showToast(`已打包 ${readyItems.length} 张图片`);
+      showToast(`Zipped ${readyItems.length} images`);
     } catch (err) {
       console.error(err);
-      showToast('打包失败：' + err.message);
+      showToast('Zip failed: ' + err.message);
     } finally {
       downloadAllBtn.disabled = false;
       downloadAllBtn.innerHTML = originalText;
     }
   });
 
-  // 处理文件
+  // Handle files
   function handleFiles(fileListObj) {
     const accepted = Array.from(fileListObj).filter((file) => file.type.startsWith('image/'));
     if (accepted.length === 0) {
-      showToast('请选择图片文件');
+      showToast('Please select image files');
       return;
     }
 
@@ -412,13 +412,13 @@
     render();
     convertItems(newItems);
 
-    // 上传后自动滚动到文件列表区域
+    // Scroll to file list after upload
     setTimeout(() => {
       actionsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }
 
-  // 重新转换全部
+  // Reconvert all
   function reconvertAll() {
     if (state.files.length === 0) return;
     state.files.forEach((item) => {
@@ -432,7 +432,7 @@
     convertItems(state.files);
   }
 
-  // 核心转换逻辑
+  // Core conversion
   async function convertItems(items) {
     const supportsAvif = state.format === 'avif' ? await isFormatSupported('image/avif') : true;
     const actualFormat = state.format === 'avif' && !supportsAvif ? 'webp' : state.format;
@@ -449,7 +449,7 @@
       } catch (err) {
         console.error(err);
         item.status = 'error';
-        item.error = err.message || '转换失败';
+        item.error = err.message || 'Conversion failed';
       }
       renderItem(item);
     }
@@ -492,7 +492,7 @@
             workCanvas.toBlob(
               (blob) => {
                 if (!blob) {
-                  reject(new Error('浏览器不支持输出该格式'));
+                  reject(new Error('Browser does not support this output format'));
                   return;
                 }
                 resolve({
@@ -511,15 +511,15 @@
             reject(err);
           }
         };
-        img.onerror = () => reject(new Error('无法读取图片'));
+        img.onerror = () => reject(new Error('Could not read image'));
         img.src = e.target.result;
       };
-      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.onerror = () => reject(new Error('File read failed'));
       reader.readAsDataURL(file);
     });
   }
 
-  // ICO 生成：PNG 编码的多尺寸图标（Vista+ 兼容）
+  // ICO generation: multi-size PNG-encoded icon
   async function convertToIco(img) {
     const sizes = [...state.icoSizes].sort((a, b) => a - b);
     if (sizes.length === 0) sizes.push(32);
@@ -534,7 +534,7 @@
       drawSquareImage(c, img, size, state.icoCropMode);
 
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('无法生成 ICO 所需的 PNG 数据');
+      if (!blob) throw new Error('Could not generate PNG data for ICO');
       const buf = await blobToArrayBuffer(blob);
       pngBuffers.push({ size, buffer: new Uint8Array(buf) });
     }
@@ -586,7 +586,7 @@
     };
   }
 
-  // 居中裁剪并填满目标矩形（cover）
+  // Cover crop and fill target rectangle
   function drawCoverRect(c, img, targetWidth, targetHeight) {
     const targetRatio = targetWidth / targetHeight;
     const sourceRatio = img.naturalWidth / img.naturalHeight;
@@ -607,7 +607,7 @@
     c.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
   }
 
-  // 把图片绘制成正方形：cover 居中裁剪 / contain 等比缩放透明填充
+  // Draw image as square: cover crop or contain scale with transparent padding
   function drawSquareImage(c, img, size, mode) {
     const ratio = img.naturalWidth / img.naturalHeight;
 
@@ -627,7 +627,7 @@
       return;
     }
 
-    // cover 模式：居中裁剪
+    // Cover: center crop
     let sx, sy, sWidth, sHeight;
     if (ratio > 1) {
       sHeight = img.naturalHeight;
@@ -674,10 +674,10 @@
 
     if (mode === 'custom' && w && h) {
       if (state.customFit === 'cover') {
-        // 按目标尺寸居中裁剪并填满
+        // Center crop to fill target size
         return { width: w, height: h };
       }
-      // 按用户给的宽高进行 contain 缩放，保持比例
+      // Contain scale to user dimensions, keep aspect ratio
       const targetRatio = w / h;
       if (ratio > targetRatio) {
         return { width: w, height: Math.round(w / ratio) };
@@ -688,7 +688,7 @@
     return { width: originalWidth, height: originalHeight };
   }
 
-  // 渲染
+  // Render
   function render() {
     fileList.innerHTML = '';
     state.files.forEach((item) => renderItem(item));
@@ -715,11 +715,11 @@
 
     const statusClass = isError ? 'file__status--error' : isReady ? 'file__status--ready' : 'file__status--converting';
     const statusHtml = isConverting
-      ? `<span class="file__status ${statusClass}">转换中</span><span class="progress-bar" aria-hidden="true"><span class="progress-bar__fill"></span></span>`
-      : `<span class="file__status ${statusClass}">${isError ? '失败' : isReady ? '完成' : '待处理'}</span>`;
+      ? `<span class="file__status ${statusClass}">Converting</span><span class="progress-bar" aria-hidden="true"><span class="progress-bar__fill"></span></span>`
+      : `<span class="file__status ${statusClass}">${isError ? 'Failed' : isReady ? 'Done' : 'Pending'}</span>`;
 
     const reduction = isReady
-      ? `，节省 ${Math.max(0, 100 - Math.round((item.result.blob.size / item.file.size) * 100))}%`
+      ? `, saved ${Math.max(0, 100 - Math.round((item.result.blob.size / item.file.size) * 100))}%`
       : '';
 
     let meta = `${formatBytes(item.file.size)}`;
@@ -742,14 +742,14 @@
       <div class="file__actions">
         ${
           isReady
-            ? `<button class="btn btn--primary btn--sm" type="button" data-action="download" data-id="${item.id}">下载</button>`
+            ? `<button class="btn btn--primary btn--sm" type="button" data-action="download" data-id="${item.id}">Download</button>`
             : ''
         }
-        <button class="btn btn--secondary btn--sm" type="button" data-action="remove" data-id="${item.id}">删除</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-action="remove" data-id="${item.id}">Remove</button>
       </div>
     `;
 
-    // 绑定事件
+    // Bind events
     const downloadBtn = el.querySelector('[data-action="download"]');
     if (downloadBtn) {
       downloadBtn.addEventListener('click', () => downloadItem(item));
@@ -785,7 +785,7 @@
 
     actionsPanel.hidden = false;
     const readyCount = state.files.filter((f) => f.status === 'ready').length;
-    fileCount.textContent = `${count} 张图片 · ${readyCount}/${count} 已完成`;
+    fileCount.textContent = `${count} images · ${readyCount}/${count} done`;
     const total = state.files
       .filter((f) => f.status === 'ready' && f.result)
       .reduce((sum, f) => sum + f.result.blob.size, 0);
@@ -801,6 +801,6 @@
       .replace(/'/g, '&#039;');
   }
 
-  // 初始化
+  // Init
   updateUI();
 })();
