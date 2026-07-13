@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>图片转换 · Web Toolbox</title>
+  <meta name="description" content="针对 Web 使用的浏览器端图片格式转换工具，支持 WebP / AVIF / JPEG / PNG，批量处理、压缩、缩放，数据不上传服务器。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖼️</text></svg>">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header__brand">
+        <span class="header__logo" aria-hidden="true">🧰</span>
+        <div>
+          <h1 class="header__title">Web Toolbox</h1>
+          <p class="header__subtitle">图片转换模块 · 为个人网站制作</p>
+        </div>
+      </div>
+      <a class="header__github" href="https://github.com/fukki/web-toolbox" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+      </a>
+    </header>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h2 class="hero__title">Web 图片格式转换</h2>
+          <p class="hero__desc">把任意图片转成 WebP / AVIF / JPEG / PNG，全部在浏览器内完成，不上传服务器。适合裁剪博客封面、压缩作品集图片、生成网页素材。</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="upload" id="dropZone">
+          <input type="file" id="fileInput" class="upload__input" accept="image/*" multiple aria-label="选择图片">
+          <div class="upload__content">
+            <div class="upload__icon" aria-hidden="true">☁️</div>
+            <p class="upload__title">拖拽图片到这里，或点击上传</p>
+            <p class="upload__hint">支持 JPG、PNG、WebP、GIF、AVIF、SVG 等浏览器可读格式</p>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings__group">
+            <label class="settings__label" for="outputFormat">输出格式</label>
+            <div class="segmented" id="formatSelector">
+              <button class="segmented__btn is-active" data-value="webp" type="button">WebP</button>
+              <button class="segmented__btn" data-value="avif" type="button">AVIF</button>
+              <button class="segmented__btn" data-value="jpeg" type="button">JPEG</button>
+              <button class="segmented__btn" data-value="png" type="button">PNG</button>
+            </div>
+            <p class="settings__note" id="formatNote">WebP 兼容性最好，体积通常比 JPEG 小 25%–35%。</p>
+          </div>
+
+          <div class="settings__group">
+            <div class="settings__row">
+              <label class="settings__label" for="quality">压缩质量 <span class="settings__value" id="qualityValue">85</span>%</label>
+              <input class="range" type="range" id="quality" min="1" max="100" value="85">
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label">尺寸调整</label>
+            <div class="segmented" id="resizeModeSelector">
+              <button class="segmented__btn is-active" data-value="original" type="button">原尺寸</button>
+              <button class="segmented__btn" data-value="width" type="button">按宽度</button>
+              <button class="segmented__btn" data-value="height" type="button">按高度</button>
+              <button class="segmented__btn" data-value="max" type="button">限制最大边</button>
+              <button class="segmented__btn" data-value="custom" type="button">自定义</button>
+            </div>
+            <div class="settings__dimensions" id="dimensionsPanel">
+              <div class="field" id="widthField">
+                <label for="widthInput">宽度 px</label>
+                <input type="number" id="widthInput" min="1" max="16384" placeholder="例如 1200">
+              </div>
+              <div class="field" id="heightField">
+                <label for="heightInput">高度 px</label>
+                <input type="number" id="heightInput" min="1" max="16384" placeholder="例如 800">
+              </div>
+            </div>
+            <p class="settings__note">尺寸调整会保持原图比例，不会拉伸变形。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="actions card" id="actionsPanel" hidden>
+        <div class="actions__info">
+          <span id="fileCount">0 张图片</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span id="totalSize">0 MB</span>
+        </div>
+        <div class="actions__btns">
+          <button class="btn btn--secondary" id="clearBtn" type="button">清空</button>
+          <button class="btn btn--primary" id="downloadAllBtn" type="button">
+            <span>打包下载 ZIP</span>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="list" id="fileList" aria-live="polite"></section>
+    </main>
+
+    <footer class="footer">
+      <p>参考了 diegoddp/webp-converter、canvas-frames-to-GIF 等浏览器端实现思路 · 纯前端处理 · 不上传服务器</p>
+      <p>颜色方案来自你喜欢的移动端 UI 参考图 🐱</p>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <canvas id="workCanvas" hidden></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
