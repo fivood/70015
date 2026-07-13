@@ -1,9 +1,9 @@
 :root {
   /* Light theme — cool grey/blue palette (default) */
-  --bg: #f2f7fb;
-  --surface: #e3edf5;
-  --surface-2: #d4e2ec;
-  --surface-3: #a8bac8;
+  --bg: #dee7eb;
+  --surface: #e4ecf3;
+  --surface-2: #cedde8;
+  --surface-3: #aacee5;
   --primary: #203848;
   --primary-light: #2f4a5c;
   --primary-dark: #152936;
