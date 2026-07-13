@@ -1,19 +1,19 @@
 :root {
   /* Light theme — cool grey/blue palette (default) */
-  --bg: #e3edf5;
-  --surface: #cbd8e2;
-  --surface-2: #b8c8d4;
-  --surface-3: #95a7b3;
+  --bg: #f2f7fb;
+  --surface: #e3edf5;
+  --surface-2: #d4e2ec;
+  --surface-3: #a8bac8;
   --primary: #203848;
   --primary-light: #2f4a5c;
   --primary-dark: #152936;
-  --secondary: #546c7b;
+  --secondary: #5a7281;
   --text: #203848;
-  --text-muted: #546c7b;
-  --text-dim: #95a7b3;
-  --active-text: #e3edf5;
-  --border: rgba(32, 56, 72, 0.12);
-  --shadow: 0 10px 30px rgba(32, 56, 72, 0.12);
+  --text-muted: #4a6575;
+  --text-dim: #8aa0b0;
+  --active-text: #f2f7fb;
+  --border: rgba(32, 56, 72, 0.1);
+  --shadow: 0 10px 30px rgba(32, 56, 72, 0.08);
   --radius-sm: 12px;
   --radius: 20px;
   --radius-lg: 28px;
