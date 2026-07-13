@@ -138,12 +138,21 @@
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
           <h1 class="hero__title">Web Snapshot</h1>
-          <p class="hero__desc">Share a tab or screen, drag to select any region, download a PNG. No extension, no upload.</p>
+          <p class="hero__desc">Share a tab/screen or open a PDF, drag to select any region, export a PNG. No extension, no upload.</p>
         </div>
       </section>
 
       <section class="panel card" id="capturePanel">
         <div class="settings__group">
+          <span class="settings__label">Source</span>
+          <div class="segmented" id="modeSelector">
+            <button class="segmented__btn is-active" data-mode="screen" type="button">Screen share</button>
+            <button class="segmented__btn" data-mode="pdf" type="button">PDF document</button>
+          </div>
+          <p class="settings__note" id="modeNote">Share a tab or screen for live capture.</p>
+        </div>
+
+        <div class="settings__group" id="screenMode">
           <span class="settings__label">Screen capture</span>
           <div class="snapshot__start" id="startWrap">
             <button class="btn btn--primary" id="startBtn" type="button">
@@ -155,19 +164,50 @@
             </button>
             <p class="settings__note">The browser will ask you to pick a tab, window, or screen to share. Best for desktop browsers.</p>
           </div>
+          <p class="settings__note" id="hint">Click "Start capture" and pick a tab or window to share.</p>
+        </div>
 
-          <div class="snapshot__stage" id="stage" hidden>
-            <video id="video" autoplay muted playsinline></video>
-            <div class="snapshot__sel" id="sel" hidden>
-              <span class="snapshot__sel-label" id="selLabel"></span>
+        <div class="settings__group" id="pdfMode" hidden>
+          <span class="settings__label">PDF document</span>
+          <div class="upload" id="pdfDrop">
+            <input type="file" id="pdfInput" class="upload__input" accept="application/pdf,.pdf" aria-label="Choose a PDF">
+            <div class="upload__content">
+              <div class="upload__icon" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M32 44 V14"/>
+                  <path d="M22 24 L32 14 L42 24"/>
+                  <path d="M12 44 L12 50 H52 V44"/>
+                </svg>
+              </div>
+              <p class="upload__title">Drop a PDF here or click to upload</p>
+              <p class="upload__hint">Rendered locally with PDF.js — nothing is uploaded</p>
             </div>
           </div>
-
-          <div class="settings__row snapshot__controls" id="stageControls" hidden>
-            <button class="btn btn--secondary btn--sm" id="fullBtn" type="button">Capture full frame</button>
-            <button class="btn btn--secondary btn--sm" id="stopBtn" type="button">Stop sharing</button>
+          <div class="snapshot__pdf-nav" id="pdfNav" hidden>
+            <button class="btn btn--secondary btn--sm" id="prevPageBtn" type="button" aria-label="Previous page">‹ Prev</button>
+            <span class="snapshot__page-info" id="pageInfo">Page 1 / 1</span>
+            <button class="btn btn--secondary btn--sm" id="nextPageBtn" type="button" aria-label="Next page">Next ›</button>
           </div>
-          <p class="settings__note" id="hint">Click "Start capture" and pick a tab or window to share.</p>
+          <p class="settings__note" id="pdfHint">Tip: for long web pages, use your browser's Print → Save as PDF, then open it here to capture or stitch all pages.</p>
+        </div>
+
+        <div class="snapshot__stage" id="stage" hidden>
+          <video id="video" autoplay muted playsinline></video>
+          <canvas id="pdfCanvas" hidden></canvas>
+          <div class="snapshot__sel" id="sel" hidden>
+            <span class="snapshot__sel-label" id="selLabel"></span>
+          </div>
+        </div>
+
+        <div class="settings__row snapshot__controls" id="stageControls" hidden>
+          <button class="btn btn--secondary btn--sm" id="fullBtn" type="button">Capture full frame</button>
+          <button class="btn btn--secondary btn--sm" id="stopBtn" type="button">Stop sharing</button>
+        </div>
+
+        <div class="settings__row snapshot__controls" id="pdfControls" hidden>
+          <button class="btn btn--secondary btn--sm" id="pdfFullBtn" type="button">Capture full page</button>
+          <button class="btn btn--secondary btn--sm" id="stitchBtn" type="button">Stitch all pages</button>
+          <button class="btn btn--secondary btn--sm" id="pdfClearBtn" type="button">Clear</button>
         </div>
       </section>
 
@@ -198,6 +238,7 @@
 
   <canvas id="workCanvas" hidden></canvas>
 
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/snapshot.js"></script>
