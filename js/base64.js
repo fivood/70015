@@ -79,7 +79,8 @@
     item.className = 'file';
 
     const url = URL.createObjectURL(file);
-    const sizeText = formatBytes(base64.length);
+    const byteSize = new Blob([base64]).size;
+    const sizeText = formatBytes(byteSize);
 
     item.innerHTML = `
       <img class="file__thumb" src="${url}" alt="" loading="lazy" decoding="async">
@@ -90,11 +91,13 @@
       <div class="file__actions">
         <button class="btn btn--primary btn--sm" type="button" data-copy>Copy</button>
         <button class="btn btn--secondary btn--sm" type="button" data-download>Download .txt</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-remove title="Remove">Remove</button>
       </div>
     `;
 
     const copyBtn = item.querySelector('[data-copy]');
     const downloadBtn = item.querySelector('[data-download]');
+    const removeBtn = item.querySelector('[data-remove]');
 
     copyBtn.addEventListener('click', async () => {
       try {
@@ -112,6 +115,11 @@
       a.download = file.name.replace(/\.[^/.]+$/, '') + '.txt';
       a.click();
       URL.revokeObjectURL(a.href);
+    });
+
+    removeBtn.addEventListener('click', () => {
+      URL.revokeObjectURL(url);
+      item.remove();
     });
 
     base64List.appendChild(item);

@@ -782,7 +782,7 @@
   document.getElementById('exportSvgBtn').addEventListener('click', function () {
     var svg = artboard.cloneNode(true);
     svg.setAttribute('xmlns', SVG_NS);
-    var source = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML.replace(/></g, '>\n<');
+    var source = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg).replace(/></g, '>\n<');
     var blob = new Blob([source], { type: 'image/svg+xml' });
     downloadBlob(blob, '70015-editor-' + Date.now() + '.svg');
   });
@@ -790,7 +790,7 @@
   document.getElementById('exportPngBtn').addEventListener('click', function () {
     var svg = artboard.cloneNode(true);
     svg.setAttribute('xmlns', SVG_NS);
-    var source = svg.outerHTML;
+    var source = new XMLSerializer().serializeToString(svg);
     var blob = new Blob([source], { type: 'image/svg+xml' });
     var url = URL.createObjectURL(blob);
     var img = new Image();
@@ -825,9 +825,13 @@
   /* ---- Copy code ---- */
 
   document.getElementById('copyCodeBtn').addEventListener('click', function () {
-    codeView.select();
-    document.execCommand('copy');
-    showToast('Copied');
+    var text = codeView.value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showToast('Copied'); }, function () { showToast('Copy failed'); });
+    } else {
+      codeView.select();
+      try { document.execCommand('copy'); showToast('Copied'); } catch (_) { showToast('Copy failed'); }
+    }
   });
 
   /* ---- Edit code directly ---- */

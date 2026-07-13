@@ -53,24 +53,35 @@
   }
 
   function clean(root, opts) {
-    const remove = [];
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT, null);
-    let node;
+    var scripts = root.querySelectorAll('script');
+    scripts.forEach(function (n) { n.remove(); });
+    var fo = root.querySelectorAll('foreignObject');
+    fo.forEach(function (n) { n.remove(); });
+    root.querySelectorAll('*').forEach(function (n) {
+      var attrs = Array.from(n.attributes);
+      attrs.forEach(function (a) {
+        if (/^on/i.test(a.name)) n.removeAttribute(a.name);
+        if ((a.name === 'href' || a.name === 'xlink:href') && /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name);
+      });
+    });
+    var remove = [];
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT, null);
+    var node;
     while ((node = walker.nextNode())) {
       if (node.nodeType === 8) {
         if (opts.comments) remove.push(node);
         continue;
       }
-      const ns = node.namespaceURI || '';
-      const name = node.nodeName;
-      const local = node.localName || name;
+      var ns = node.namespaceURI || '';
+      var name = node.nodeName;
+      var local = node.localName || name;
       if (opts.editor && (EDITOR_NS.test(ns) || /^(inkscape|sodipodi):/.test(name) || local === 'metadata' || local === 'namedview')) {
         remove.push(node);
         continue;
       }
       if (opts.editor && node.attributes) {
         [...node.attributes].forEach(attr => {
-          const ans = attr.namespaceURI || '';
+          var ans = attr.namespaceURI || '';
           if (EDITOR_NS.test(ans) || /^(inkscape|sodipodi):/.test(attr.name)) node.removeAttributeNode(attr);
         });
       }
