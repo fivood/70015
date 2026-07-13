@@ -466,65 +466,111 @@
     updateActions();
   }
 
-  function convertFile(file, format) {
+  function loadImageFromFile(file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
+      var isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+
+      if (isSvg) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var svgText = e.target.result;
           try {
-            if (format === 'ico') {
-              resolve(convertToIco(img));
-              return;
-            }
-
-            const { width, height } = calculateDimensions(img.naturalWidth, img.naturalHeight);
-            workCanvas.width = width;
-            workCanvas.height = height;
-
-            ctx.clearRect(0, 0, width, height);
-            if (format === 'jpeg') {
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, width, height);
-            }
-
-            const isCustomCover = state.resizeMode === 'custom' && state.customFit === 'cover' && state.width && state.height;
-            if (isCustomCover) {
-              drawCoverRect(ctx, img, width, height);
-            } else {
-              ctx.drawImage(img, 0, 0, width, height);
-            }
-
-            const mime = FORMAT_MIMES[format];
-            const quality = format === 'png' ? undefined : state.quality;
-
-            workCanvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  reject(new Error('Browser does not support this output format'));
-                  return;
+            var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+            var svgEl = doc.documentElement;
+            if (svgEl && svgEl.nodeName.toLowerCase() === 'svg') {
+              var hasW = svgEl.getAttribute('width');
+              var hasH = svgEl.getAttribute('height');
+              var vb = svgEl.getAttribute('viewBox');
+              if (vb && (!hasW || !hasH)) {
+                var parts = vb.trim().split(/[\s,]+/);
+                if (parts.length === 4) {
+                  var w = parseFloat(parts[2]);
+                  var h = parseFloat(parts[3]);
+                  if (w > 0 && h > 0) {
+                    if (!hasW) svgEl.setAttribute('width', w);
+                    if (!hasH) svgEl.setAttribute('height', h);
+                    svgText = new XMLSerializer().serializeToString(doc);
+                  }
                 }
-                resolve({
-                  blob,
-                  width,
-                  height,
-                  originalWidth: img.naturalWidth,
-                  originalHeight: img.naturalHeight,
-                  format,
-                });
-              },
-              mime,
-              quality
-            );
+              }
+            }
           } catch (err) {
-            reject(err);
+            // If parsing fails, use original text
           }
+          var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+          var img = new Image();
+          img.onload = function () { resolve(img); };
+          img.onerror = function () { reject(new Error('Could not read image')); };
+          img.src = dataUrl;
         };
-        img.onerror = () => reject(new Error('Could not read image'));
-        img.src = e.target.result;
-      };
-      reader.onerror = () => reject(new Error('File read failed'));
-      reader.readAsDataURL(file);
+        reader.onerror = function () { reject(new Error('File read failed')); };
+        reader.readAsText(file);
+      } else {
+        var reader2 = new FileReader();
+        reader2.onload = function (e) {
+          var img = new Image();
+          img.onload = function () { resolve(img); };
+          img.onerror = function () { reject(new Error('Could not read image')); };
+          img.src = e.target.result;
+        };
+        reader2.onerror = function () { reject(new Error('File read failed')); };
+        reader2.readAsDataURL(file);
+      }
+    });
+  }
+
+  function convertFile(file, format) {
+    return loadImageFromFile(file).then(function (img) {
+      try {
+        if (format === 'ico') {
+          return convertToIco(img);
+        }
+
+        var dims = calculateDimensions(img.naturalWidth, img.naturalHeight);
+        var width = dims.width;
+        var height = dims.height;
+        workCanvas.width = width;
+        workCanvas.height = height;
+
+        ctx.clearRect(0, 0, width, height);
+        if (format === 'jpeg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+        }
+
+        var isCustomCover = state.resizeMode === 'custom' && state.customFit === 'cover' && state.width && state.height;
+        if (isCustomCover) {
+          drawCoverRect(ctx, img, width, height);
+        } else {
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+
+        var mime = FORMAT_MIMES[format];
+        var quality = format === 'png' ? undefined : state.quality;
+
+        return new Promise(function (resolve, reject) {
+          workCanvas.toBlob(
+            function (blob) {
+              if (!blob) {
+                reject(new Error('Browser does not support this output format'));
+                return;
+              }
+              resolve({
+                blob: blob,
+                width: width,
+                height: height,
+                originalWidth: img.naturalWidth,
+                originalHeight: img.naturalHeight,
+                format: format,
+              });
+            },
+            mime,
+            quality
+          );
+        });
+      } catch (err) {
+        return Promise.reject(err);
+      }
     });
   }
 
