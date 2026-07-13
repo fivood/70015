@@ -1,7 +1,14 @@
 /* Palette grid */
 .palette-grid {
   display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space);
+}
+
+@media (min-width: 700px) {
+  .palette-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .palette-card {
