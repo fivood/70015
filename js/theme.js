@@ -10,6 +10,8 @@
       localStorage.setItem('70015-theme', theme);
     } catch (e) {}
     updateIcon(theme);
+    var tc = document.querySelector('meta[name="theme-color"]');
+    if (tc) tc.setAttribute('content', theme === 'dark' ? '#1d1c1e' : '#203848');
   }
 
   function updateIcon(theme) {

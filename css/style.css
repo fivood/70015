@@ -96,9 +96,11 @@ body {
   border: 1px solid var(--border);
 }
 
-.header__logo svg {
+.header__logo svg,
+.header__logo img {
   width: 26px;
   height: 26px;
+  border-radius: 4px;
 }
 
 .header__title {
