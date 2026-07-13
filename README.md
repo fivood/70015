@@ -18,7 +18,7 @@
 
 通过 GitHub Pages 部署：
 
-👉 **https://fivood.github.io/web-toolbox/**
+👉 **https://fivood.github.io/70015/**
 
 通过 Cloudflare Pages 部署（自动同步）：
 
@@ -42,11 +42,11 @@
      - `Account` → `Cloudflare Pages` → `Read`（部分模板需要）
    - 账户资源选择你的账户
 4. 在 GitHub 仓库设置中添加 Secrets：
-   - 打开 `https://github.com/fivood/web-toolbox/settings/secrets/actions`
+   - 打开 `https://github.com/fivood/70015/settings/secrets/actions`
    - 新建 `CLOUDFLARE_API_TOKEN`，粘贴刚才创建的 Token
    - 新建 `CLOUDFLARE_ACCOUNT_ID`，粘贴 Account ID
 5. 首次部署前，需要先在 Cloudflare Pages 创建项目：
-   - 方式 A（推荐）：在 Cloudflare Dashboard → Pages → Create a project → Connect to Git，选择 `fivood/web-toolbox`，设置 Build command 为空、Output directory 为 `.`，然后保存。之后 GitHub Actions 会自动接管部署。
+   - 方式 A（推荐）：在 Cloudflare Dashboard → Pages → Create a project → Connect to Git，选择 `fivood/70015`，设置 Build command 为空、Output directory 为 `.`，然后保存。之后 GitHub Actions 会自动接管部署。
    - 方式 B（命令行）：安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/) 后运行 `wrangler pages project create web-toolbox`
 6. Push 任意更新到 `master`，Actions 会自动部署，通常 1–2 分钟内生效。
 
@@ -55,7 +55,7 @@
 无需构建工具，直接打开即可：
 
 ```bash
-git clone https://github.com/fivood/web-toolbox.git
+git clone https://github.com/fivood/70015.git
 cd web-toolbox
 # 直接用浏览器打开 index.html，或起一个静态服务器
 npx serve .
