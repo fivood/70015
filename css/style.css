@@ -638,6 +638,16 @@ body {
   margin: 0;
 }
 
+.footer a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer a:hover {
+  color: var(--text-muted);
+}
+
 /* Responsive */
 @media (max-width: 560px) {
   :root {
