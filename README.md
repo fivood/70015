@@ -1,8 +1,8 @@
-# Web Toolbox — Image Converter
+# 70015 — Image Converter
 
 一个针对 Web 使用的纯前端图片格式转换工具。全部处理在浏览器内完成，**图片不上传服务器**，适合个人制作网站时快速生成 WebP / AVIF / JPEG / PNG / ICO 素材。
 
-这是「个人便捷工具箱」的第一个模块，后续会陆续加入更多小工具。
+70015 是一个黑白灰极简风格的个人工具箱，图片转换是第一个模块，后续会陆续加入更多小工具。
 
 ## ✨ 功能
 
@@ -11,7 +11,7 @@
 - 📐 **尺寸调整**：按宽度 / 高度 / 最大边 / 自定义等比例缩放
 - 🎛️ **质量调节**：滑动调节压缩质量
 - 🗜️ **打包下载**：支持单张下载或整批导出 ZIP
-- 📱 **移动端优先**：参考你给定的深色 + 桃橙 UI 风格，自适应手机屏
+- 📱 **移动端优先**：黑白灰极简风格，自适应手机屏
 - 🔒 **隐私安全**：纯 Canvas 前端转换，无服务器上传
 
 ## 🚀 在线使用
@@ -47,7 +47,7 @@
    - 新建 `CLOUDFLARE_ACCOUNT_ID`，粘贴 Account ID
 5. 首次部署前，需要先在 Cloudflare Pages 创建项目：
    - 方式 A（推荐）：在 Cloudflare Dashboard → Pages → Create a project → Connect to Git，选择 `fivood/70015`，设置 Build command 为空、Output directory 为 `.`，然后保存。之后 GitHub Actions 会自动接管部署。
-   - 方式 B（命令行）：安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/) 后运行 `wrangler pages project create web-toolbox`
+   - 方式 B（命令行）：安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/) 后运行 `wrangler pages project create 70015`
 6. Push 任意更新到 `master`，Actions 会自动部署，通常 1–2 分钟内生效。
 
 ## 🛠️ 本地运行
@@ -56,7 +56,7 @@
 
 ```bash
 git clone https://github.com/fivood/70015.git
-cd web-toolbox
+cd 70015
 # 直接用浏览器打开 index.html，或起一个静态服务器
 npx serve .
 ```
@@ -78,12 +78,14 @@ npx serve .
 
 ## 🎨 设计
 
-颜色与风格来自你提供的移动端 UI 参考图：
+黑白灰极简风格：
 
-- 主背景：`#0f0f1e`
-- 卡片表面：`#16162a`
-- 强调色（桃橙）：`#f4a261`
-- 次要强调（暖橙）：`#e76f51`
+- 主背景：`#0a0a0a`
+- 卡片表面：`#111111`
+- 次级表面：`#1a1a1a`
+- 强调色：`#ffffff`
+- 次要文字：`#a3a3a3`
+- 弱化文字：`#737373`
 
 ## 📄 License
 
