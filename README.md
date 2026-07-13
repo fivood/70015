@@ -18,7 +18,7 @@
 
 通过 GitHub Pages 部署：
 
-👉 **https://fukki.github.io/web-toolbox/**
+👉 **https://fukkix.github.io/web-toolbox/**
 
 > 如果 AVIF 导出在你的浏览器不可用，会自动降级为 WebP。
 
@@ -27,7 +27,7 @@
 无需构建工具，直接打开即可：
 
 ```bash
-git clone https://github.com/fukki/web-toolbox.git
+git clone https://github.com/fukkix/web-toolbox.git
 cd web-toolbox
 # 直接用浏览器打开 index.html，或起一个静态服务器
 npx serve .
@@ -59,4 +59,4 @@ npx serve .
 
 ## 📄 License
 
-MIT © fukki
+MIT © fukkix
