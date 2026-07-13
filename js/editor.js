@@ -53,7 +53,14 @@
 
   function restore() {
     if (historyIdx < 0 || historyIdx >= history.length) return;
-    artboard.innerHTML = history[historyIdx];
+    artboard.innerHTML = '';
+    var tmp = document.createElementNS(SVG_NS, 'svg');
+    tmp.innerHTML = history[historyIdx];
+    while (tmp.firstChild) {
+      var child = tmp.firstChild;
+      tmp.removeChild(child);
+      artboard.appendChild(child);
+    }
     selected = null;
     updateSelection();
     updateProps();
@@ -168,7 +175,11 @@
 
   function normalizeHex(c) {
     if (!c) return '#000000';
-    if (c[0] === '#') return c.length === 7 ? c : '#000000';
+    if (c[0] === '#') {
+      if (c.length === 7) return c;
+      if (c.length === 4) return '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+      return '#000000';
+    }
     var m = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (m) return '#' + [1, 2, 3].map(function (i) { return ('0' + parseInt(m[i], 10).toString(16)).slice(-2); }).join('');
     return '#000000';
@@ -198,18 +209,18 @@
     html += '<div class="prop-row prop-row--swatches">';
     html += '<label>Fill</label>';
     html += '<input type="color" id="propFill" value="' + (fill !== 'none' ? normalizeHex(fill) : '#000000') + '">';
-    html += '<button class="color-swatch" data-fill="none" title="No fill" style="background: transparent; background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%), linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%); background-size: 8px 8px;"></button>';
+    html += '<button class="color-swatch" data-fill="none" title="No fill" aria-label="No fill" style="background: transparent; background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%), linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%); background-size: 8px 8px;"></button>';
     SWATCHES.forEach(function (c) {
-      html += '<button class="color-swatch" data-fill="' + c + '" style="background:' + c + '" title="' + c + '"></button>';
+      html += '<button class="color-swatch" data-fill="' + c + '" style="background:' + c + '" title="' + c + '" aria-label="Fill ' + c + '"></button>';
     });
     html += '</div>';
 
     html += '<div class="prop-row prop-row--swatches">';
     html += '<label>Stroke</label>';
     html += '<input type="color" id="propStroke" value="' + (stroke !== 'none' ? normalizeHex(stroke) : '#000000') + '">';
-    html += '<button class="color-swatch" data-stroke="none" title="No stroke" style="background: transparent; background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%), linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%); background-size: 8px 8px;"></button>';
+    html += '<button class="color-swatch" data-stroke="none" title="No stroke" aria-label="No stroke" style="background: transparent; background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%), linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%); background-size: 8px 8px;"></button>';
     SWATCHES.forEach(function (c) {
-      html += '<button class="color-swatch" data-stroke="' + c + '" style="background:' + c + '" title="' + c + '"></button>';
+      html += '<button class="color-swatch" data-stroke="' + c + '" style="background:' + c + '" title="' + c + '" aria-label="Stroke ' + c + '"></button>';
     });
     html += '</div>';
 
@@ -234,20 +245,26 @@
     if (!selected) return;
 
     var propFill = document.getElementById('propFill');
-    if (propFill) propFill.addEventListener('input', function () {
-      selected.setAttribute('fill', propFill.value);
-      syncToolbar();
-      updateLayers();
-      syncCode();
-    });
+    if (propFill) {
+      propFill.addEventListener('input', function () {
+        selected.setAttribute('fill', propFill.value);
+        syncToolbar();
+        updateLayers();
+        syncCode();
+      });
+      propFill.addEventListener('change', function () { snapshot(); });
+    }
 
     var propStroke = document.getElementById('propStroke');
-    if (propStroke) propStroke.addEventListener('input', function () {
-      selected.setAttribute('stroke', propStroke.value);
-      syncToolbar();
-      updateLayers();
-      syncCode();
-    });
+    if (propStroke) {
+      propStroke.addEventListener('input', function () {
+        selected.setAttribute('stroke', propStroke.value);
+        syncToolbar();
+        updateLayers();
+        syncCode();
+      });
+      propStroke.addEventListener('change', function () { snapshot(); });
+    }
 
     var propSW = document.getElementById('propStrokeWidth');
     if (propSW) {
@@ -257,6 +274,7 @@
         syncToolbar();
         syncCode();
       });
+      propSW.addEventListener('change', function () { snapshot(); });
     }
 
     var propOp = document.getElementById('propOpacity');
@@ -266,6 +284,7 @@
         document.getElementById('propOpacityVal').textContent = propOp.value;
         syncCode();
       });
+      propOp.addEventListener('change', function () { snapshot(); });
     }
 
     var propText = document.getElementById('propText');
@@ -274,6 +293,7 @@
         selected.textContent = propText.value;
         syncCode();
       });
+      propText.addEventListener('change', function () { snapshot(); });
     }
 
     var propFS = document.getElementById('propFontSize');
@@ -283,6 +303,7 @@
         document.getElementById('propFontSizeVal').textContent = propFS.value;
         syncCode();
       });
+      propFS.addEventListener('change', function () { snapshot(); });
     }
 
     props.querySelectorAll('[data-fill]').forEach(function (s) {
@@ -294,6 +315,7 @@
         syncToolbar();
         updateLayers();
         syncCode();
+        snapshot();
       });
     });
 
@@ -306,6 +328,7 @@
         syncToolbar();
         updateLayers();
         syncCode();
+        snapshot();
       });
     });
   }
@@ -338,13 +361,34 @@
     });
   }
 
+  var SWATCHES = ['#7dd3fc', '#203848', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#000000', '#ffffff', '#6b7280', '#fbbf24'];
+
+  var codeTimer = null;
   function syncCode() {
-    var source = artboard.innerHTML;
-    codeView.value = source.replace(/></g, '>\n<');
+    if (codeTimer) clearTimeout(codeTimer);
+    codeTimer = setTimeout(function () {
+      codeView.value = artboard.innerHTML.replace(/></g, '>\n<');
+      codeTimer = null;
+    }, 200);
   }
 
   function escapeAttr(s) {
     return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function sanitizeSvg(svgEl) {
+    var scripts = svgEl.querySelectorAll('script');
+    scripts.forEach(function (s) { s.remove(); });
+    var fo = svgEl.querySelectorAll('foreignObject');
+    fo.forEach(function (f) { f.remove(); });
+    svgEl.querySelectorAll('*').forEach(function (n) {
+      var attrs = Array.from(n.attributes);
+      attrs.forEach(function (a) {
+        if (/^on/i.test(a.name)) n.removeAttribute(a.name);
+        if (a.name === 'href' && /^javascript:/i.test(a.value)) n.removeAttribute(a.name);
+        if (a.name === 'xlink:href' && /^javascript:/i.test(a.value)) n.removeAttribute(a.name);
+      });
+    });
   }
 
   /* ---- Drawing ---- */
@@ -444,6 +488,20 @@
     if (resizing) { endResize(e); return; }
   });
 
+  stage.addEventListener('pointercancel', function (e) {
+    if (drawing) { drawing = null; penPoints = []; }
+    if (dragging) { dragging = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} }
+    if (resizing) { resizing = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} }
+  });
+
+  stage.addEventListener('pointerleave', function (e) {
+    if (!e.buttons) {
+      if (drawing) { endDraw(e); }
+      if (dragging) { endDrag(e); }
+      if (resizing) { endResize(e); }
+    }
+  });
+
   function endDraw(e) {
     var node = drawing.node;
     drawing = null;
@@ -503,17 +561,18 @@
       node.setAttribute('y', Math.round(y + parseFloat(node.getAttribute('font-size') || 16) * 0.8));
     } else if (type === 'path') {
       var d = node.getAttribute('d');
-      var nums = d.match(/-?[\d.]+/g);
-      if (nums) {
-        var origX = parseFloat(nums[0]);
-        var origY = parseFloat(nums[1]);
-        var ddx = Math.round(x - origX);
-        var ddy = Math.round(y - origY);
-        d = d.replace(/(-?[\d.]+)\s+(-?[\d.]+)/g, function (m, a, b) {
-          return (parseFloat(a) + ddx) + ' ' + (parseFloat(b) + ddy);
-        });
-        node.setAttribute('d', d);
-      }
+      var firstM = d.match(/[Mm]\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/);
+      if (!firstM) return;
+      var ddx = Math.round(x - parseFloat(firstM[1]));
+      var ddy = Math.round(y - parseFloat(firstM[2]));
+      d = d.replace(/([MLml])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g, function (m, cmd, a, b) {
+        return cmd + ' ' + (parseFloat(a) + ddx) + ' ' + (parseFloat(b) + ddy);
+      }).replace(/([Hh])\s*(-?[\d.]+)/g, function (m, cmd, a) {
+        return cmd + ' ' + (parseFloat(a) + ddx);
+      }).replace(/([Vv])\s*(-?[\d.]+)/g, function (m, cmd, a) {
+        return cmd + ' ' + (parseFloat(a) + ddy);
+      });
+      node.setAttribute('d', d);
     }
   }
 
@@ -597,12 +656,21 @@
   document.getElementById('fillColor').addEventListener('input', function () {
     if (selected) { selected.setAttribute('fill', this.value); updateLayers(); syncCode(); }
   });
+  document.getElementById('fillColor').addEventListener('change', function () {
+    if (selected) snapshot();
+  });
   document.getElementById('strokeColor').addEventListener('input', function () {
     if (selected) { selected.setAttribute('stroke', this.value); updateLayers(); syncCode(); }
+  });
+  document.getElementById('strokeColor').addEventListener('change', function () {
+    if (selected) snapshot();
   });
   document.getElementById('strokeWidth').addEventListener('input', function () {
     document.getElementById('strokeWidthValue').textContent = this.value;
     if (selected) { selected.setAttribute('stroke-width', this.value); syncCode(); }
+  });
+  document.getElementById('strokeWidth').addEventListener('change', function () {
+    if (selected) snapshot();
   });
 
   /* ---- Actions ---- */
@@ -640,7 +708,7 @@
       clone.setAttribute('y', parseFloat(clone.getAttribute('y')) + 20);
     } else if (type === 'path') {
       var d = clone.getAttribute('d');
-      d = d.replace(/(-?[\d.]+)\s+(-?[\d.]+)/g, function (m, a, b) { return (parseFloat(a) + 20) + ' ' + (parseFloat(b) + 20); });
+      d = d.replace(/([MLml])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g, function (m, cmd, a, b) { return cmd + ' ' + (parseFloat(a) + 20) + ' ' + (parseFloat(b) + 20); }).replace(/([Hh])\s*(-?[\d.]+)/g, function (m, cmd, a) { return cmd + ' ' + (parseFloat(a) + 20); }).replace(/([Vv])\s*(-?[\d.]+)/g, function (m, cmd, a) { return cmd + ' ' + (parseFloat(a) + 20); });
       clone.setAttribute('d', d);
     }
     artboard.appendChild(clone);
@@ -685,6 +753,7 @@
         tmp.innerHTML = e.target.result;
         var svg = tmp.querySelector('svg');
         if (!svg) { showToast('No SVG found'); return; }
+        sanitizeSvg(svg);
         artboard.setAttribute('viewBox', svg.getAttribute('viewBox') || '0 0 800 600');
         artboard.innerHTML = '';
         var children = Array.from(svg.children);
@@ -769,6 +838,7 @@
       tmp.innerHTML = codeView.value;
       var parsed = tmp.querySelector('svg');
       if (parsed) {
+        sanitizeSvg(parsed);
         artboard.innerHTML = parsed.innerHTML;
         Array.from(artboard.children).forEach(function (n) {
           if (!n.getAttribute('data-id')) n.setAttribute('data-id', uid());
