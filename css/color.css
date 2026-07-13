@@ -1,0 +1,223 @@
+/* Color & Contrast */
+.color-row {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space);
+  padding-top: var(--space);
+  border-top: 1px solid var(--border);
+}
+
+.color-row:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.color-row__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  background: var(--surface-2);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.color-native {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.color-row__fields .field {
+  display: grid;
+  gap: 4px;
+}
+
+.color-row__fields .field span {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.color-row__fields input {
+  width: 120px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.color-row__fields input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(32, 56, 72, 0.1);
+}
+
+[data-theme="dark"] .color-row__fields input:focus {
+  box-shadow: 0 0 0 3px rgba(211, 218, 222, 0.12);
+}
+
+.color-row__values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.value-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.value-chip:hover {
+  background: var(--surface-3);
+  transform: translateY(-1px);
+}
+
+.value-chip span {
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.value-chip code {
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  color: var(--text);
+}
+
+.contrast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-top: var(--space);
+}
+
+.contrast__ratio {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.contrast__number {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--primary);
+  letter-spacing: -0.03em;
+}
+
+.contrast__unit {
+  font-size: 18px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.contrast__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge--pass {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.badge--fail {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .badge--pass {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+[data-theme="dark"] .badge--fail {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.contrast__preview {
+  margin-top: var(--space);
+  padding: var(--space-lg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: background 0.2s, color 0.2s;
+}
+
+.contrast__sample {
+  margin: 0 0 var(--space-sm);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.contrast__sample:last-child {
+  margin-bottom: 0;
+}
+
+.contrast__sample--lg {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.contrast__sample--bold {
+  font-size: 18px;
+}
+
+.btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .contrast__number {
+    font-size: 44px;
+  }
+
+  .contrast__sample--lg {
+    font-size: 22px;
+  }
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QR Code — 70015</title>
+  <meta name="description" content="Generate QR codes from text or URLs. Export PNG or SVG. Adjustable size, margin, colors. Runs in your browser.">
+  <link rel="canonical" href="https://70015.net/qr">
+  <meta property="og:title" content="QR Code — 70015">
+  <meta property="og:description" content="Text/URL to QR PNG/SVG. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/qr">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 QR Code",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/qr",
+    "description": "Browser-based QR code generator exporting PNG and SVG.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/qr.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <svg viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <rect x="8" y="8" width="30" height="30" rx="6"/>
+            <path d="M16 30 L30 16"/>
+            <circle cx="32" cy="14" r="3" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <div><h1 class="header__title">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title">QR Code</h1>
+          <p class="hero__desc">Turn a link or text into a QR. Pick size, margin, colors, export PNG or SVG.</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="settings__group">
+          <span class="settings__label">Content</span>
+          <div class="field">
+            <textarea class="field__textarea" id="qrText" rows="4" placeholder="Paste a URL or any text">https://70015.net</textarea>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings__group">
+            <label class="settings__label">Error correction</label>
+            <div class="segmented" id="eclSelector">
+              <button class="segmented__btn" data-value="L" type="button">L</button>
+              <button class="segmented__btn is-active" data-value="M" type="button">M</button>
+              <button class="segmented__btn" data-value="Q" type="button">Q</button>
+              <button class="segmented__btn" data-value="H" type="button">H</button>
+            </div>
+            <p class="settings__note">Higher levels stay scannable even if partially obscured.</p>
+          </div>
+
+          <div class="settings__group">
+            <div class="settings__row">
+              <label class="settings__label" for="cellSize">Module size <span class="settings__value" id="cellValue">10</span> px</label>
+              <input class="range" type="range" id="cellSize" min="4" max="40" value="10">
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <div class="settings__row">
+              <label class="settings__label" for="margin">Quiet zone <span class="settings__value" id="marginValue">4</span> modules</label>
+              <input class="range" type="range" id="margin" min="0" max="10" value="4">
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label">Colors</label>
+            <div class="qr-colors">
+              <label class="qr-color">
+                <input type="color" id="darkColor" value="#203848">
+                <span>Modules</span>
+              </label>
+              <label class="qr-color">
+                <input type="color" id="lightColor" value="#ffffff">
+                <span>Background</span>
+              </label>
+              <label class="chip chip--btn">
+                <input type="checkbox" id="transparentBg">
+                <span>Transparent background</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="settings__group">
+          <span class="settings__label">Preview</span>
+          <div class="preview">
+            <div class="preview__media qr__media">
+              <canvas id="qrCanvas"></canvas>
+            </div>
+            <div class="preview__info">
+              <span id="qrInfo">—</span>
+              <div class="actions__btns">
+                <button class="btn btn--primary btn--sm" id="downloadPngBtn" type="button">Download PNG</button>
+                <button class="btn btn--secondary btn--sm" id="downloadSvgBtn" type="button">Download SVG</button>
+              </div>
+            </div>
+          </div>
+          <p class="settings__note" id="qrHint">Updates as you type.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" integrity="sha384-lQXOAyZwHXE55JFyrOMB7nY2Wv+m5ZWNtJcHrd1rceRQXAYNLak8ukN5TjBTcIwz" crossorigin="anonymous"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/qr.js"></script>
+</body>
+</html>

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Image Converter — 70015</title>
+  <title>Image Converter 鈥?70015</title>
   <meta name="description" content="Convert images to WebP, AVIF, JPEG, PNG, or ICO in your browser. Batch resize, compress, and download as ZIP. No upload.">
   <link rel="canonical" href="https://70015.net/converter">
-  <meta property="og:title" content="Image Converter — 70015">
+  <meta property="og:title" content="Image Converter 鈥?70015">
   <meta property="og:description" content="Convert images in your browser. WebP, AVIF, JPEG, PNG, ICO. Batch, resize, zip.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://70015.net/converter">
@@ -76,60 +76,8 @@
             </svg>
           </button>
         </div>
-        <div class="menu__grid">
-          <a class="menu__item" href="./">
-            <span class="menu__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <rect x="4" y="4" width="6" height="6" rx="1"/>
-                <rect x="14" y="4" width="6" height="6" rx="1"/>
-                <rect x="4" y="14" width="6" height="6" rx="1"/>
-                <rect x="14" y="14" width="6" height="6" rx="1"/>
-              </svg>
-            </span>
-            <span class="menu__label">Home</span>
-          </a>
-          <a class="menu__item is-active" href="converter">
-            <span class="menu__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <path d="M3 15 L8 10 L12 14 L21 5"/>
-              </svg>
-            </span>
-            <span class="menu__label">Image Converter</span>
-          </a>
-          <a class="menu__item" href="palette">
-            <span class="menu__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2 L12 22"/>
-                <path d="M2 12 L22 12"/>
-                <circle cx="12" cy="12" r="4"/>
-              </svg>
-            </span>
-            <span class="menu__label">Color Palette</span>
-          </a>
-          <a class="menu__item" href="base64">
-            <span class="menu__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <path d="M8 16l-3-4 3-4"/>
-                <path d="M16 8l3 4-3 4"/>
-                <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>
-              </svg>
-            </span>
-            <span class="menu__label">Base64 Swap</span>
-          </a>
-          <a class="menu__item" href="snapshot">
-            <span class="menu__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 8h2l1.5-2h9L18 8h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
-                <circle cx="12" cy="13" r="3.5"/>
-              </svg>
-            </span>
-            <span class="menu__label">Web Snapshot</span>
-          </a>
-        </div>
-    </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
     </nav>
 
     <main class="main">
@@ -163,9 +111,9 @@
             <div class="chips" id="presetSelector">
               <button class="chip chip--btn is-active" data-preset="custom" type="button"><span>Custom</span></button>
               <button class="chip chip--btn" data-preset="webp-only" type="button"><span>WebP only</span></button>
-              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span>Blog cover 1200×630</span></button>
-              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span>Thumbnail 300×300</span></button>
-              <button class="chip chip--btn" data-preset="social" type="button"><span>Social 1080×1080</span></button>
+              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span>Blog cover 1200脳630</span></button>
+              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span>Thumbnail 300脳300</span></button>
+              <button class="chip chip--btn" data-preset="social" type="button"><span>Social 1080脳1080</span></button>
               <button class="chip chip--btn" data-preset="favicon" type="button"><span>Favicon ICO</span></button>
             </div>
             <p class="settings__note">Presets auto-fill format, size, and fit.</p>
@@ -186,12 +134,12 @@
           <div class="settings__group ico-sizes" id="icoSizePanel" hidden>
             <label class="settings__label">ICO sizes</label>
             <div class="chips" id="icoSizeSelector">
-              <label class="chip"><input type="checkbox" value="16" checked><span>16×16</span></label>
-              <label class="chip"><input type="checkbox" value="32" checked><span>32×32</span></label>
-              <label class="chip"><input type="checkbox" value="48"><span>48×48</span></label>
-              <label class="chip"><input type="checkbox" value="64"><span>64×64</span></label>
-              <label class="chip"><input type="checkbox" value="128"><span>128×128</span></label>
-              <label class="chip"><input type="checkbox" value="256" checked><span>256×256</span></label>
+              <label class="chip"><input type="checkbox" value="16" checked><span>16脳16</span></label>
+              <label class="chip"><input type="checkbox" value="32" checked><span>32脳32</span></label>
+              <label class="chip"><input type="checkbox" value="48"><span>48脳48</span></label>
+              <label class="chip"><input type="checkbox" value="64"><span>64脳64</span></label>
+              <label class="chip"><input type="checkbox" value="128"><span>128脳128</span></label>
+              <label class="chip"><input type="checkbox" value="256" checked><span>256脳256</span></label>
             </div>
             <div class="settings__subgroup">
               <label class="settings__label">Non-square images</label>
@@ -271,6 +219,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" integrity="sha384-PlRSzpewlarQuj5alIadXwjNUX+2eNMKwr0f07ShWYLy8B6TjEbm7ZlcN/ScSbwy" crossorigin="anonymous"></script>
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/menu-data.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

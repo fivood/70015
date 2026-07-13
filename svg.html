@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SVG Tools — 70015</title>
+  <meta name="description" content="Optimize SVG markup and convert SVG to PNG. Strip cruft, minify, export. Runs in your browser.">
+  <link rel="canonical" href="https://70015.net/svg">
+  <meta property="og:title" content="SVG Tools — 70015">
+  <meta property="og:description" content="SVG optimizer and SVG→PNG converter. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/svg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 SVG Tools",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/svg",
+    "description": "Browser-based SVG optimizer and SVG to PNG converter.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/svg.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <svg viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <rect x="8" y="8" width="30" height="30" rx="6"/>
+            <path d="M16 30 L30 16"/>
+            <circle cx="32" cy="14" r="3" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <div><h1 class="header__title">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title">SVG Tools</h1>
+          <p class="hero__desc">Paste or drop an SVG. Strip editor cruft, minify, copy, and export PNG.</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="settings__group">
+          <span class="settings__label">Source</span>
+          <div class="upload" id="svgDrop">
+            <input type="file" id="svgInput" class="upload__input" accept="image/svg+xml,.svg" aria-label="Choose an SVG">
+            <div class="upload__content">
+              <div class="upload__icon" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M32 44 V14"/>
+                  <path d="M22 24 L32 14 L42 24"/>
+                  <path d="M12 44 L12 50 H52 V44"/>
+                </svg>
+              </div>
+              <p class="upload__title">Drop an SVG here or click to upload</p>
+              <p class="upload__hint">Or paste markup in the box below</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="svgText">SVG markup</label>
+            <textarea class="field__textarea" id="svgText" rows="6" placeholder="<svg xmlns='http://www.w3.org/2000/svg' ...>...</svg>"></textarea>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings__group">
+            <label class="settings__label">Optimize</label>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" id="optComments" ><span>Strip comments</span></label>
+              <label class="chip"><input type="checkbox" id="optEditor" checked><span>Strip editor cruft (Inkscape/Sodipodi/metadata)</span></label>
+              <label class="chip"><input type="checkbox" id="optWs" checked><span>Collapse whitespace</span></label>
+              <label class="chip"><input type="checkbox" id="optDecl" checked><span>Drop XML declaration</span></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="settings__group">
+          <span class="settings__label">Result</span>
+          <div class="preview">
+            <div class="preview__media svg__media" id="svgPreview">
+              <span class="svg__placeholder" id="svgPlaceholder">Preview will appear here</span>
+            </div>
+            <div class="preview__info">
+              <span id="svgInfo">—</span>
+              <div class="actions__btns">
+                <button class="btn btn--secondary btn--sm" id="copyBtn" type="button">Copy SVG</button>
+                <button class="btn btn--secondary btn--sm" id="downloadSvgBtn" type="button">Download SVG</button>
+                <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button">Export PNG</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings__subgroup">
+            <div class="settings__row">
+              <label class="settings__label" for="pngScale">PNG scale <span class="settings__value" id="pngScaleValue">2×</span></label>
+              <input class="range" type="range" id="pngScale" min="1" max="8" step="0.5" value="2">
+            </div>
+          </div>
+          <p class="settings__note" id="svgHint">Paste or upload an SVG to begin.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <canvas id="workCanvas" hidden></canvas>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/svg.js"></script>
+</body>
+</html>

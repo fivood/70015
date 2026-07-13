@@ -20,4 +20,20 @@
     <loc>https://70015.net/snapshot</loc>
     <priority>0.9</priority>
   </url>
+  <url>
+    <loc>https://70015.net/color</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://70015.net/qr</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://70015.net/svg</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://70015.net/annotate</loc>
+    <priority>0.9</priority>
+  </url>
 </urlset>

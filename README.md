@@ -8,6 +8,10 @@ A small set of browser-based image tools. Everything runs locally; no files are 
 - **[Color Palette](https://70015.net/palette)** — extract dominant colors from images or folders. Copy HEX, export JSON.
 - **[Base64 Swap](https://70015.net/base64)** — encode images to Base64 Data URLs, or decode Base64 back to images.
 - **[Web Snapshot](https://70015.net/snapshot)** — capture a region of any web page or PDF via screen sharing or PDF.js. Drag to select, stitch pages, export PNG.
+- **[Color & Contrast](https://70015.net/color)** — pick colors from the screen with EyeDropper and check WCAG AA/AAA contrast.
+- **[QR Code](https://70015.net/qr)** — turn a link or text into a QR. Adjustable size, margin, colors. Export PNG or SVG.
+- **[SVG Tools](https://70015.net/svg)** — optimize SVG markup (strip cruft, minify) and convert SVG to PNG.
+- **[Screenshot Annotate](https://70015.net/annotate)** — mark up images with arrows, boxes, text, highlights, and mosaic. Export PNG.
 
 ## Why
 
