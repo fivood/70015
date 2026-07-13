@@ -751,6 +751,40 @@ body {
   color: var(--secondary);
 }
 
+.file__status--converting {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.progress-bar {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  height: 4px;
+  margin-top: 8px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: var(--primary);
+  border-radius: 2px;
+  animation: progressIndeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes progressIndeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 .file__actions {
   display: flex;
   flex-direction: column;

@@ -411,6 +411,11 @@
     state.files.push(...newItems);
     render();
     convertItems(newItems);
+
+    // 上传后自动滚动到文件列表区域
+    setTimeout(() => {
+      actionsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   }
 
   // 重新转换全部
@@ -708,8 +713,10 @@
       ? `<img class="file__thumb" src="${item.blobUrl}" alt="" loading="lazy">`
       : `<div class="file__thumb-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><path d="M21 15 L16 10 L10 16 L7 13 L3 17"/></svg></div>`;
 
-    const statusClass = isError ? 'file__status--error' : 'file__status--ready';
-    const statusText = isConverting ? '转换中…' : isError ? '失败' : isReady ? '完成' : '待处理';
+    const statusClass = isError ? 'file__status--error' : isReady ? 'file__status--ready' : 'file__status--converting';
+    const statusHtml = isConverting
+      ? `<span class="file__status ${statusClass}">转换中</span><span class="progress-bar" aria-hidden="true"><span class="progress-bar__fill"></span></span>`
+      : `<span class="file__status ${statusClass}">${isError ? '失败' : isReady ? '完成' : '待处理'}</span>`;
 
     const reduction = isReady
       ? `，节省 ${Math.max(0, 100 - Math.round((item.result.blob.size / item.file.size) * 100))}%`
@@ -730,7 +737,7 @@
       <div class="file__info">
         <h3 class="file__name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</h3>
         <p class="file__meta">${meta}</p>
-        <span class="file__status ${statusClass}">${statusText}</span>
+        ${statusHtml}
       </div>
       <div class="file__actions">
         ${
@@ -777,7 +784,8 @@
     }
 
     actionsPanel.hidden = false;
-    fileCount.textContent = `${count} 张图片`;
+    const readyCount = state.files.filter((f) => f.status === 'ready').length;
+    fileCount.textContent = `${count} 张图片 · ${readyCount}/${count} 已完成`;
     const total = state.files
       .filter((f) => f.status === 'ready' && f.result)
       .reduce((sum, f) => sum + f.result.blob.size, 0);
