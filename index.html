@@ -9,13 +9,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖼️</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23fff' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23fff'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23fff'/></svg>">
 </head>
 <body>
   <div class="app">
     <header class="header">
       <div class="header__brand">
-        <span class="header__logo" aria-hidden="true">🧰</span>
+        <span class="header__logo" aria-hidden="true">
+          <svg viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <rect x="8" y="8" width="30" height="30" rx="6"/>
+            <path d="M16 30 L30 16"/>
+            <circle cx="32" cy="14" r="3" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
         <div>
           <h1 class="header__title">70015</h1>
           <p class="header__subtitle">图片转换 · 为个人网站制作</p>
@@ -39,7 +45,13 @@
         <div class="upload" id="dropZone">
           <input type="file" id="fileInput" class="upload__input" accept="image/*" multiple aria-label="选择图片">
           <div class="upload__content">
-            <div class="upload__icon" aria-hidden="true">☁️</div>
+            <div class="upload__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M32 44 V14"/>
+                <path d="M22 24 L32 14 L42 24"/>
+                <path d="M12 44 L12 50 H52 V44"/>
+              </svg>
+            </div>
             <p class="upload__title">拖拽图片到这里，或点击上传</p>
             <p class="upload__hint">支持 JPG、PNG、WebP、GIF、AVIF、SVG 等浏览器可读格式</p>
           </div>

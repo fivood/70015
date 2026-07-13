@@ -68,10 +68,14 @@ body {
   height: 46px;
   display: grid;
   place-items: center;
-  font-size: 24px;
   background: var(--surface-2);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+}
+
+.header__logo svg {
+  width: 26px;
+  height: 26px;
 }
 
 .header__title {
@@ -199,8 +203,15 @@ body {
 }
 
 .upload__icon {
-  font-size: 42px;
-  margin-bottom: var(--space-sm);
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-sm);
+  color: var(--text-muted);
+}
+
+.upload__icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .upload__title {
