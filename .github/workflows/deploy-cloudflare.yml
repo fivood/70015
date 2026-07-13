@@ -19,10 +19,11 @@ jobs:
 
       - name: Create Cloudflare Pages project if not exists
         uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create 70015 --production-branch=master || true
+          command: pages project create 70015 --production-branch=master
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
