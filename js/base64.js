@@ -176,7 +176,7 @@
 
     previewImg.onload = () => {
       imgPreview.hidden = false;
-      previewSize.textContent = `${previewImg.naturalWidth} × ${previewImg.naturalHeight} px`;
+      previewSize.textContent = `${previewImg.naturalWidth} \u00d7 ${previewImg.naturalHeight} px`;
       b64Hint.textContent = 'Parsed. Click the button to download the image.';
     };
 

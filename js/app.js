@@ -57,7 +57,7 @@
     avif: 'AVIF has the highest compression, but export requires a supported browser; otherwise falls back to WebP.',
     jpeg: 'JPEG is the most compatible format for photos; transparent areas become white.',
     png: 'PNG is lossless and keeps transparency, but files are usually larger.',
-    ico: 'ICO is used for favicons. Include 32×32 and 256×256 for best coverage.',
+    ico: 'ICO is used for favicons. Include 32\u00d732 and 256\u00d7256 for best coverage.',
   };
 
   const FORMAT_MIMES = {
@@ -737,7 +737,7 @@
         const sizesText = item.result.icoSizes.join(', ') + ' px';
         meta = `ICO (${sizesText}) · ${formatBytes(item.result.blob.size)}${reduction}`;
       } else {
-        meta = `${item.result.width}×${item.result.height} · ${formatBytes(item.result.blob.size)}${reduction}`;
+        meta = `${item.result.width}\u00d7${item.result.height} · ${formatBytes(item.result.blob.size)}${reduction}`;
       }
     }
 

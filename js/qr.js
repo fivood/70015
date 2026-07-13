@@ -89,7 +89,7 @@
     }
     lastQr = qr;
     lastMeta = { count, cell, m, size, transparent: transparentBg.checked, dark: darkColor.value, light: lightColor.value };
-    qrInfo.textContent = size + ' × ' + size + ' px · ' + count + ' modules';
+    qrInfo.textContent = size + ' \u00d7 ' + size + ' px · ' + count + ' modules';
     qrHint.textContent = 'Updates as you type.';
   }
 

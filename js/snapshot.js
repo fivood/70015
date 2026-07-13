@@ -381,7 +381,7 @@
     sel.style.top = dragRect.y + 'px';
     sel.style.width = dragRect.w + 'px';
     sel.style.height = dragRect.h + 'px';
-    selLabel.textContent = Math.round(dragRect.w) + ' × ' + Math.round(dragRect.h);
+    selLabel.textContent = Math.round(dragRect.w) + ' \u00d7 ' + Math.round(dragRect.h);
     selLabel.hidden = dragRect.w < 30;
   }
 
@@ -433,7 +433,7 @@
       lastBlob = blob;
       lastBlobUrl = URL.createObjectURL(blob);
       resultImg.src = lastBlobUrl;
-      resultSize.textContent = w + ' × ' + h + ' px';
+      resultSize.textContent = w + ' \u00d7 ' + h + ' px';
       resultPanel.hidden = false;
       resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 'image/png');

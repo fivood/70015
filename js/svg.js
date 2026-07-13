@@ -188,7 +188,7 @@
   }
 
   [optComments, optEditor, optWs, optDecl].forEach(el => el.addEventListener('change', render));
-  pngScale.addEventListener('input', e => pngScaleValue.textContent = (parseFloat(e.target.value)) + '×');
+  pngScale.addEventListener('input', e => pngScaleValue.textContent = (parseFloat(e.target.value)) + '\u00d7');
   svgText.addEventListener('input', debounce(render, 300));
   copyBtn.addEventListener('click', copy);
   downloadSvgBtn.addEventListener('click', downloadSvg);
