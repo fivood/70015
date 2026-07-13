@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>配色板 · 70015</title>
-  <meta name="description" content="从图片中提取配色方案，支持批量上传、文件夹拖拽，生成 Web 设计参考色板。">
+  <title>Base64 图片互换 · 70015</title>
+  <meta name="description" content="浏览器端图片与 Base64 DataURL 互转工具。上传图片生成 Base64，或粘贴 Base64 还原为图片。数据不上传服务器。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/palette.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
   <script>
     (function () {
@@ -84,7 +83,7 @@
             </span>
             <span class="menu__label">图片转换</span>
           </a>
-          <a class="menu__item is-active" href="palette">
+          <a class="menu__item" href="palette">
             <span class="menu__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -95,7 +94,7 @@
             </span>
             <span class="menu__label">配色板</span>
           </a>
-          <a class="menu__item" href="base64">
+          <a class="menu__item is-active" href="base64">
             <span class="menu__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -107,63 +106,67 @@
             <span class="menu__label">Base64 图片互换</span>
           </a>
         </div>
-    </div>
+      </div>
     </nav>
 
     <main class="main">
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h2 class="hero__title">图片配色板生成器</h2>
-          <p class="hero__desc">上传配色参考图或拖拽整个文件夹，自动提取主色调并生成 Web 设计色板。支持复制 HEX / RGB / CSS 变量，也支持批量导出 JSON。</p>
+          <h2 class="hero__title">Base64 图片互换</h2>
+          <p class="hero__desc">上传图片生成 Base64 DataURL，或粘贴 Base64 字符串还原为图片。所有处理在浏览器内完成。</p>
         </div>
       </section>
 
-      <section class="panel card">
-        <div class="upload" id="dropZone">
-          <input type="file" id="fileInput" class="upload__input" accept="image/*" webkitdirectory directory multiple aria-label="选择图片或文件夹">
-          <div class="upload__content">
-            <div class="upload__icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M32 44 V14"/>
-                <path d="M22 24 L32 14 L42 24"/>
-                <path d="M12 44 L12 50 H52 V44"/>
-              </svg>
+      <section class="panel card" id="imgToBase64">
+        <div class="settings__group">
+          <span class="settings__label">图片 → Base64</span>
+          <div class="upload" id="imgUpload">
+            <input class="upload__input" id="imgInput" type="file" accept="image/*" multiple>
+            <div class="upload__content">
+              <div class="upload__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="upload__title">拖拽图片到此处，或点击上传</p>
+              <p class="upload__hint">支持多张图片同时处理</p>
             </div>
-            <p class="upload__title">拖拽图片或文件夹到这里，或点击上传</p>
-            <p class="upload__hint">支持批量上传，自动提取每张图的主色调</p>
+          </div>
+
+          <div class="settings__row">
+            <label class="chip chip--btn" id="prefixToggle">
+              <input type="checkbox" checked>
+              <span>包含 data:image/xxx;base64, 前缀</span>
+            </label>
           </div>
         </div>
 
-        <div class="settings">
-          <div class="settings__group">
-            <div class="settings__row">
-              <label class="settings__label">提取颜色数量 <span class="settings__value" id="colorCountValue">5</span></label>
-              <input class="range" type="range" id="colorCount" min="2" max="10" value="5">
-            </div>
-          </div>
+        <div class="list" id="base64List" style="margin-top: var(--space-lg);"></div>
+      </section>
 
-          <div class="settings__group">
-            <div class="settings__row">
-              <label class="settings__label">采样精度 <span class="settings__value" id="sampleValue">中</span></label>
-              <input class="range" type="range" id="samplePrecision" min="1" max="3" value="2">
-            </div>
-            <p class="settings__note">精度越高提取越慢，结果越细腻；精度越低速度越快。</p>
+      <section class="panel card" id="base64ToImg">
+        <div class="settings__group">
+          <span class="settings__label">Base64 → 图片</span>
+          <div class="field">
+            <label for="base64Input">粘贴 Base64 字符串</label>
+            <textarea class="field__textarea" id="base64Input" rows="6" placeholder="支持 data:image/...;base64,xxx 或纯 Base64 内容"></textarea>
+          </div>
+          <p class="settings__note" id="b64Hint">输入后会自动解析并预览。</p>
+        </div>
+
+        <div class="preview" id="imgPreview" hidden>
+          <div class="preview__media">
+            <img id="previewImg" alt="Base64 预览">
+          </div>
+          <div class="preview__info">
+            <span id="previewSize">—</span>
+            <button class="btn btn--primary btn--sm" id="downloadImgBtn" type="button">下载图片</button>
           </div>
         </div>
       </section>
-
-      <section class="actions card" id="actionsPanel" hidden>
-        <div class="actions__info">
-          <span id="fileCount">0 张图片</span>
-        </div>
-        <div class="actions__btns">
-          <button class="btn btn--secondary" id="clearBtn" type="button">清空</button>
-          <button class="btn btn--primary" id="exportBtn" type="button">导出 JSON</button>
-        </div>
-      </section>
-
-      <section class="palette-grid" id="paletteGrid" aria-live="polite"></section>
     </main>
 
     <footer class="footer" aria-hidden="true"></footer>
@@ -173,6 +176,6 @@
 
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
-  <script src="js/palette.js"></script>
+  <script src="js/base64.js"></script>
 </body>
 </html>

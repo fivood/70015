@@ -64,7 +64,7 @@
 
 .color-swatch:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow);
   z-index: 1;
 }
 
@@ -72,13 +72,17 @@
   position: absolute;
   inset: auto 0 0 0;
   padding: 6px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  background: rgba(32, 56, 72, 0.6);
+  color: var(--active-text);
   font-size: 10px;
   font-weight: 700;
   text-align: center;
   font-family: "SF Mono", Monaco, monospace;
   letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .color-swatch__label {
+  background: rgba(211, 218, 222, 0.85);
 }
 
 .palette-card__actions {
