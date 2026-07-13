@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SVG Editor &mdash; 70015</title>
+  <meta name="description" content="Draw and edit SVG in your browser. Shapes, text, freehand paths, select, move, resize, export SVG or PNG. No upload.">
+  <link rel="canonical" href="https://70015.net/editor">
+  <meta property="og:title" content="SVG Editor &mdash; 70015">
+  <meta property="og:description" content="Browser-based SVG drawing editor. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/editor">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 SVG Editor",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/editor",
+    "description": "Browser-based SVG drawing and editing tool.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/editor.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app app--wide">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <svg viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <rect x="8" y="8" width="30" height="30" rx="6"/>
+            <path d="M16 30 L30 16"/>
+            <circle cx="32" cy="14" r="3" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <div><h1 class="header__title">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main main--editor">
+      <section class="editor card">
+        <div class="editor__toolbar">
+          <div class="editor__tools" id="tools" role="group" aria-label="Tools">
+            <button class="tool is-active" data-tool="select" type="button" title="Select / move">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 8-6 2-2 6z"/></svg>
+            </button>
+            <button class="tool" data-tool="rect" type="button" title="Rectangle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+            </button>
+            <button class="tool" data-tool="ellipse" type="button" title="Ellipse">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+            </button>
+            <button class="tool" data-tool="line" type="button" title="Line">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+            </button>
+            <button class="tool" data-tool="text" type="button" title="Text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16M12 5v14M9 19h6"/></svg>
+            </button>
+            <button class="tool" data-tool="pen" type="button" title="Freehand pen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18c2-1 3-4 4-6s2-4 4-5 4 0 5 1 1 3 0 5-4 4-6 4"/></svg>
+            </button>
+          </div>
+
+          <span class="editor__sep" aria-hidden="true"></span>
+
+          <label class="editor__prop" title="Fill">
+            <span class="editor__prop-label">Fill</span>
+            <input type="color" id="fillColor" value="#7dd3fc">
+          </label>
+          <label class="editor__prop" title="Stroke">
+            <span class="editor__prop-label">Stroke</span>
+            <input type="color" id="strokeColor" value="#203848">
+          </label>
+          <label class="editor__prop editor__prop--range" title="Stroke width">
+            <span class="editor__prop-label">W <span id="strokeWidthValue">3</span></span>
+            <input class="range" type="range" id="strokeWidth" min="0" max="40" value="3">
+          </label>
+
+          <span class="editor__sep" aria-hidden="true"></span>
+
+          <div class="editor__actions">
+            <button class="btn btn--secondary btn--sm" id="undoBtn" type="button" title="Undo (Ctrl+Z)" disabled>&#8694;</button>
+            <button class="btn btn--secondary btn--sm" id="redoBtn" type="button" title="Redo (Ctrl+Y)" disabled>&#8695;</button>
+            <button class="btn btn--secondary btn--sm" id="duplicateBtn" type="button" title="Duplicate (Ctrl+D)" disabled>Dup</button>
+            <button class="btn btn--secondary btn--sm" id="frontBtn" type="button" title="Bring to front" disabled>&#10514;</button>
+            <button class="btn btn--secondary btn--sm" id="backBtn" type="button" title="Send to back" disabled>&#10515;</button>
+            <button class="btn btn--secondary btn--sm" id="deleteBtn" type="button" title="Delete (Del)" disabled>&#128465;</button>
+          </div>
+
+          <span class="editor__sep" aria-hidden="true"></span>
+
+          <div class="editor__actions">
+            <button class="btn btn--secondary btn--sm" id="importBtn" type="button">Import</button>
+            <input type="file" id="importInput" accept="image/svg+xml,.svg" hidden>
+            <button class="btn btn--secondary btn--sm" id="clearBtn" type="button">Clear</button>
+            <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button">SVG</button>
+            <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button">PNG</button>
+          </div>
+        </div>
+
+        <div class="editor__body">
+          <div class="editor__stage" id="stage">
+            <svg id="artboard" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="editor__overlay" id="overlay">
+              <div class="editor__selbox" id="selBox" hidden></div>
+              <div class="editor__handle" data-h="nw" hidden></div>
+              <div class="editor__handle" data-h="n" hidden></div>
+              <div class="editor__handle" data-h="ne" hidden></div>
+              <div class="editor__handle" data-h="e" hidden></div>
+              <div class="editor__handle" data-h="se" hidden></div>
+              <div class="editor__handle" data-h="s" hidden></div>
+              <div class="editor__handle" data-h="sw" hidden></div>
+              <div class="editor__handle" data-h="w" hidden></div>
+            </div>
+          </div>
+
+          <aside class="editor__sidebar">
+            <div class="editor__panel">
+              <div class="editor__panel-head">
+                <span class="editor__panel-title">Properties</span>
+                <span class="editor__panel-sub" id="propType">Nothing selected</span>
+              </div>
+              <div class="editor__props" id="props"></div>
+            </div>
+            <div class="editor__panel">
+              <div class="editor__panel-head">
+                <span class="editor__panel-title">Source</span>
+                <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button">Copy</button>
+              </div>
+              <textarea class="editor__code" id="codeView" rows="8" spellcheck="false" placeholder="SVG source appears here"></textarea>
+            </div>
+          </aside>
+        </div>
+        <p class="settings__note" id="editorHint">Pick a tool and drag on the canvas. Use the Properties panel to adjust fill, stroke, and opacity per element. Shortcuts: 1-6 switch tools.</p>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/editor.js"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@ A small set of browser-based image tools. Everything runs locally; no files are 
 - **[QR Code](https://70015.net/qr)** — turn a link or text into a QR. Adjustable size, margin, colors. Export PNG or SVG.
 - **[SVG Tools](https://70015.net/svg)** — optimize SVG markup (strip cruft, minify) and convert SVG to PNG.
 - **[Screenshot Annotate](https://70015.net/annotate)** — mark up images with arrows, boxes, text, highlights, and mosaic. Export PNG.
+- **[SVG Editor](https://70015.net/editor)** — draw shapes, text, and freehand paths. Adjust fill, stroke, and opacity per element. Undo/redo, import, export SVG or PNG.
 
 ## Why
 
