@@ -59,6 +59,19 @@
 
         <div class="settings">
           <div class="settings__group">
+            <label class="settings__label">快速预设</label>
+            <div class="chips" id="presetSelector">
+              <button class="chip chip--btn is-active" data-preset="custom" type="button"><span>自定义</span></button>
+              <button class="chip chip--btn" data-preset="webp-only" type="button"><span>仅转 WebP</span></button>
+              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span>博客封面 1200×630</span></button>
+              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span>缩略图 300×300</span></button>
+              <button class="chip chip--btn" data-preset="social" type="button"><span>社媒 1080×1080</span></button>
+              <button class="chip chip--btn" data-preset="favicon" type="button"><span>Favicon ICO</span></button>
+            </div>
+            <p class="settings__note">点击预设会自动填充格式、尺寸与适配方式。</p>
+          </div>
+
+          <div class="settings__group">
             <label class="settings__label" for="outputFormat">输出格式</label>
             <div class="segmented" id="formatSelector">
               <button class="segmented__btn is-active" data-value="webp" type="button">WebP</button>

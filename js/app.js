@@ -12,6 +12,7 @@
   const fileInput = document.getElementById('fileInput');
   const formatSelector = document.getElementById('formatSelector');
   const formatNote = document.getElementById('formatNote');
+  const presetSelector = document.getElementById('presetSelector');
   const icoSizePanel = document.getElementById('icoSizePanel');
   const icoSizeSelector = document.getElementById('icoSizeSelector');
   const icoCropSelector = document.getElementById('icoCropSelector');
@@ -74,6 +75,15 @@
   };
 
   const DEFAULT_ICO_SIZES = [32, 256];
+
+  const PRESETS = {
+    custom: null,
+    'webp-only': { format: 'webp', resizeMode: 'original', quality: 0.85 },
+    'blog-cover': { format: 'webp', resizeMode: 'custom', width: 1200, height: 630, customFit: 'cover', quality: 0.85 },
+    thumbnail: { format: 'jpeg', resizeMode: 'custom', width: 300, height: 300, customFit: 'cover', quality: 0.8 },
+    social: { format: 'jpeg', resizeMode: 'custom', width: 1080, height: 1080, customFit: 'cover', quality: 0.9 },
+    favicon: { format: 'ico', resizeMode: 'original', icoSizes: [32, 256], icoCropMode: 'cover', quality: 0.9 },
+  };
 
   // 工具函数
   function formatBytes(bytes) {
@@ -146,12 +156,86 @@
       state.format = btn.dataset.value;
       formatNote.textContent = FORMAT_NOTES[state.format];
       toggleIcoPanel();
+      setActivePreset('custom');
       reconvertAll();
     });
   });
 
   function toggleIcoPanel() {
     icoSizePanel.hidden = state.format !== 'ico';
+  }
+
+  // 快速预设
+  presetSelector.querySelectorAll('[data-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      applyPreset(btn.dataset.preset);
+    });
+  });
+
+  function applyPreset(presetKey) {
+    const preset = PRESETS[presetKey];
+    if (!preset) {
+      setActivePreset(presetKey);
+      return;
+    }
+
+    // 应用预设值
+    if (preset.format) state.format = preset.format;
+    if (preset.resizeMode) state.resizeMode = preset.resizeMode;
+    if (preset.width !== undefined) state.width = preset.width;
+    if (preset.height !== undefined) state.height = preset.height;
+    if (preset.customFit) state.customFit = preset.customFit;
+    if (preset.quality !== undefined) state.quality = preset.quality;
+    if (preset.icoSizes) state.icoSizes = [...preset.icoSizes];
+    if (preset.icoCropMode) state.icoCropMode = preset.icoCropMode;
+
+    setActivePreset(presetKey);
+    updateUI();
+    reconvertAll();
+  }
+
+  function setActivePreset(presetKey) {
+    presetSelector.querySelectorAll('[data-preset]').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.preset === presetKey);
+    });
+  }
+
+  function updateUI() {
+    // 格式
+    formatSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.value === state.format);
+    });
+    formatNote.textContent = FORMAT_NOTES[state.format];
+    toggleIcoPanel();
+
+    // 尺寸模式
+    resizeModeSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.value === state.resizeMode);
+    });
+    updateDimensionFields();
+
+    // 宽高输入
+    widthInput.value = state.width || '';
+    heightInput.value = state.height || '';
+
+    // 自定义适配
+    customFitSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.value === state.customFit);
+    });
+
+    // ICO 尺寸
+    icoSizeSelector.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.checked = state.icoSizes.includes(parseInt(cb.value, 10));
+    });
+
+    // ICO 裁剪模式
+    icoCropSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.value === state.icoCropMode);
+    });
+
+    // 质量
+    qualityInput.value = Math.round(state.quality * 100);
+    qualityValue.textContent = qualityInput.value;
   }
 
   // ICO 尺寸选择
@@ -166,6 +250,7 @@
       } else {
         state.icoSizes = selected;
       }
+      setActivePreset('custom');
       reconvertAll();
     });
   });
@@ -176,6 +261,7 @@
       icoCropSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
       btn.classList.add('is-active');
       state.icoCropMode = btn.dataset.value;
+      setActivePreset('custom');
       reconvertAll();
     });
   });
@@ -187,6 +273,7 @@
   });
 
   qualityInput.addEventListener('change', () => {
+    setActivePreset('custom');
     reconvertAll();
   });
 
@@ -197,6 +284,7 @@
       btn.classList.add('is-active');
       state.resizeMode = btn.dataset.value;
       updateDimensionFields();
+      setActivePreset('custom');
       reconvertAll();
     });
   });
@@ -222,11 +310,13 @@
 
   widthInput.addEventListener('change', () => {
     state.width = parseInt(widthInput.value, 10) || null;
+    setActivePreset('custom');
     reconvertAll();
   });
 
   heightInput.addEventListener('change', () => {
     state.height = parseInt(heightInput.value, 10) || null;
+    setActivePreset('custom');
     reconvertAll();
   });
 
@@ -236,6 +326,7 @@
       customFitSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
       btn.classList.add('is-active');
       state.customFit = btn.dataset.value;
+      setActivePreset('custom');
       reconvertAll();
     });
   });
@@ -681,6 +772,5 @@
   }
 
   // 初始化
-  toggleIcoPanel();
-  updateDimensionFields();
+  updateUI();
 })();
