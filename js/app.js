@@ -1,5 +1,5 @@
 /**
- * Web Toolbox — Image Converter
+ * Web Toolbox \u2014 Image Converter
  * Browser-based image converter (WebP / AVIF / JPEG / PNG / ICO)
  * Uses HTML5 Canvas API + JSZip + FileSaver
  */
@@ -369,7 +369,7 @@
 
     downloadAllBtn.disabled = true;
     const originalText = downloadAllBtn.innerHTML;
-    downloadAllBtn.innerHTML = '<span>Zipping…</span>';
+    downloadAllBtn.innerHTML = '<span>Zipping\u2026</span>';
 
     try {
       const zip = new JSZip();
@@ -735,9 +735,9 @@
     if (isReady) {
       if (item.result.format === 'ico' && item.result.icoSizes) {
         const sizesText = item.result.icoSizes.join(', ') + ' px';
-        meta = `ICO (${sizesText}) · ${formatBytes(item.result.blob.size)}${reduction}`;
+        meta = `ICO (${sizesText}) \u00b7 ${formatBytes(item.result.blob.size)}${reduction}`;
       } else {
-        meta = `${item.result.width}\u00d7${item.result.height} · ${formatBytes(item.result.blob.size)}${reduction}`;
+        meta = `${item.result.width}\u00d7${item.result.height} \u00b7 ${formatBytes(item.result.blob.size)}${reduction}`;
       }
     }
 
@@ -794,7 +794,7 @@
 
     actionsPanel.hidden = false;
     const readyCount = state.files.filter((f) => f.status === 'ready').length;
-    fileCount.textContent = `${count} images · ${readyCount}/${count} done`;
+    fileCount.textContent = `${count} images \u00b7 ${readyCount}/${count} done`;
     const total = state.files
       .filter((f) => f.status === 'ready' && f.result)
       .reduce((sum, f) => sum + f.result.blob.size, 0);

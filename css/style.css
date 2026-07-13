@@ -1,5 +1,5 @@
 :root {
-  /* Light theme — cool grey/blue palette (default) */
+  /* Light theme -- cool grey/blue palette (default) */
   --bg: #dee7eb;
   --surface: #e4ecf3;
   --surface-2: #cedde8;
@@ -26,7 +26,7 @@
 }
 
 [data-theme="dark"] {
-  /* Dark theme — warm grey/onyx palette */
+  /* Dark theme -- warm grey/onyx palette */
   --bg: #1d1c1e;
   --surface: #363231;
   --surface-2: #4c4945;

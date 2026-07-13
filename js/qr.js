@@ -56,7 +56,7 @@
   function render() {
     if (!hasLib) { qrHint.textContent = 'QR library failed to load.'; return; }
     const text = qrText.value.trim();
-    if (!text) { canvas.width = canvas.height = 1; qrInfo.textContent = '—'; lastQr = null; return; }
+    if (!text) { canvas.width = canvas.height = 1; qrInfo.textContent = '\u2014'; lastQr = null; return; }
     let qr;
     try {
       qr = qrcode(0, ecl);
@@ -64,7 +64,7 @@
       qr.make();
     } catch (err) {
       canvas.width = canvas.height = 1;
-      qrInfo.textContent = '—';
+      qrInfo.textContent = '\u2014';
       qrHint.textContent = 'Text too long for a QR code at this error-correction level.';
       lastQr = null;
       return;
@@ -89,7 +89,7 @@
     }
     lastQr = qr;
     lastMeta = { count, cell, m, size, transparent: transparentBg.checked, dark: darkColor.value, light: lightColor.value };
-    qrInfo.textContent = size + ' \u00d7 ' + size + ' px · ' + count + ' modules';
+    qrInfo.textContent = size + ' \u00d7 ' + size + ' px \u00b7 ' + count + ' modules';
     qrHint.textContent = 'Updates as you type.';
   }
 

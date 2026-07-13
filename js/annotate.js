@@ -343,7 +343,7 @@
         URL.revokeObjectURL(a.href);
       }, 'image/png');
     } catch (e) {
-      showToast('Image is protected — export blocked');
+      showToast('Image is protected \u2014 export blocked');
     }
   });
 })();

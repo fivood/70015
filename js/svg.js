@@ -112,7 +112,7 @@
     const text = svgText.value.trim();
     if (!text) {
       svgPreview.innerHTML = '<span class="svg__placeholder">Preview will appear here</span>';
-      svgInfo.textContent = '—';
+      svgInfo.textContent = '\u2014';
       svgHint.textContent = 'Paste or upload an SVG to begin.';
       currentSvg = '';
       return;
@@ -126,7 +126,7 @@
     const root = parse(text);
     if (!root) {
       svgPreview.innerHTML = '<span class="svg__placeholder svg__placeholder--err">Invalid SVG markup</span>';
-      svgInfo.textContent = '—';
+      svgInfo.textContent = '\u2014';
       svgHint.textContent = 'Could not parse this SVG. Check the markup.';
       currentSvg = '';
       return;
@@ -137,7 +137,7 @@
     svgPreview.innerHTML = '<img src="' + previewUrl(optimized) + '" alt="SVG preview">';
     const optBytes = byteLength(optimized);
     const saved = original > 0 ? Math.round((1 - optBytes / original) * 100) : 0;
-    svgInfo.textContent = formatBytes(original) + ' → ' + formatBytes(optBytes) + (saved > 0 ? ' (−' + saved + '%)' : '');
+    svgInfo.textContent = formatBytes(original) + ' \u2192 ' + formatBytes(optBytes) + (saved > 0 ? ' (\u2212' + saved + '%)' : '');
     svgHint.textContent = 'Optimized output is ready. Copy, download, or export PNG.';
   }
 
@@ -180,7 +180,7 @@
           URL.revokeObjectURL(a.href);
         }, 'image/png');
       } catch (e) {
-        showToast('SVG has external resources — can\'t export');
+        showToast('SVG has external resources \u2014 can\'t export');
       }
     };
     img.onerror = () => showToast('Could not render SVG');

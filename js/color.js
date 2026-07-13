@@ -100,7 +100,7 @@
   }
 
   function badge(label, pass) {
-    return `<span class="badge ${pass ? 'badge--pass' : 'badge--fail'}">${pass ? '✓' : '✕'} ${label}</span>`;
+    return `<span class="badge ${pass ? 'badge--pass' : 'badge--fail'}">${pass ? '\u2713' : '\u2715'} ${label}</span>`;
   }
 
   function render() {

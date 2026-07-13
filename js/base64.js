@@ -85,7 +85,7 @@
       <img class="file__thumb" src="${url}" alt="" loading="lazy" decoding="async">
       <div class="file__info">
         <p class="file__name">${escapeHtml(file.name)}</p>
-        <p class="file__meta">Base64 length: ${base64.length.toLocaleString()} · ~${sizeText}</p>
+        <p class="file__meta">Base64 length: ${base64.length.toLocaleString()} \u00b7 ~${sizeText}</p>
       </div>
       <div class="file__actions">
         <button class="btn btn--primary btn--sm" type="button" data-copy>Copy</button>

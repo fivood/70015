@@ -203,7 +203,7 @@
       showToast('Please choose a PDF file');
       return;
     }
-    pdfHint.textContent = 'Loading PDF…';
+    pdfHint.textContent = 'Loading PDF\u2026';
     try {
       const buf = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: buf });
@@ -270,14 +270,14 @@
     pdfCanvas.hidden = true;
     hideStage();
     pdfHint.textContent = pdfReady
-      ? "Tip: for long web pages, use your browser's Print → Save as PDF, then open it here to capture or stitch all pages."
+      ? "Tip: for long web pages, use your browser's Print \u2192 Save as PDF, then open it here to capture or stitch all pages."
       : 'PDF library failed to load. Reload the page or check your network.';
   }
 
   async function stitchAll() {
     if (!pdfDoc) return;
     stitchBtn.disabled = true;
-    pdfHint.textContent = 'Stitching pages… this can take a moment.';
+    pdfHint.textContent = 'Stitching pages\u2026 this can take a moment.';
     try {
       const first = await pdfDoc.getPage(1);
       const scale = computeScale(first.getViewport({ scale: 1 }));
@@ -313,7 +313,7 @@
     } catch (err) {
       console.error(err);
       showToast('Stitching failed');
-      pdfHint.textContent = 'Stitching failed — the document may be too large.';
+      pdfHint.textContent = 'Stitching failed \u2014 the document may be too large.';
     } finally {
       stitchBtn.disabled = false;
     }

@@ -1,5 +1,5 @@
 /**
- * 70015 — Palette Generator
+ * 70015 \u2014 Palette Generator
  * Extract dominant colors from images
  */
 
@@ -295,7 +295,7 @@
       )
       .join('');
 
-    const loading = item.colors.length === 0 ? '<p class="palette-card__name">Extracting…</p>' : '';
+    const loading = item.colors.length === 0 ? '<p class="palette-card__name">Extracting\u2026</p>' : '';
 
     el.innerHTML = `
       <img class="palette-card__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async">
