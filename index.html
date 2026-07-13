@@ -24,14 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='25' width='70' height='50' rx='8' fill='none' stroke='%23203848' stroke-width='6'/><circle cx='35' cy='45' r='7' fill='%23203848'/><path d='M20 70 L40 50 L55 65 L70 45 L80 60 L80 75 L20 75 Z' fill='%23203848'/></svg>">
-  <script>
-    (function () {
-      try {
-        const theme = localStorage.getItem('70015-theme');
-        document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
-      } catch (e) {}
-    })();
-  </script>
+  <script src="js/theme-head.js"></script>
 </head>
 <body>
   <div class="app">
@@ -61,7 +54,7 @@
     </header>
 
     <main class="main">
-      <section class="tools card" style="margin-top: var(--space-lg);">
+      <section class="tools card">
         <div class="tools__header">
           <h1 class="tools__title">Tools</h1>
           <span class="tools__count">3 tools</span>

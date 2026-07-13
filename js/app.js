@@ -391,9 +391,18 @@
     }
   });
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
   // Handle files
   function handleFiles(fileListObj) {
-    const accepted = Array.from(fileListObj).filter((file) => file.type.startsWith('image/'));
+    const accepted = Array.from(fileListObj).filter((file) => {
+      if (!file.type.startsWith('image/')) return false;
+      if (file.size > MAX_FILE_SIZE) {
+        showToast(`${file.name} is too large (max 50 MB)`);
+        return false;
+      }
+      return true;
+    });
     if (accepted.length === 0) {
       showToast('Please select image files');
       return;
@@ -710,7 +719,7 @@
 
     const hasThumb = !!item.blobUrl;
     const thumbHtml = hasThumb
-      ? `<img class="file__thumb" src="${item.blobUrl}" alt="" loading="lazy">`
+      ? `<img class="file__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async">`
       : `<div class="file__thumb-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><path d="M21 15 L16 10 L10 16 L7 13 L3 17"/></svg></div>`;
 
     const statusClass = isError ? 'file__status--error' : isReady ? 'file__status--ready' : 'file__status--converting';
@@ -725,8 +734,8 @@
     let meta = `${formatBytes(item.file.size)}`;
     if (isReady) {
       if (item.result.format === 'ico' && item.result.icoSizes) {
-        const sizesText = item.result.icoSizes.join('、') + ' px';
-        meta = `ICO（${sizesText}） · ${formatBytes(item.result.blob.size)}${reduction}`;
+        const sizesText = item.result.icoSizes.join(', ') + ' px';
+        meta = `ICO (${sizesText}) · ${formatBytes(item.result.blob.size)}${reduction}`;
       } else {
         meta = `${item.result.width}×${item.result.height} · ${formatBytes(item.result.blob.size)}${reduction}`;
       }

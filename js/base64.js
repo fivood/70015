@@ -47,8 +47,17 @@
     return dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
   }
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
   async function handleImageFiles(files) {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    const validFiles = Array.from(files).filter(f => {
+      if (!f.type.startsWith('image/')) return false;
+      if (f.size > MAX_FILE_SIZE) {
+        showToast(`${f.name} is too large (max 50 MB)`);
+        return false;
+      }
+      return true;
+    });
     if (!validFiles.length) {
       showToast('Please select image files');
       return;
@@ -73,7 +82,7 @@
     const sizeText = formatBytes(base64.length);
 
     item.innerHTML = `
-      <img class="file__thumb" src="${url}" alt="" loading="lazy">
+      <img class="file__thumb" src="${url}" alt="" loading="lazy" decoding="async">
       <div class="file__info">
         <p class="file__name">${escapeHtml(file.name)}</p>
         <p class="file__meta">Base64 length: ${base64.length.toLocaleString()} · ~${sizeText}</p>

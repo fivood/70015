@@ -131,8 +131,17 @@
     showToast('JSON exported');
   });
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
   function handleFiles(fileListObj) {
-    const accepted = Array.from(fileListObj).filter((file) => file.type.startsWith('image/'));
+    const accepted = Array.from(fileListObj).filter((file) => {
+      if (!file.type.startsWith('image/')) return false;
+      if (file.size > MAX_FILE_SIZE) {
+        showToast(`${file.name} is too large (max 50 MB)`);
+        return false;
+      }
+      return true;
+    });
     if (accepted.length === 0) {
       showToast('Please select image files');
       return;
@@ -289,7 +298,7 @@
     const loading = item.colors.length === 0 ? '<p class="palette-card__name">Extracting…</p>' : '';
 
     el.innerHTML = `
-      <img class="palette-card__thumb" src="${item.blobUrl}" alt="" loading="lazy">
+      <img class="palette-card__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async">
       <div class="palette-card__info">
         <h3 class="palette-card__name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</h3>
         ${loading}

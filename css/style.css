@@ -420,6 +420,14 @@ body {
   color: var(--text);
 }
 
+.main > .tools:first-child {
+  margin-top: var(--space-lg);
+}
+
+.base64-list {
+  margin-top: var(--space-lg);
+}
+
 /* Panel */
 .panel {
   padding: var(--space-lg);
