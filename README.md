@@ -22,7 +22,7 @@
 
 通过 Cloudflare Pages 部署（自动同步）：
 
-👉 **https://web-toolbox.pages.dev/**（需按下方步骤配置后生效）
+👉 **https://a1457bf3.70015.pages.dev/**
 
 > 如果 AVIF 导出在你的浏览器不可用，会自动降级为 WebP。
 
