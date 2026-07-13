@@ -3,8 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>70015 — Web Toolbox</title>
-  <meta name="description" content="A browser-based toolbox for designers. Convert images, extract colors, swap Base64. No upload.">
+  <title>70015 — Online image tools</title>
+  <meta name="description" content="Browser-based tools for images: convert formats, extract color palettes, swap Base64. No upload, no server.">
+  <link rel="canonical" href="https://70015.net/">
+  <meta property="og:title" content="70015 — Online image tools">
+  <meta property="og:description" content="Browser-based tools for images. Convert formats, extract palettes, swap Base64. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "70015",
+    "url": "https://70015.net/",
+    "description": "Browser-based image tools with no server upload."
+  }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -35,6 +49,8 @@
         </div>
       </a>
       <div class="header__actions">
+      </a>
+      <div class="header__actions">
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -47,7 +63,7 @@
     <main class="main">
       <section class="tools card" style="margin-top: var(--space-lg);">
         <div class="tools__header">
-          <h3 class="tools__title">Tools</h3>
+          <h1 class="tools__title">Tools</h1>
           <span class="tools__count">3 tools</span>
         </div>
         <div class="tools__grid">
