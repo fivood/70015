@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SVG Editor &mdash; 70015</title>
-  <meta name="description" content="Draw and edit SVG in your browser. Shapes, text, freehand paths, select, move, resize, export SVG or PNG. No upload.">
+  <meta name="description" content="Draw and edit SVG in your browser. Shapes, text, freehand paths, gradients, multi-select, align, grid, zoom. Export SVG or PNG. No upload.">
   <link rel="canonical" href="https://70015.net/editor">
   <meta property="og:title" content="SVG Editor &mdash; 70015">
-  <meta property="og:description" content="Browser-based SVG drawing editor. No upload.">
+  <meta property="og:description" content="Browser-based SVG drawing editor with gradients, zoom, grid, and alignment. No upload.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://70015.net/editor">
   <script type="application/ld+json">
@@ -18,7 +18,7 @@
     "applicationCategory": "DesignApplication",
     "operatingSystem": "Any",
     "url": "https://70015.net/editor",
-    "description": "Browser-based SVG drawing and editing tool.",
+    "description": "Browser-based SVG drawing and editing tool with gradients, zoom, grid, and alignment.",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
   </script>
@@ -72,23 +72,29 @@
       <section class="editor card">
         <div class="editor__toolbar">
           <div class="editor__tools" id="tools" role="group" aria-label="Tools">
-            <button class="tool is-active" data-tool="select" type="button" title="Select / move">
+            <button class="tool is-active" data-tool="select" type="button" title="Select / move (1)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 8-6 2-2 6z"/></svg>
             </button>
-            <button class="tool" data-tool="rect" type="button" title="Rectangle">
+            <button class="tool" data-tool="rect" type="button" title="Rectangle (2)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
             </button>
-            <button class="tool" data-tool="ellipse" type="button" title="Ellipse">
+            <button class="tool" data-tool="ellipse" type="button" title="Ellipse (3)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
             </button>
-            <button class="tool" data-tool="line" type="button" title="Line">
+            <button class="tool" data-tool="line" type="button" title="Line (4)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="20" y2="4"/></svg>
             </button>
-            <button class="tool" data-tool="text" type="button" title="Text">
+            <button class="tool" data-tool="text" type="button" title="Text (5)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16M12 5v14M9 19h6"/></svg>
             </button>
-            <button class="tool" data-tool="pen" type="button" title="Freehand pen">
+            <button class="tool" data-tool="pen" type="button" title="Freehand pen (6)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18c2-1 3-4 4-6s2-4 4-5 4 0 5 1 1 3 0 5-4 4-6 4"/></svg>
+            </button>
+            <button class="tool" data-tool="polygon" type="button" title="Polygon &mdash; click to add points, double-click to close (7)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 L21 9 L18 20 L6 20 L3 9 Z"/></svg>
+            </button>
+            <button class="tool" data-tool="star" type="button" title="Star (8)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2 L14.5 8.5 L21.5 9 L16 13.5 L18 20.5 L12 16.5 L6 20.5 L8 13.5 L2.5 9 L9.5 8.5 Z"/></svg>
             </button>
           </div>
 
@@ -113,10 +119,36 @@
             <button class="btn btn--secondary btn--sm" id="undoBtn" type="button" title="Undo (Ctrl+Z)" disabled>&#8694;</button>
             <button class="btn btn--secondary btn--sm" id="redoBtn" type="button" title="Redo (Ctrl+Y)" disabled>&#8695;</button>
             <button class="btn btn--secondary btn--sm" id="duplicateBtn" type="button" title="Duplicate (Ctrl+D)" disabled>Dup</button>
+            <button class="btn btn--secondary btn--sm" id="groupBtn" type="button" title="Group (Ctrl+G)" disabled>Grp</button>
+            <button class="btn btn--secondary btn--sm" id="ungroupBtn" type="button" title="Ungroup (Ctrl+Shift+G)" disabled>Ung</button>
+            <button class="btn btn--secondary btn--sm" id="flipHBtn" type="button" title="Flip horizontal" disabled>&#8596;</button>
+            <button class="btn btn--secondary btn--sm" id="flipVBtn" type="button" title="Flip vertical" disabled>&#8597;</button>
             <button class="btn btn--secondary btn--sm" id="frontBtn" type="button" title="Bring to front" disabled>&#10514;</button>
             <button class="btn btn--secondary btn--sm" id="backBtn" type="button" title="Send to back" disabled>&#10515;</button>
             <button class="btn btn--secondary btn--sm" id="deleteBtn" type="button" title="Delete (Del)" disabled>&#128465;</button>
           </div>
+
+          <span class="editor__sep" aria-hidden="true"></span>
+
+          <div class="editor__actions editor__actions--align" id="alignGroup" hidden>
+            <button class="btn btn--secondary btn--sm" data-align="left" type="button" title="Align left">&#8676;</button>
+            <button class="btn btn--secondary btn--sm" data-align="ch" type="button" title="Align center horizontal">&#8592;&#8735;</button>
+            <button class="btn btn--secondary btn--sm" data-align="right" type="button" title="Align right">&#8677;</button>
+            <button class="btn btn--secondary btn--sm" data-align="top" type="button" title="Align top">&#8679;</button>
+            <button class="btn btn--secondary btn--sm" data-align="cv" type="button" title="Align center vertical">&#8595;&#8735;</button>
+            <button class="btn btn--secondary btn--sm" data-align="bottom" type="button" title="Align bottom">&#8680;</button>
+          </div>
+
+          <span class="editor__sep" aria-hidden="true"></span>
+
+          <div class="editor__actions">
+            <button class="btn btn--secondary btn--sm" id="zoomOutBtn" type="button" title="Zoom out">&minus;</button>
+            <span class="editor__zoom-label" id="zoomLabel">100%</span>
+          </div>
+          <button class="btn btn--secondary btn--sm" id="zoomInBtn" type="button" title="Zoom in">+</button>
+          <button class="btn btn--secondary btn--sm" id="fitBtn" type="button" title="Fit to screen">Fit</button>
+          <button class="btn btn--secondary btn--sm" id="gridBtn" type="button" title="Toggle grid">Grid</button>
+          <button class="btn btn--secondary btn--sm" id="snapBtn" type="button" title="Toggle snap to grid">Snap</button>
 
           <span class="editor__sep" aria-hidden="true"></span>
 
@@ -142,6 +174,7 @@
               <div class="editor__handle" data-h="s" hidden></div>
               <div class="editor__handle" data-h="sw" hidden></div>
               <div class="editor__handle" data-h="w" hidden></div>
+              <div class="editor__rotate" id="rotateHandle" hidden></div>
             </div>
           </div>
 
@@ -162,7 +195,7 @@
             </div>
           </aside>
         </div>
-        <p class="settings__note" id="editorHint">Pick a tool and drag on the canvas. Use the Properties panel to adjust fill, stroke, and opacity per element. Shortcuts: 1-6 switch tools.</p>
+        <p class="settings__note" id="editorHint">Pick a tool and drag on the canvas. Scroll to zoom, Space+drag to pan. Use Properties to adjust fill, stroke, opacity, and gradients per element. Shortcuts: 1-8 switch tools.</p>
       </section>
     </main>
 
