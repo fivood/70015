@@ -679,9 +679,16 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  transition: border-color 0.2s, transform 0.15s;
 }
 
-.file__thumb {
+.file:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.file__thumb,
+.file__thumb-placeholder {
   width: 72px;
   height: 72px;
   border-radius: var(--radius-sm);
@@ -690,17 +697,29 @@ body {
   border: 1px solid var(--border);
 }
 
+.file__thumb-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+}
+
+.file__thumb-placeholder svg {
+  width: 28px;
+  height: 28px;
+}
+
 .file__info {
   min-width: 0;
 }
 
 .file__name {
-  margin: 0 0 2px;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text);
 }
 
 .file__meta {
@@ -713,7 +732,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 11px;

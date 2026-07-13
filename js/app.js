@@ -703,7 +703,11 @@
     const isError = item.status === 'error';
     const isConverting = item.status === 'converting';
 
-    const thumbSrc = item.blobUrl || '';
+    const hasThumb = !!item.blobUrl;
+    const thumbHtml = hasThumb
+      ? `<img class="file__thumb" src="${item.blobUrl}" alt="" loading="lazy">`
+      : `<div class="file__thumb-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><path d="M21 15 L16 10 L10 16 L7 13 L3 17"/></svg></div>`;
+
     const statusClass = isError ? 'file__status--error' : 'file__status--ready';
     const statusText = isConverting ? '转换中…' : isError ? '失败' : isReady ? '完成' : '待处理';
 
@@ -722,7 +726,7 @@
     }
 
     el.innerHTML = `
-      <img class="file__thumb" src="${thumbSrc}" alt="" loading="lazy">
+      ${thumbHtml}
       <div class="file__info">
         <h3 class="file__name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</h3>
         <p class="file__meta">${meta}</p>
@@ -734,7 +738,7 @@
             ? `<button class="btn btn--primary btn--sm" type="button" data-action="download" data-id="${item.id}">下载</button>`
             : ''
         }
-        <button class="btn btn--secondary btn--sm" type="button" data-action="remove" data-id="${item.id}">移除</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-action="remove" data-id="${item.id}">删除</button>
       </div>
     `;
 
