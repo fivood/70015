@@ -19,6 +19,8 @@
   const qualityValue = document.getElementById('qualityValue');
   const resizeModeSelector = document.getElementById('resizeModeSelector');
   const dimensionsPanel = document.getElementById('dimensionsPanel');
+  const customFitPanel = document.getElementById('customFitPanel');
+  const customFitSelector = document.getElementById('customFitSelector');
   const widthInput = document.getElementById('widthInput');
   const heightInput = document.getElementById('heightInput');
   const widthField = document.getElementById('widthField');
@@ -44,6 +46,7 @@
     height: null,
     icoSizes: [32, 256],
     icoCropMode: 'cover',
+    customFit: 'contain',
   };
 
   const FORMAT_NOTES = {
@@ -203,6 +206,7 @@
     dimensionsPanel.classList.toggle('is-hidden', mode === 'original');
     widthField.hidden = mode === 'original' || mode === 'height';
     heightField.hidden = mode === 'original' || mode === 'width';
+    customFitPanel.hidden = mode !== 'custom';
 
     if (mode === 'width') {
       widthField.querySelector('label').textContent = '目标宽度 px';
@@ -224,6 +228,16 @@
   heightInput.addEventListener('change', () => {
     state.height = parseInt(heightInput.value, 10) || null;
     reconvertAll();
+  });
+
+  // 自定义尺寸适配方式
+  customFitSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      customFitSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      state.customFit = btn.dataset.value;
+      reconvertAll();
+    });
   });
 
   // 清空
@@ -351,7 +365,12 @@
               ctx.fillRect(0, 0, width, height);
             }
 
-            ctx.drawImage(img, 0, 0, width, height);
+            const isCustomCover = state.resizeMode === 'custom' && state.customFit === 'cover' && state.width && state.height;
+            if (isCustomCover) {
+              drawCoverRect(ctx, img, width, height);
+            } else {
+              ctx.drawImage(img, 0, 0, width, height);
+            }
 
             const mime = FORMAT_MIMES[format];
             const quality = format === 'png' ? undefined : state.quality;
@@ -453,6 +472,27 @@
     };
   }
 
+  // 居中裁剪并填满目标矩形（cover）
+  function drawCoverRect(c, img, targetWidth, targetHeight) {
+    const targetRatio = targetWidth / targetHeight;
+    const sourceRatio = img.naturalWidth / img.naturalHeight;
+    let sx, sy, sWidth, sHeight;
+
+    if (sourceRatio > targetRatio) {
+      sHeight = img.naturalHeight;
+      sWidth = sHeight * targetRatio;
+      sx = (img.naturalWidth - sWidth) / 2;
+      sy = 0;
+    } else {
+      sWidth = img.naturalWidth;
+      sHeight = sWidth / targetRatio;
+      sx = 0;
+      sy = (img.naturalHeight - sHeight) / 2;
+    }
+
+    c.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+  }
+
   // 把图片绘制成正方形：cover 居中裁剪 / contain 等比缩放透明填充
   function drawSquareImage(c, img, size, mode) {
     const ratio = img.naturalWidth / img.naturalHeight;
@@ -519,6 +559,10 @@
     }
 
     if (mode === 'custom' && w && h) {
+      if (state.customFit === 'cover') {
+        // 按目标尺寸居中裁剪并填满
+        return { width: w, height: h };
+      }
       // 按用户给的宽高进行 contain 缩放，保持比例
       const targetRatio = w / h;
       if (ratio > targetRatio) {

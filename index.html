@@ -116,7 +116,15 @@
                 <input type="number" id="heightInput" min="1" max="16384" placeholder="例如 800">
               </div>
             </div>
-            <p class="settings__note">尺寸调整会保持原图比例，不会拉伸变形。</p>
+            <div class="settings__subgroup" id="customFitPanel" hidden>
+              <label class="settings__label">自定义尺寸适配</label>
+              <div class="segmented" id="customFitSelector">
+                <button class="segmented__btn is-active" data-value="contain" type="button">保持比例</button>
+                <button class="segmented__btn" data-value="cover" type="button">裁剪填充</button>
+              </div>
+              <p class="settings__note">保持比例会完整显示图片；裁剪填充会按目标尺寸居中裁剪并填满画面。</p>
+            </div>
+            <p class="settings__note" id="resizeNote">尺寸调整默认保持原图比例，不会拉伸变形。</p>
           </div>
         </div>
       </section>
