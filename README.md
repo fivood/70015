@@ -20,7 +20,35 @@
 
 👉 **https://fivood.github.io/web-toolbox/**
 
+通过 Cloudflare Pages 部署（自动同步）：
+
+👉 **https://web-toolbox.pages.dev/**（需按下方步骤配置后生效）
+
 > 如果 AVIF 导出在你的浏览器不可用，会自动降级为 WebP。
+
+## ☁️ 自动部署到 Cloudflare Pages
+
+本仓库已内置 GitHub Actions 工作流（`.github/workflows/deploy-cloudflare.yml`），每次 push 到 `master` 分支会自动部署到 Cloudflare Pages。
+
+### 配置步骤
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. 获取 **Account ID**：在右侧边栏找到并复制
+3. 创建 **API Token**：
+   - 进入 [My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+   - 点击 **Create Token**
+   - 使用 **Custom token**，权限选择：
+     - `Cloudflare Pages` → `Edit`
+     - `Account` → `Cloudflare Pages` → `Read`（部分模板需要）
+   - 账户资源选择你的账户
+4. 在 GitHub 仓库设置中添加 Secrets：
+   - 打开 `https://github.com/fivood/web-toolbox/settings/secrets/actions`
+   - 新建 `CLOUDFLARE_API_TOKEN`，粘贴刚才创建的 Token
+   - 新建 `CLOUDFLARE_ACCOUNT_ID`，粘贴 Account ID
+5. 首次部署前，需要先在 Cloudflare Pages 创建项目：
+   - 方式 A（推荐）：在 Cloudflare Dashboard → Pages → Create a project → Connect to Git，选择 `fivood/web-toolbox`，设置 Build command 为空、Output directory 为 `.`，然后保存。之后 GitHub Actions 会自动接管部署。
+   - 方式 B（命令行）：安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/) 后运行 `wrangler pages project create web-toolbox`
+6. Push 任意更新到 `master`，Actions 会自动部署，通常 1–2 分钟内生效。
 
 ## 🛠️ 本地运行
 
@@ -38,7 +66,7 @@ npx serve .
 - HTML5 Canvas API（核心转换）
 - 原生 JavaScript（无框架）
 - JSZip + FileSaver.js（打包下载）
-- GitHub Pages（部署）
+- GitHub Pages + Cloudflare Pages（双部署）
 
 ## 📚 参考项目
 
