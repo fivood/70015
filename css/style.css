@@ -305,13 +305,24 @@ body {
   background: var(--surface-2);
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
 }
 
-.upload:hover,
+.upload:hover {
+  border-color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .upload.is-dragover {
   border-color: var(--primary);
-  background: rgba(255, 255, 255, 0.04);
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.01);
+}
+
+.upload.is-dragover .upload__icon {
+  color: var(--text);
+  transform: translateY(-4px);
 }
 
 .upload__input {
@@ -332,6 +343,7 @@ body {
   height: 56px;
   margin: 0 auto var(--space-sm);
   color: var(--text-muted);
+  transition: color 0.2s, transform 0.2s;
 }
 
 .upload__icon svg {

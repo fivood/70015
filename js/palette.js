@@ -8,6 +8,8 @@
 
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
+  const uploadTitle = dropZone.querySelector('.upload__title');
+  const uploadHint = dropZone.querySelector('.upload__hint');
   const colorCountInput = document.getElementById('colorCount');
   const colorCountValue = document.getElementById('colorCountValue');
   const sampleInput = document.getElementById('samplePrecision');
@@ -47,6 +49,18 @@
   }
 
   // 上传事件
+  let originalTitle = '';
+  let originalHint = '';
+
+  dropZone.addEventListener('dragenter', () => {
+    if (!originalTitle) {
+      originalTitle = uploadTitle.textContent;
+      originalHint = uploadHint.textContent;
+    }
+    uploadTitle.textContent = '释放文件以上传';
+    uploadHint.textContent = '支持多张图片和文件夹';
+  });
+
   dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('is-dragover');
@@ -54,11 +68,15 @@
 
   dropZone.addEventListener('dragleave', () => {
     dropZone.classList.remove('is-dragover');
+    uploadTitle.textContent = originalTitle;
+    uploadHint.textContent = originalHint;
   });
 
   dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('is-dragover');
+    uploadTitle.textContent = originalTitle;
+    uploadHint.textContent = originalHint;
     handleFiles(e.dataTransfer.files);
   });
 
