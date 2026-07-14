@@ -447,6 +447,68 @@
     a.click();
   }
 
+  // ---------- Multi-capture stitch ----------
+
+  var stitchCanvas = null;
+  var stitchCount = 0;
+  var stitchPanel = document.getElementById('stitchPanel');
+  var stitchCountEl = document.getElementById('stitchCount');
+
+  function addToStitch() {
+    if (!lastBlob) { showToast('Capture a region first'); return; }
+    var img = new Image();
+    img.onload = function () {
+      var w = img.naturalWidth, h = img.naturalHeight;
+      if (!stitchCanvas) {
+        stitchCanvas = document.createElement('canvas');
+        stitchCanvas.width = w;
+        stitchCanvas.height = h;
+        var sctx = stitchCanvas.getContext('2d');
+        sctx.drawImage(img, 0, 0);
+      } else {
+        var oldH = stitchCanvas.height;
+        var newW = Math.max(stitchCanvas.width, w);
+        var newH = oldH + h;
+        var tmp = document.createElement('canvas');
+        tmp.width = newW;
+        tmp.height = newH;
+        var tctx = tmp.getContext('2d');
+        tctx.drawImage(stitchCanvas, 0, 0);
+        tctx.drawImage(img, 0, oldH);
+        stitchCanvas.width = newW;
+        stitchCanvas.height = newH;
+        stitchCanvas.getContext('2d').drawImage(tmp, 0, 0);
+      }
+      stitchCount++;
+      stitchCountEl.textContent = stitchCount;
+      stitchPanel.hidden = false;
+      stitchPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      showToast('Added segment ' + stitchCount);
+    };
+    img.src = lastBlobUrl;
+  }
+
+  function downloadStitch() {
+    if (!stitchCanvas || stitchCount === 0) { showToast('Nothing stitched yet'); return; }
+    stitchCanvas.toBlob(function (blob) {
+      if (!blob) { showToast('Export failed'); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'stitched-' + Date.now() + '.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('Downloaded ' + stitchCount + ' segments');
+    }, 'image/png');
+  }
+
+  function clearStitch() {
+    stitchCanvas = null;
+    stitchCount = 0;
+    stitchCountEl.textContent = '0';
+    stitchPanel.hidden = true;
+    showToast('Stitch cleared');
+  }
+
   async function copyToClipboard() {
     if (!lastBlob) return;
     try {
@@ -491,6 +553,9 @@
   nextPageBtn.addEventListener('click', () => gotoPage(1));
   downloadBtn.addEventListener('click', download);
   copyBtn.addEventListener('click', copyToClipboard);
+  document.getElementById('addToStitchBtn').addEventListener('click', addToStitch);
+  document.getElementById('stitchDownloadBtn').addEventListener('click', downloadStitch);
+  document.getElementById('stitchClearBtn').addEventListener('click', clearStitch);
 
   pdfInput.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];

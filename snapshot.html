@@ -171,11 +171,23 @@
               <span id="resultSize">&mdash;</span>
               <div class="actions__btns">
                 <button class="btn btn--secondary btn--sm" id="copyBtn" type="button">Copy</button>
+                <button class="btn btn--secondary btn--sm" id="addToStitchBtn" type="button" title="Append this capture to a vertical stitch canvas">+ Stitch</button>
                 <button class="btn btn--primary btn--sm" id="downloadBtn" type="button">Download PNG</button>
               </div>
             </div>
           </div>
-          <p class="settings__note" id="resultNote">Drag on the preview above to capture a different region.</p>
+          <p class="settings__note" id="resultNote">Drag on the preview above to capture a different region. Click "+ Stitch" to append, then scroll and capture again.</p>
+        </div>
+      </section>
+
+      <section class="panel card snapshot__stitch" id="stitchPanel" hidden>
+        <div class="settings__group">
+          <span class="settings__label">Stitched image &mdash; <span id="stitchCount">0</span> segments</span>
+          <div class="actions__btns">
+            <button class="btn btn--primary btn--sm" id="stitchDownloadBtn" type="button">Download stitched PNG</button>
+            <button class="btn btn--secondary btn--sm" id="stitchClearBtn" type="button">Clear stitch</button>
+          </div>
+          <p class="settings__note" id="stitchHint">Capture a region, click "+ Stitch", scroll down in the shared tab, capture again. Segments are appended top to bottom.</p>
         </div>
       </section>
     </main>
