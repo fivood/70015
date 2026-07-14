@@ -33,6 +33,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
   <script src="js/theme-head.js"></script>
 </head>
 <body>
@@ -42,7 +43,7 @@
         <span class="header__logo" aria-hidden="true">
           <img src="logo.svg" alt="" width="26" height="26">
         </span>
-        <div><h1 class="header__title">TOOLS</h1></div>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
       </a>
       <div class="header__actions">
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -147,23 +148,23 @@
             <span class="editor__zoom-label" id="zoomLabel">100%</span>
           </div>
           <button class="btn btn--secondary btn--sm" id="zoomInBtn" type="button" title="Zoom in">+</button>
-          <button class="btn btn--secondary btn--sm" id="fitBtn" type="button" title="Fit to screen">Fit</button>
+          <button class="btn btn--secondary btn--sm" id="fitBtn" type="button" title="Fit to screen" data-i18n="conv_fit">Fit</button>
           <button class="btn btn--secondary btn--sm" id="gridBtn" type="button" title="Toggle grid">Grid</button>
           <button class="btn btn--secondary btn--sm" id="snapBtn" type="button" title="Toggle snap to grid">Snap</button>
 
           <span class="editor__sep" aria-hidden="true"></span>
 
           <div class="editor__actions">
-            <button class="btn btn--secondary btn--sm" id="importBtn" type="button">Import</button>
+            <button class="btn btn--secondary btn--sm" id="importBtn" type="button" data-i18n="ed_import">Import</button>
             <input type="file" id="importInput" accept="image/svg+xml,.svg" hidden>
-            <button class="btn btn--secondary btn--sm" id="clearBtn" type="button">Clear</button>
-            <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button">SVG</button>
+            <button class="btn btn--secondary btn--sm" id="clearBtn" type="button" data-i18n="conv_clear">Clear</button>
+            <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button" data-i18n="ed_svg">SVG</button>
             <select class="btn btn--primary btn--sm" id="pngScale" title="PNG export scale" aria-label="PNG scale">
-              <option value="1">1×</option>
-              <option value="2">2×</option>
-              <option value="4">4×</option>
+              <option value="1">1&times;</option>
+              <option value="2">2&times;</option>
+              <option value="4">4&times;</option>
             </select>
-            <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button">PNG</button>
+            <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button" data-i18n="ed_png">PNG</button>
           </div>
         </div>
 
@@ -187,17 +188,17 @@
           <aside class="editor__sidebar">
             <div class="editor__panel">
               <div class="editor__panel-head">
-                <span class="editor__panel-title">Properties</span>
-                <span class="editor__panel-sub" id="propType">Nothing selected</span>
+                <span class="editor__panel-title" data-i18n="ed_props">Properties</span>
+                <span class="editor__panel-sub" id="propType" data-i18n="ed_no_select">Nothing selected</span>
               </div>
               <div class="editor__props" id="props"></div>
             </div>
             <div class="editor__panel">
               <div class="editor__panel-head">
-                <span class="editor__panel-title">Source</span>
-                <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button">Copy</button>
+                <span class="editor__panel-title" data-i18n="ed_source">Source</span>
+                <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button" data-i18n="b64_copy">Copy</button>
               </div>
-              <textarea class="editor__code" id="codeView" rows="8" spellcheck="false" placeholder="SVG source appears here"></textarea>
+              <textarea class="editor__code" id="codeView" rows="8" spellcheck="false" data-i18n-placeholder="ed_source" placeholder="SVG source appears here"></textarea>
             </div>
           </aside>
         </div>
@@ -205,13 +206,14 @@
       </section>
     </main>
 
-    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/editor.js"></script>
 </body>

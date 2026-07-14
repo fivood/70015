@@ -37,6 +37,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
   <script src="js/theme-head.js"></script>
 </head>
 <body>
@@ -47,7 +48,7 @@
           <img src="logo.svg" alt="" width="26" height="26">
         </span>
         <div>
-          <h1 class="header__title">TOOLS</h1>
+          <h1 class="header__title" data-i18n="brand">TOOLS</h1>
         </div>
       </a>
       <div class="header__actions">
@@ -86,7 +87,7 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h1 class="hero__title">Color Palette</h1>
+          <h1 class="hero__title" data-i18n="t_palette">Color Palette</h1>
           <p class="hero__desc">Drop images or a folder to extract dominant colors. Copy HEX, export JSON.</p>
         </div>
       </section>
@@ -127,24 +128,25 @@
 
       <section class="actions card" id="actionsPanel" hidden>
         <div class="actions__info">
-          <span id="fileCount">0 images</span>
+          <span id="fileCount" data-i18n="conv_n_images">0 images</span>
         </div>
         <div class="actions__btns">
-          <button class="btn btn--secondary" id="clearBtn" type="button">Clear</button>
-          <button class="btn btn--primary" id="exportBtn" type="button">Export JSON</button>
+          <button class="btn btn--secondary" id="clearBtn" type="button" data-i18n="conv_clear">Clear</button>
+          <button class="btn btn--primary" id="exportBtn" type="button" data-i18n="pal_export">Export JSON</button>
         </div>
       </section>
 
       <section class="palette-grid" id="paletteGrid" aria-live="polite"></section>
     </main>
 
-    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/palette.js"></script>
 </body>

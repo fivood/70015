@@ -33,6 +33,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
   <script src="js/theme-head.js"></script>
 </head>
 <body>
@@ -42,7 +43,7 @@
         <span class="header__logo" aria-hidden="true">
           <img src="logo.svg" alt="" width="26" height="26">
         </span>
-        <div><h1 class="header__title">TOOLS</h1></div>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
       </a>
       <div class="header__actions">
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -73,14 +74,14 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h1 class="hero__title">Screenshot Annotate</h1>
+          <h1 class="hero__title" data-i18n="t_annotate">Screenshot Annotate</h1>
           <p class="hero__desc">Mark up an image with arrows, boxes, text, highlights, and mosaic. Export PNG.</p>
         </div>
       </section>
 
       <section class="panel card" id="loadPanel">
         <div class="settings__group">
-          <span class="settings__label">Image</span>
+          <span class="settings__label" data-i18n="b64_img2b64">Image</span>
           <div class="upload" id="imgDrop">
             <input type="file" id="imgInput" class="upload__input" accept="image/*" aria-label="Choose an image">
             <div class="upload__content">
@@ -141,9 +142,9 @@
           <div class="annotate__actions">
             <button class="btn btn--secondary btn--sm" id="undoBtn" type="button" title="Undo (Ctrl+Z)" disabled>&#8694; Undo</button>
             <button class="btn btn--secondary btn--sm" id="redoBtn" type="button" title="Redo (Ctrl+Y)" disabled>&#8695; Redo</button>
-            <button class="btn btn--secondary btn--sm" id="clearBtn" type="button">Clear</button>
+            <button class="btn btn--secondary btn--sm" id="clearBtn" type="button" data-i18n="conv_clear">Clear</button>
             <button class="btn btn--secondary btn--sm" id="replaceBtn" type="button">New image</button>
-            <button class="btn btn--primary btn--sm" id="exportBtn" type="button">Export PNG</button>
+            <button class="btn btn--primary btn--sm" id="exportBtn" type="button" data-i18n="svg_export_png">Export PNG</button>
           </div>
         </div>
 
@@ -155,13 +156,14 @@
       </section>
     </main>
 
-    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/annotate.js"></script>
 </body>

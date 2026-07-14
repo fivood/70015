@@ -36,6 +36,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
   <script src="js/theme-head.js"></script>
 </head>
 <body>
@@ -46,7 +47,7 @@
           <img src="logo.svg" alt="" width="26" height="26">
         </span>
         <div>
-          <h1 class="header__title">TOOLS</h1>
+          <h1 class="header__title" data-i18n="brand">TOOLS</h1>
         </div>
       </a>
       <div class="header__actions">
@@ -85,7 +86,7 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h1 class="hero__title">Base64 Swap</h1>
+          <h1 class="hero__title" data-i18n="t_base64">Base64 Swap</h1>
           <p class="hero__desc">Image &rarr; Base64 Data URL. Drop an image or paste a string.</p>
         </div>
       </section>
@@ -103,7 +104,7 @@
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <p class="upload__title">Drop images here or click to upload</p>
+              <p class="upload__title" data-i18n="conv_drop">Drop images here or click to upload</p>
               <p class="upload__hint">Multiple images supported</p>
             </div>
           </div>
@@ -111,7 +112,7 @@
           <div class="settings__row">
             <label class="chip chip--btn" id="prefixToggle">
               <input type="checkbox" checked>
-              <span>Include data:image/xxx;base64, prefix</span>
+              <span data-i18n="b64_prefix">Include data:image/xxx;base64, prefix</span>
             </label>
           </div>
         </div>
@@ -124,9 +125,9 @@
           <span class="settings__label">Base64 &rarr; Image</span>
           <div class="field">
             <label for="base64Input">Paste Base64 string</label>
-            <textarea class="field__textarea" id="base64Input" rows="6" placeholder="Supports data:image/...;base64,xxx or raw Base64"></textarea>
+            <textarea class="field__textarea" id="base64Input" rows="6" data-i18n-placeholder="b64_placeholder" placeholder="Supports data:image/...;base64,xxx or raw Base64"></textarea>
           </div>
-          <p class="settings__note" id="b64Hint">Preview updates automatically.</p>
+          <p class="settings__note" id="b64Hint" data-i18n="b64_preview_hint">Preview updates automatically.</p>
         </div>
 
         <div class="preview" id="imgPreview" hidden>
@@ -135,19 +136,20 @@
           </div>
           <div class="preview__info">
             <span id="previewSize">&mdash;</span>
-            <button class="btn btn--primary btn--sm" id="downloadImgBtn" type="button">Download image</button>
+            <button class="btn btn--primary btn--sm" id="downloadImgBtn" type="button" data-i18n="b64_dl_img">Download image</button>
           </div>
         </div>
       </section>
     </main>
 
-    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/base64.js"></script>
 </body>

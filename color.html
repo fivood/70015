@@ -33,6 +33,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
   <script src="js/theme-head.js"></script>
 </head>
 <body>
@@ -42,7 +43,7 @@
         <span class="header__logo" aria-hidden="true">
           <img src="logo.svg" alt="" width="26" height="26">
         </span>
-        <div><h1 class="header__title">TOOLS</h1></div>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
       </a>
       <div class="header__actions">
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -73,7 +74,7 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h1 class="hero__title">Color & Contrast</h1>
+          <h1 class="hero__title" data-i18n="t_color">Color & Contrast</h1>
           <p class="hero__desc">Pick colors from your screen and check WCAG AA/AAA contrast. No upload.</p>
         </div>
       </section>
@@ -135,13 +136,14 @@
       </section>
     </main>
 
-    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener">@70015</a></p></footer>
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/color.js"></script>
 </body>
