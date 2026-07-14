@@ -37,6 +37,7 @@
   var historyIdx = -1;
   var maxHistory = 50;
   var uidCounter = 0;
+  var clipboard = [];
 
   // Viewport (zoom/pan via viewBox)
   var VB = { x: 0, y: 0, w: 800, h: 600 };
@@ -588,14 +589,46 @@
   function updateDraw(e) {
     var p = getMouse(e); p.x = snapVal(p.x); p.y = snapVal(p.y);
     var n = drawing.node; if (!n) return;
+    var sx = drawing.x, sy = drawing.y;
+    var dx = p.x - sx, dy = p.y - sy;
     if (tool === 'rect') {
-      n.setAttribute('x', Math.min(drawing.x, p.x)); n.setAttribute('y', Math.min(drawing.y, p.y));
-      n.setAttribute('width', Math.max(1, Math.abs(p.x - drawing.x))); n.setAttribute('height', Math.max(1, Math.abs(p.y - drawing.y)));
+      if (e.shiftKey) {
+        var size = Math.max(Math.abs(dx), Math.abs(dy));
+        dx = dx >= 0 ? size : -size;
+        dy = dy >= 0 ? size : -size;
+      }
+      if (e.altKey) {
+        var w = Math.max(1, Math.abs(dx)), h = Math.max(1, Math.abs(dy));
+        n.setAttribute('x', sx - w); n.setAttribute('y', sy - h);
+        n.setAttribute('width', w * 2); n.setAttribute('height', h * 2);
+      } else {
+        n.setAttribute('x', Math.min(sx, sx + dx)); n.setAttribute('y', Math.min(sy, sy + dy));
+        n.setAttribute('width', Math.max(1, Math.abs(dx))); n.setAttribute('height', Math.max(1, Math.abs(dy)));
+      }
     } else if (tool === 'ellipse') {
-      n.setAttribute('cx', (drawing.x + p.x) / 2); n.setAttribute('cy', (drawing.y + p.y) / 2);
-      n.setAttribute('rx', Math.max(1, Math.abs(p.x - drawing.x) / 2)); n.setAttribute('ry', Math.max(1, Math.abs(p.y - drawing.y) / 2));
-    } else if (tool === 'line') { n.setAttribute('x2', p.x); n.setAttribute('y2', p.y); }
-    else if (tool === 'pen') { penPoints.push(p); var d = 'M' + penPoints[0].x + ' ' + penPoints[0].y; for (var i = 1; i < penPoints.length; i++) d += ' L' + penPoints[i].x + ' ' + penPoints[i].y; n.setAttribute('d', d); }
+      if (e.shiftKey) {
+        var r = Math.max(Math.abs(dx), Math.abs(dy));
+        dx = dx >= 0 ? r : -r;
+        dy = dy >= 0 ? r : -r;
+      }
+      if (e.altKey) {
+        n.setAttribute('cx', sx); n.setAttribute('cy', sy);
+        n.setAttribute('rx', Math.max(1, Math.abs(dx))); n.setAttribute('ry', Math.max(1, Math.abs(dy)));
+      } else {
+        n.setAttribute('cx', (sx + sx + dx) / 2); n.setAttribute('cy', (sy + sy + dy) / 2);
+        n.setAttribute('rx', Math.max(1, Math.abs(dx) / 2)); n.setAttribute('ry', Math.max(1, Math.abs(dy) / 2));
+      }
+    } else if (tool === 'line') {
+      var x2 = p.x, y2 = p.y;
+      if (e.shiftKey) {
+        var len = Math.hypot(x2 - sx, y2 - sy);
+        var angle = Math.atan2(y2 - sy, x2 - sx) * 180 / Math.PI;
+        angle = Math.round(angle / 15) * 15;
+        x2 = sx + len * Math.cos(angle * Math.PI / 180);
+        y2 = sy + len * Math.sin(angle * Math.PI / 180);
+      }
+      n.setAttribute('x2', x2); n.setAttribute('y2', y2);
+    } else if (tool === 'pen') { penPoints.push(p); var d = 'M' + penPoints[0].x + ' ' + penPoints[0].y; for (var i = 1; i < penPoints.length; i++) d += ' L' + penPoints[i].x + ' ' + penPoints[i].y; n.setAttribute('d', d); }
     else if (tool === 'star' && drawing.isStar) {
       var cx = parseFloat(n.getAttribute('data-cx')), cy = parseFloat(n.getAttribute('data-cy'));
       var r = Math.max(1, Math.hypot(p.x - cx, p.y - cy));
@@ -636,8 +669,31 @@
   }
 
   // ---- Polygon (click-based) ----
+  function closePolygon() {
+    if (polygonPoints.length < 3) return;
+    // Remove duplicate consecutive points (e.g. from a double-click)
+    var pts = [polygonPoints[0]];
+    for (var i = 1; i < polygonPoints.length; i++) {
+      var last = pts[pts.length - 1], p = polygonPoints[i];
+      if (Math.hypot(p.x - last.x, p.y - last.y) >= 1) pts.push(p);
+    }
+    if (pts.length < 3) { polygonPoints = []; if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; } return; }
+    var d = 'M' + pts[0].x + ' ' + pts[0].y;
+    for (var i = 1; i < pts.length; i++) d += ' L' + pts[i].x + ' ' + pts[i].y;
+    var node = el('path', { d: d + 'Z', fill: document.getElementById('fillColor').value, stroke: document.getElementById('strokeColor').value, 'stroke-width': parseInt(document.getElementById('strokeWidth').value, 10), 'stroke-linejoin': 'round', 'data-id': uid() });
+    artboard.appendChild(node);
+    if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; }
+    polygonPoints = [];
+    selectSingle(node);
+    snapshot();
+  }
+
   function handlePolygonClick(e) {
     var p = getMouse(e); p.x = snapVal(p.x); p.y = snapVal(p.y);
+    if (polygonPoints.length >= 3) {
+      var first = polygonPoints[0];
+      if (Math.hypot(p.x - first.x, p.y - first.y) < GRID / 2) { closePolygon(); return; }
+    }
     polygonPoints.push(p);
     if (!polygonPreview) {
       polygonPreview = el('path', { fill: 'none', stroke: document.getElementById('strokeColor').value, 'stroke-width': 1, 'stroke-dasharray': '4 4', opacity: 0.5, 'pointer-events': 'none' });
@@ -657,14 +713,7 @@
 
   stage.addEventListener('dblclick', function (e) {
     if (tool === 'polygon' && polygonPoints.length >= 3) {
-      var d = 'M' + polygonPoints[0].x + ' ' + polygonPoints[0].y;
-      for (var i = 1; i < polygonPoints.length; i++) d += ' L' + polygonPoints[i].x + ' ' + polygonPoints[i].y;
-      var node = el('path', { d: d + 'Z', fill: document.getElementById('fillColor').value, stroke: document.getElementById('strokeColor').value, 'stroke-width': parseInt(document.getElementById('strokeWidth').value, 10), 'stroke-linejoin': 'round', 'data-id': uid() });
-      artboard.appendChild(node);
-      if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; }
-      polygonPoints = [];
-      selectSingle(node);
-      snapshot();
+      closePolygon();
       e.preventDefault();
     }
   });
@@ -672,6 +721,14 @@
   // ---- Drag / Move ----
   function startDrag(e) {
     if (selected.length === 0) return;
+    if (e.altKey) {
+      var clones = [];
+      selected.forEach(function (n) { var c = n.cloneNode(true); c.setAttribute('data-id', uid()); artboard.appendChild(c); clones.push(c); });
+      selectSingle(clones[0]);
+      for (var i = 1; i < clones.length; i++) selected.push(clones[i]);
+      updateSelection(); updateLayers(); updateActionButtons(); syncToolbar();
+      showToast('Duplicated');
+    }
     var p = getMouse(e);
     var bboxes = selected.map(function (n) { return n.getBBox(); });
     dragging = { sx: p.x, sy: p.y, bbs: bboxes };
@@ -722,6 +779,16 @@
     if (dir.indexOf('e') >= 0) nw = resizing.bw + dx;
     if (dir.indexOf('n') >= 0) { ny = resizing.by + dy; nh = resizing.bh - dy; }
     if (dir.indexOf('s') >= 0) nh = resizing.bh + dy;
+    if (e.shiftKey && resizing.bw > 0 && resizing.bh > 0) {
+      var ratio = resizing.bw / resizing.bh;
+      if (dir === 'n' || dir === 's') { nw = nh * ratio; }
+      else if (dir === 'e' || dir === 'w') { nh = nw / ratio; }
+      else {
+        if (nw / nh > ratio) { nh = nw / ratio; } else { nw = nh * ratio; }
+      }
+      if (dir.indexOf('w') >= 0) nx = resizing.bx + resizing.bw - nw;
+      if (dir.indexOf('n') >= 0) ny = resizing.by + resizing.bh - nh;
+    }
     nw = Math.max(2, nw); nh = Math.max(2, nh);
     var type = getElementType(node);
     if (type === 'rect') { node.setAttribute('x',nx);node.setAttribute('y',ny);node.setAttribute('width',nw);node.setAttribute('height',nh); }
@@ -751,16 +818,20 @@
   function startRotate(e) {
     if (selected.length !== 1) return;
     var p = getMouse(e), node = primary(), bb = node.getBBox();
-    rotating = { cx: bb.x + bb.width / 2, cy: bb.y + bb.height / 2, startAngle: 0 };
-    var s = svgToScreen(rotating.cx, rotating.cy);
-    rotating.startAngle = Math.atan2(p.y - s.y, p.x - s.x) * 180 / Math.PI;
+    var cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2;
+    var tr = getTransform(node);
+    rotating = {
+      cx: cx, cy: cy,
+      startPointerAngle: Math.atan2(p.y - cy, p.x - cx) * 180 / Math.PI,
+      initialAngle: tr.angle
+    };
     stage.setPointerCapture(e.pointerId); e.preventDefault();
   }
 
   function updateRotate(e) {
     var p = getMouse(e), node = primary();
-    var s = svgToScreen(rotating.cx, rotating.cy);
-    var ang = Math.atan2(p.y - s.y, p.x - s.x) * 180 / Math.PI - rotating.startAngle;
+    var pointerAngle = Math.atan2(p.y - rotating.cy, p.x - rotating.cx) * 180 / Math.PI;
+    var ang = rotating.initialAngle + pointerAngle - rotating.startPointerAngle;
     ang = Math.round(ang);
     if (e.shiftKey) ang = Math.round(ang / 15) * 15;
     var tr = getTransform(node); tr.angle = ang; tr.rcx = rotating.cx; tr.rcy = rotating.cy;
@@ -866,6 +937,21 @@
   });
 
   // ---- Import / Export ----
+  function deepImport(srcNode) {
+    if (srcNode.nodeType === Node.TEXT_NODE) return document.createTextNode(srcNode.textContent);
+    if (srcNode.nodeType !== Node.ELEMENT_NODE) return null;
+    var tag = srcNode.tagName.toLowerCase();
+    var node = document.createElementNS(SVG_NS, tag);
+    for (var i = 0; i < srcNode.attributes.length; i++) {
+      node.setAttribute(srcNode.attributes[i].name, srcNode.attributes[i].value);
+    }
+    Array.from(srcNode.childNodes).forEach(function (child) {
+      var imported = deepImport(child);
+      if (imported) node.appendChild(imported);
+    });
+    return node;
+  }
+
   document.getElementById('importBtn').addEventListener('click', function () { document.getElementById('importInput').click(); });
   document.getElementById('importInput').addEventListener('change', function () {
     var file = this.files[0]; if (!file) return;
@@ -884,9 +970,13 @@
         initGrid();
         var children = Array.from(svg.children);
         children.forEach(function (child) {
-          var imported = document.createElementNS(SVG_NS, child.tagName.toLowerCase());
-          for (var i = 0; i < child.attributes.length; i++) imported.setAttribute(child.attributes[i].name, child.attributes[i].value);
-          imported.textContent = child.textContent;
+          if (child.tagName.toLowerCase() === 'defs') {
+            var defs = artboard.querySelector('defs') || el('defs');
+            if (!artboard.querySelector('defs')) artboard.insertBefore(defs, artboard.firstChild);
+            Array.from(child.children).forEach(function (defChild) { defs.appendChild(deepImport(defChild)); });
+            return;
+          }
+          var imported = deepImport(child);
           imported.setAttribute('data-id', uid());
           artboard.appendChild(imported);
         });
@@ -925,9 +1015,13 @@
     var source = new XMLSerializer().serializeToString(clone);
     var url = URL.createObjectURL(new Blob([source], { type: 'image/svg+xml' }));
     var img = new Image();
+    var scale = parseInt(document.getElementById('pngScale').value, 10) || 1;
+    var vb = (artboard.getAttribute('viewBox') || '0 0 800 600').split(/\s+/).map(parseFloat);
+    var vw = vb[2] || 800, vh = vb[3] || 600;
     img.onload = function () {
-      var cv = document.createElement('canvas'); cv.width = 800; cv.height = 600;
-      var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, 800, 600);
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(vw * scale); cv.height = Math.round(vh * scale);
+      var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cv.width, cv.height);
       cv.toBlob(function (b) { downloadBlob(b, '70015-editor-' + Date.now() + '.png'); URL.revokeObjectURL(url); }, 'image/png');
     };
     img.onerror = function () { URL.revokeObjectURL(url); showToast('PNG export failed'); };
@@ -953,10 +1047,10 @@
       var defs = artboard.querySelector('defs') || el('defs');
       if (!artboard.querySelector('defs')) artboard.insertBefore(defs, artboard.firstChild);
       Array.from(parsed.children).forEach(function (child) {
-        if (child.tagName === 'defs') { while (child.firstChild) defs.appendChild(child.firstChild); }
-        else { var imported = document.createElementNS(SVG_NS, child.tagName.toLowerCase());
-          for (var i = 0; i < child.attributes.length; i++) imported.setAttribute(child.attributes[i].name, child.attributes[i].value);
-          imported.textContent = child.textContent;
+        if (child.tagName.toLowerCase() === 'defs') {
+          while (child.firstChild) defs.appendChild(deepImport(child.firstChild));
+        } else {
+          var imported = deepImport(child);
           if (!imported.getAttribute('data-id')) imported.setAttribute('data-id', uid());
           artboard.appendChild(imported);
         }
@@ -972,6 +1066,43 @@
     deselect(); snapshot(); showToast('Canvas cleared');
   });
 
+  // ---- Clipboard ----
+  function cloneWithNewIds(node) {
+    var clone = node.cloneNode(true);
+    clone.querySelectorAll('[data-id]').forEach(function (child) { child.setAttribute('data-id', uid()); });
+    clone.setAttribute('data-id', uid());
+    return clone;
+  }
+
+  function copySelected(cut) {
+    if (!selected.length) return;
+    clipboard = selected.map(function (n) { return cloneWithNewIds(n); });
+    if (cut) {
+      selected.forEach(function (n) { n.remove(); });
+      deselect();
+      snapshot();
+      showToast('Cut');
+    } else {
+      showToast('Copied');
+    }
+  }
+
+  function pasteClipboard() {
+    if (!clipboard.length) return;
+    var clones = [];
+    clipboard.forEach(function (n) {
+      var c = cloneWithNewIds(n);
+      offsetElement(c, 20, 20);
+      artboard.appendChild(c);
+      clones.push(c);
+    });
+    selectSingle(clones[0]);
+    for (var i = 1; i < clones.length; i++) selected.push(clones[i]);
+    updateSelection(); updateLayers(); updateActionButtons(); syncToolbar();
+    snapshot();
+    showToast('Pasted');
+  }
+
   // ---- Keyboard ----
   document.addEventListener('keydown', function (e) {
     var tag = e.target.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -981,9 +1112,16 @@
       if (e.key === 'd' && selected.length) { e.preventDefault(); document.getElementById('duplicateBtn').click(); return; }
       if (e.key === 'g' && selected.length) { e.preventDefault(); if (e.shiftKey) document.getElementById('ungroupBtn').click(); else document.getElementById('groupBtn').click(); return; }
       if (e.key === 'a') { e.preventDefault(); selected = Array.from(artboard.children).filter(function(n){return n.tagName!=='defs'&&n.id!=='gridRect';}); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
+      if (e.key === 'c') { e.preventDefault(); copySelected(false); return; }
+      if (e.key === 'x') { e.preventDefault(); copySelected(true); return; }
+      if (e.key === 'v') { e.preventDefault(); pasteClipboard(); return; }
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && selected.length) { e.preventDefault(); document.getElementById('deleteBtn').click(); }
-    if (e.key === 'Escape') { deselect(); polygonPoints = []; if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; } }
+    if (e.key === 'Escape') {
+      if (drawing && drawing.node) { drawing.node.remove(); drawing = null; penPoints = []; return; }
+      if (polygonPoints.length) { polygonPoints = []; if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; } return; }
+      deselect();
+    }
     // Arrow nudge
     if (selected.length && !spaceDown) {
       var step = e.shiftKey ? 10 : 1;

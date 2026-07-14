@@ -158,6 +158,11 @@
             <input type="file" id="importInput" accept="image/svg+xml,.svg" hidden>
             <button class="btn btn--secondary btn--sm" id="clearBtn" type="button">Clear</button>
             <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button">SVG</button>
+            <select class="btn btn--primary btn--sm" id="pngScale" title="PNG export scale" aria-label="PNG scale">
+              <option value="1">1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
             <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button">PNG</button>
           </div>
         </div>
@@ -196,7 +201,7 @@
             </div>
           </aside>
         </div>
-        <p class="settings__note" id="editorHint">Pick a tool and drag on the canvas. Scroll to zoom, Space+drag to pan. Use Properties to adjust fill, stroke, opacity, and gradients per element. Shortcuts: 1-8 switch tools.</p>
+        <p class="settings__note" id="editorHint">Pick a tool and drag on the canvas. Shift constrains proportions/angles; Alt draws from center; Alt-drag duplicates. Ctrl+C/V copies and pastes; Esc cancels drawing. Scroll to zoom, Space+drag to pan. Shortcuts: 1-8 switch tools.</p>
       </section>
     </main>
 
