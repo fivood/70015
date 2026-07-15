@@ -87,7 +87,7 @@
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
           <h1 class="hero__title" data-i18n="t_converter">Image Converter</h1>
-          <p class="hero__desc">Drop images, pick a format, download. Works entirely in your browser.</p>
+          <p class="hero__desc" data-i18n="conv_desc">Drop images, pick a format, download. Works entirely in your browser.</p>
         </div>
       </section>
 
@@ -103,13 +103,13 @@
               </svg>
             </div>
             <p class="upload__title" data-i18n="conv_drop">Drop images here or click to upload</p>
-            <p class="upload__hint">JPG, PNG, WebP, GIF, AVIF, SVG supported</p>
+            <p class="upload__hint" data-i18n="conv_formats_hint">JPG, PNG, WebP, GIF, AVIF, SVG supported</p>
           </div>
         </div>
 
         <div class="settings">
           <div class="settings__group">
-            <label class="settings__label">Presets</label>
+            <label class="settings__label" data-i18n="conv_presets_label">Presets</label>
             <div class="chips" id="presetSelector">
               <button class="chip chip--btn is-active" data-preset="custom" type="button"><span data-i18n="conv_custom">Custom</span></button>
               <button class="chip chip--btn" data-preset="webp-only" type="button"><span data-i18n="conv_p_webp">WebP only</span></button>
@@ -171,23 +171,23 @@
             </div>
             <div class="settings__dimensions" id="dimensionsPanel">
               <div class="field" id="widthField">
-                <label for="widthInput">Width px</label>
+                <label for="widthInput" data-i18n="conv_w_px">Width px</label>
                 <input type="number" id="widthInput" min="1" max="16384" placeholder="e.g. 1200">
               </div>
               <div class="field" id="heightField">
-                <label for="heightInput">Height px</label>
+                <label for="heightInput" data-i18n="conv_h_px">Height px</label>
                 <input type="number" id="heightInput" min="1" max="16384" placeholder="e.g. 800">
               </div>
             </div>
             <div class="settings__subgroup" id="customFitPanel" hidden>
-              <label class="settings__label">Custom fit</label>
+              <label class="settings__label" data-i18n="conv_custom_fit">Custom fit</label>
               <div class="segmented" id="customFitSelector">
                 <button class="segmented__btn is-active" data-value="contain" type="button" data-i18n="conv_contain">Contain</button>
                 <button class="segmented__btn" data-value="cover" type="button" data-i18n="conv_cover">Cover</button>
               </div>
-              <p class="settings__note">Contain keeps the full image; Cover crops to fill the target size.</p>
+              <p class="settings__note" data-i18n="conv_custom_note">Contain keeps the full image; Cover crops to fill the target size.</p>
             </div>
-            <p class="settings__note" id="resizeNote">Aspect ratio is preserved by default.</p>
+            <p class="settings__note" id="resizeNote" data-i18n="conv_resize_note">Aspect ratio is preserved by default.</p>
           </div>
         </div>
       </section>

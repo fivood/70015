@@ -5,6 +5,7 @@ A small set of browser-based image tools. Everything runs locally; no files are 
 ## Tools
 
 - **[Image Converter](https://70015.net/converter)** — convert to WebP / AVIF / JPEG / PNG / ICO, resize, compress, and download as ZIP.
+- **[Image Size](https://70015.net/resize)** — crop a single image to a size or ratio, stitch multiple images together, or scale by exact dimensions.
 - **[Color Palette](https://70015.net/palette)** — extract dominant colors from images or folders. Copy HEX, export JSON.
 - **[Base64 Swap](https://70015.net/base64)** — encode images to Base64 Data URLs, or decode Base64 back to images.
 - **[Web Snapshot](https://70015.net/snapshot)** — capture a region of any web page or PDF via screen sharing or PDF.js. Drag to select, stitch pages, export PNG.

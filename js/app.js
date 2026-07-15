@@ -59,6 +59,13 @@
     png: 'PNG is lossless and keeps transparency, but files are usually larger.',
     ico: 'ICO is used for favicons. Include 32\u00d732 and 256\u00d7256 for best coverage.',
   };
+  const FORMAT_NOTE_KEYS = {
+    webp: 'conv_note_webp', avif: 'conv_note_avif', jpeg: 'conv_note_jpeg', png: 'conv_note_png', ico: 'conv_note_ico'
+  };
+  function formatNoteText(fmt) {
+    if (typeof window.t === 'function' && FORMAT_NOTE_KEYS[fmt]) return window.t(FORMAT_NOTE_KEYS[fmt]);
+    return FORMAT_NOTES[fmt] || '';
+  }
 
   const FORMAT_MIMES = {
     webp: 'image/webp',
@@ -138,8 +145,8 @@
       originalTitle = uploadTitle.textContent;
       originalHint = uploadHint.textContent;
     }
-    uploadTitle.textContent = 'Drop files to upload';
-    uploadHint.textContent = 'Multiple images and folders supported';
+    uploadTitle.textContent = (typeof window.t === 'function') ? window.t('conv_drop_files') : 'Drop files to upload';
+    uploadHint.textContent = (typeof window.t === 'function') ? window.t('conv_hint') : 'Multiple images and folders supported';
   });
 
   dropZone.addEventListener('dragover', (e) => {
@@ -172,7 +179,8 @@
       formatSelector.querySelectorAll('.segmented__btn').forEach((b) => b.classList.remove('is-active'));
       btn.classList.add('is-active');
       state.format = btn.dataset.value;
-      formatNote.textContent = FORMAT_NOTES[state.format];
+      formatNote.textContent = formatNoteText(state.format);
+      formatNote.setAttribute('data-i18n', FORMAT_NOTE_KEYS[state.format] || '');
       toggleIcoPanel();
       setActivePreset('custom');
       reconvertAll();
@@ -223,7 +231,8 @@
     formatSelector.querySelectorAll('.segmented__btn').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.value === state.format);
     });
-    formatNote.textContent = FORMAT_NOTES[state.format];
+    formatNote.textContent = formatNoteText(state.format);
+    formatNote.setAttribute('data-i18n', FORMAT_NOTE_KEYS[state.format] || '');
     toggleIcoPanel();
 
     // Resize mode

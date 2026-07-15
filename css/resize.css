@@ -1,0 +1,182 @@
+/* Image Size tool */
+
+.sz-panel {
+  margin-bottom: var(--space-lg);
+}
+
+.sz-stage-wrap {
+  margin-top: var(--space-lg);
+}
+
+.sz-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  padding: var(--space);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: auto;
+}
+
+.sz-stage canvas {
+  max-width: 100%;
+  max-height: 70vh;
+  display: block;
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, var(--surface-3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-3) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.sz-actions {
+  margin-top: var(--space);
+  padding: var(--space) var(--space-lg);
+}
+
+.sz-lock-chip {
+  margin-top: var(--space-sm);
+}
+
+/* Stitch list */
+.sz-stitch-list {
+  margin-top: var(--space-lg);
+}
+
+.sz-stitch-item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: var(--space);
+  align-items: center;
+  padding: var(--space-sm) var(--space);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  margin-bottom: var(--space-sm);
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.sz-stitch-item:hover {
+  border-color: rgba(32, 56, 72, 0.2);
+}
+
+[data-theme="dark"] .sz-stitch-item:hover {
+  border-color: rgba(211, 218, 222, 0.18);
+}
+
+.sz-stitch-item img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.sz-stitch-item__info {
+  min-width: 0;
+}
+
+.sz-stitch-item__name {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.sz-stitch-item__meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sz-stitch-item__btns {
+  display: flex;
+  gap: 4px;
+}
+
+.sz-stitch-item__btns button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sz-stitch-item__btns button:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.sz-stitch-item__btns button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sz-stitch-item__btns button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sz-stitch-item__btns .sz-del {
+  color: var(--secondary);
+}
+
+.sz-stitch-item__btns .sz-del:hover:not(:disabled) {
+  color: #e0564f;
+}
+
+.sz-empty {
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .sz-stitch-item {
+    grid-template-columns: 48px 1fr auto;
+  }
+
+  .sz-stitch-item img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .sz-actions {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space);
+  }
+
+  .sz-actions .actions__info {
+    justify-content: center;
+  }
+
+  .sz-actions .actions__btns {
+    width: 100%;
+  }
+
+  .sz-actions .actions__btns .btn {
+    flex: 1;
+  }
+}

@@ -48,14 +48,14 @@
   // ---------- Image loading ----------
 
   function loadImageFile(file) {
-    if (!file || !file.type.startsWith('image/')) { showToast('Please choose an image'); return; }
+    if (!file || !file.type.startsWith('image/')) { showToast((typeof window.t === 'function') ? window.t('ann_need_image') : 'Please choose an image'); return; }
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
       URL.revokeObjectURL(url);
       setupImage(image);
     };
-    image.onerror = () => { showToast('Could not load image'); URL.revokeObjectURL(url); };
+    image.onerror = () => { showToast((typeof window.t === 'function') ? window.t('ann_load_fail') : 'Could not load image'); URL.revokeObjectURL(url); };
     image.src = url;
   }
 
@@ -98,15 +98,20 @@
     [...tools.querySelectorAll('.tool')].forEach(b => b.classList.toggle('is-active', b === btn));
     closeTextInput();
     canvas.style.cursor = tool === 'text' ? 'text' : 'crosshair';
-    annotateHint.textContent = ({
-      rect: 'Drag to draw a rectangle outline.',
-      arrow: 'Drag from tail to head of the arrow.',
-      line: 'Drag to draw a straight line.',
-      pen: 'Draw freehand strokes.',
-      highlight: 'Semi-transparent strokes. Pick a bright color.',
-      text: 'Click where you want text, then type and press Enter.',
-      mosaic: 'Drag a box to pixelate the area underneath.'
-    })[tool];
+    var hintKeys = {
+      rect: 'ann_hint_rect',
+      arrow: 'ann_hint_arrow',
+      line: 'ann_hint_line',
+      pen: 'ann_hint_pen',
+      highlight: 'ann_hint_highlight',
+      text: 'ann_hint_text',
+      mosaic: 'ann_hint_mosaic'
+    };
+    var hintKey = hintKeys[tool];
+    if (typeof window.t === 'function' && hintKey) {
+      annotateHint.textContent = window.t(hintKey);
+      annotateHint.setAttribute('data-i18n', hintKey);
+    }
   });
 
   toolColor.addEventListener('input', e => color = e.target.value);
@@ -335,7 +340,7 @@
     if (!img) return;
     try {
       canvas.toBlob(blob => {
-        if (!blob) { showToast('Export failed'); return; }
+        if (!blob) { showToast((typeof window.t === 'function') ? window.t('ann_export_fail') : 'Export failed'); return; }
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'annotated-' + Date.now() + '.png';
@@ -343,7 +348,7 @@
         URL.revokeObjectURL(a.href);
       }, 'image/png');
     } catch (e) {
-      showToast('Image is protected \u2014 export blocked');
+      showToast((typeof window.t === 'function') ? window.t('ann_export_blocked') : 'Image is protected \u2014 export blocked');
     }
   });
 })();
