@@ -94,7 +94,7 @@
 
       <section class="panel card" id="capturePanel">
         <div class="settings__group">
-          <span class="settings__label" data-i18n="ed_source">Source</span>
+          <span class="settings__label" data-i18n="snp_capture_method">Capture method</span>
           <div class="segmented" id="modeSelector">
             <button class="segmented__btn is-active" data-mode="screen" type="button" data-i18n="snp_screen_share">Screen share</button>
             <button class="segmented__btn" data-mode="pdf" type="button" data-i18n="snp_pdf_doc">PDF document</button>
@@ -159,6 +159,15 @@
           <button class="btn btn--secondary btn--sm" id="stitchBtn" type="button" data-i18n="snp_stitch">Stitch all pages</button>
           <button class="btn btn--secondary btn--sm" id="pdfClearBtn" type="button" data-i18n="conv_clear">Clear</button>
         </div>
+
+        <div class="snapshot__capture-actions" id="captureActions" hidden>
+          <span class="snapshot__capture-size" id="resultSize">&mdash;</span>
+          <div class="actions__btns">
+            <button class="btn btn--secondary btn--sm" id="copyBtn" type="button" data-i18n="b64_copy">Copy</button>
+            <button class="btn btn--secondary btn--sm" id="addToStitchBtn" type="button" title="Append this capture to a vertical stitch canvas" data-i18n-title="snp_add_stitch_title" data-i18n="snp_add_stitch">Add to stitch</button>
+            <button class="btn btn--primary btn--sm" id="downloadBtn" type="button" data-i18n="qr_png">Download PNG</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel card snapshot__result" id="resultPanel" hidden>
@@ -168,16 +177,8 @@
             <div class="preview__media">
               <img id="resultImg" alt="Captured region" data-i18n-aria-label="snp_captured_region">
             </div>
-            <div class="preview__info">
-              <span id="resultSize">&mdash;</span>
-              <div class="actions__btns">
-                <button class="btn btn--secondary btn--sm" id="copyBtn" type="button" data-i18n="b64_copy">Copy</button>
-                <button class="btn btn--secondary btn--sm" id="addToStitchBtn" type="button" title="Append this capture to a vertical stitch canvas" data-i18n-title="snp_add_stitch_title" data-i18n="snp_add_stitch">+ Stitch</button>
-                <button class="btn btn--primary btn--sm" id="downloadBtn" type="button" data-i18n="qr_png">Download PNG</button>
-              </div>
-            </div>
           </div>
-          <p class="settings__note" id="resultNote" data-i18n="snp_result_note">Drag on the preview above to capture a different region. Click "+ Stitch" to append, then scroll and capture again.</p>
+          <p class="settings__note" id="resultNote" data-i18n="snp_result_note">Drag on the source preview above to capture a different region. Add captures to the stitch, then scroll the shared page and capture again.</p>
         </div>
       </section>
 

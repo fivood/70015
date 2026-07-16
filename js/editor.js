@@ -1006,25 +1006,77 @@
     });
   }
 
-  document.getElementById('exportSvgBtn').addEventListener('click', function () {
+  function getExportBounds() {
+    var nodes = Array.from(artboard.children).filter(function (n) {
+      return n.tagName !== 'defs' && n.id !== 'gridRect' && n.id !== 'gridPattern';
+    });
+    if (!nodes.length) return null;
+
+    var rootMatrix = artboard.getCTM();
+    if (!rootMatrix) return null;
+    var rootInverse = rootMatrix.inverse();
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    nodes.forEach(function (node) {
+      try {
+        var bb = node.getBBox();
+        var matrix = node.getCTM();
+        if (!matrix || !isFinite(bb.width) || !isFinite(bb.height)) return;
+        var strokeWidth = parseFloat(node.getAttribute('stroke-width') || window.getComputedStyle(node).strokeWidth || '0') || 0;
+        var pad = strokeWidth / 2;
+        var points = [
+          [bb.x - pad, bb.y - pad],
+          [bb.x + bb.width + pad, bb.y - pad],
+          [bb.x - pad, bb.y + bb.height + pad],
+          [bb.x + bb.width + pad, bb.y + bb.height + pad]
+        ];
+        points.forEach(function (pt) {
+          var p = new DOMPoint(pt[0], pt[1]).matrixTransform(matrix).matrixTransform(rootInverse);
+          minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+        });
+      } catch (_) {}
+    });
+
+    if (minX === Infinity) return null;
+    var padding = 2;
+    return {
+      x: Math.floor(minX - padding),
+      y: Math.floor(minY - padding),
+      w: Math.ceil(maxX - minX + padding * 2),
+      h: Math.ceil(maxY - minY + padding * 2)
+    };
+  }
+
+  function makeExportClone() {
     var clone = artboard.cloneNode(true);
     var gr = clone.querySelector('#gridRect'); if (gr) gr.remove();
     var gp = clone.querySelector('#gridPattern'); if (gp) gp.remove();
+    var bounds = getExportBounds();
     clone.setAttribute('xmlns', SVG_NS);
+    if (bounds && bounds.w > 0 && bounds.h > 0) {
+      clone.setAttribute('viewBox', bounds.x + ' ' + bounds.y + ' ' + bounds.w + ' ' + bounds.h);
+      clone.setAttribute('width', bounds.w);
+      clone.setAttribute('height', bounds.h);
+    }
+    return { clone: clone, bounds: bounds };
+  }
+
+  document.getElementById('exportSvgBtn').addEventListener('click', function () {
+    var output = makeExportClone();
+    var clone = output.clone;
     var source = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone).replace(/></g, '>\n<');
     downloadBlob(new Blob([source], { type: 'image/svg+xml' }), '70015-editor-' + Date.now() + '.svg');
   });
 
   document.getElementById('exportPngBtn').addEventListener('click', function () {
-    var clone = artboard.cloneNode(true);
-    var gr = clone.querySelector('#gridRect'); if (gr) gr.remove();
-    var gp = clone.querySelector('#gridPattern'); if (gp) gp.remove();
-    clone.setAttribute('xmlns', SVG_NS);
+    var output = makeExportClone();
+    var clone = output.clone;
     var source = new XMLSerializer().serializeToString(clone);
     var url = URL.createObjectURL(new Blob([source], { type: 'image/svg+xml' }));
     var img = new Image();
     var scale = parseInt(document.getElementById('pngScale').value, 10) || 1;
-    var vb = (artboard.getAttribute('viewBox') || '0 0 800 600').split(/\s+/).map(parseFloat);
+    var vb = (clone.getAttribute('viewBox') || '0 0 800 600').split(/\s+/).map(parseFloat);
     var vw = vb[2] || 800, vh = vb[3] || 600;
     img.onload = function () {
       var cv = document.createElement('canvas');

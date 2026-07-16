@@ -73,6 +73,30 @@
   margin-top: var(--space);
 }
 
+.snapshot__capture-actions {
+  position: sticky;
+  z-index: 5;
+  bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
+  margin-top: var(--space);
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.snapshot__capture-size {
+  padding-left: var(--space-xs);
+  color: var(--text-muted);
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .snapshot__pdf-nav {
   display: flex;
   align-items: center;
@@ -105,5 +129,19 @@
   .snapshot__sel-label {
     font-size: 10px;
     top: -20px;
+  }
+
+  .snapshot__capture-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .snapshot__capture-actions .actions__btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .snapshot__capture-actions .btn--primary {
+    grid-column: 1 / -1;
   }
 }

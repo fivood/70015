@@ -28,6 +28,7 @@
   const stitchBtn = document.getElementById('stitchBtn');
   const pdfClearBtn = document.getElementById('pdfClearBtn');
   const resultPanel = document.getElementById('resultPanel');
+  const captureActions = document.getElementById('captureActions');
   const resultImg = document.getElementById('resultImg');
   const resultSize = document.getElementById('resultSize');
   const resultNote = document.getElementById('resultNote');
@@ -183,8 +184,9 @@
     startWrap.hidden = true;
     showScreenStage();
     hint.textContent = t('snp_drag_hint', 'Drag on the preview to select a region. Release to capture.');
-    resultNote.textContent = t('snp_result_note', 'Drag on the preview above to capture a different region.');
+    resultNote.textContent = t('snp_result_note', 'Drag on the source preview to capture another region.');
     resultPanel.hidden = true;
+    captureActions.hidden = true;
     sel.hidden = true;
   }
 
@@ -391,7 +393,9 @@
     sel.style.top = dragRect.y + 'px';
     sel.style.width = dragRect.w + 'px';
     sel.style.height = dragRect.h + 'px';
-    selLabel.textContent = Math.round(dragRect.w) + ' \u00d7 ' + Math.round(dragRect.h);
+    const scale = getScale();
+    selLabel.textContent = Math.round(dragRect.w * scale.sx) + ' \u00d7 ' +
+      Math.round(dragRect.h * scale.sy);
     selLabel.hidden = dragRect.w < 30;
   }
 
@@ -445,7 +449,8 @@
       resultImg.src = lastBlobUrl;
       resultSize.textContent = w + ' \u00d7 ' + h + ' px';
       resultPanel.hidden = false;
-      resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      captureActions.hidden = false;
+      showToast(t('snp_capture_ready', 'Capture ready'));
     }, 'image/png');
   }
 
@@ -522,7 +527,9 @@
   async function copyToClipboard() {
     if (!lastBlob) return;
     try {
-      if (navigator.clipboard && window.ClipboardItem && ClipboardItem.supports('image/png')) {
+      const pngSupported = window.ClipboardItem &&
+        (typeof ClipboardItem.supports !== 'function' || ClipboardItem.supports('image/png'));
+      if (navigator.clipboard && pngSupported) {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': lastBlob })]);
         showToast(t('b64_copied_clipboard', 'Copied to clipboard'));
       } else {
