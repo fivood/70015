@@ -21,6 +21,9 @@
   let ecl = 'M';
   let lastQr = null;
   let lastMeta = null;
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
 
   function showToast(msg) {
     toast.textContent = msg;
@@ -54,7 +57,7 @@
   qrText.addEventListener('input', debounce(render, 250));
 
   function render() {
-    if (!hasLib) { qrHint.textContent = 'QR library failed to load.'; return; }
+    if (!hasLib) { qrHint.textContent = t('qr_lib_failed', 'QR library failed to load.'); return; }
     const text = qrText.value.trim();
     if (!text) { canvas.width = canvas.height = 1; qrInfo.textContent = '\u2014'; lastQr = null; return; }
     let qr;
@@ -65,7 +68,7 @@
     } catch (err) {
       canvas.width = canvas.height = 1;
       qrInfo.textContent = '\u2014';
-      qrHint.textContent = 'Text too long for a QR code at this error-correction level.';
+      qrHint.textContent = t('qr_too_long', 'Text too long for a QR code at this error-correction level.');
       lastQr = null;
       return;
     }
@@ -89,8 +92,8 @@
     }
     lastQr = qr;
     lastMeta = { count, cell, m, size, transparent: transparentBg.checked, dark: darkColor.value, light: lightColor.value };
-    qrInfo.textContent = size + ' \u00d7 ' + size + ' px \u00b7 ' + count + ' modules';
-    qrHint.textContent = 'Updates as you type.';
+    qrInfo.textContent = size + ' \u00d7 ' + size + ' px \u00b7 ' + count + ' ' + t('qr_modules', 'modules');
+    qrHint.textContent = t('qr_updates', 'Updates as you type.');
   }
 
   function buildSvg() {
@@ -106,9 +109,9 @@
   }
 
   function downloadPng() {
-    if (!lastQr) { showToast('Nothing to download'); return; }
+    if (!lastQr) { showToast(t('qr_nothing_download', 'Nothing to download')); return; }
     canvas.toBlob((blob) => {
-      if (!blob) { showToast('Export failed'); return; }
+      if (!blob) { showToast(t('ann_export_fail', 'Export failed')); return; }
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'qr-' + Date.now() + '.png';
@@ -118,7 +121,7 @@
   }
 
   function downloadSvg() {
-    if (!lastQr) { showToast('Nothing to download'); return; }
+    if (!lastQr) { showToast(t('qr_nothing_download', 'Nothing to download')); return; }
     const blob = new Blob([buildSvg()], { type: 'image/svg+xml;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

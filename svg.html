@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SVG Tools &mdash; 70015</title>
-  <meta name="description" content="Optimize SVG markup and convert SVG to PNG. Strip cruft, minify, export. Runs in your browser.">
+  <meta name="description" content="Optimize SVG markup and convert SVG to PNG. Remove editor metadata, minify, and export. Runs in your browser.">
   <link rel="canonical" href="https://70015.net/svg">
   <meta property="og:title" content="SVG Tools &mdash; 70015">
   <meta property="og:description" content="SVG optimizer and SVG&rarr;PNG converter. No upload.">
@@ -46,13 +46,13 @@
         <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>
       </div>
@@ -62,7 +62,7 @@
       <div class="menu__inner">
         <div class="menu__header">
           <span class="menu__title">70015</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
           </button>
         </div>
@@ -75,7 +75,7 @@
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
           <h1 class="hero__title" data-i18n="t_svg">SVG Tools</h1>
-          <p class="hero__desc" data-i18n="svg_desc">Paste or drop an SVG. Strip editor cruft, minify, copy, and export PNG.</p>
+          <p class="hero__desc" data-i18n="svg_desc">Optimize SVG markup, remove editor metadata, minify, and convert SVG to PNG.</p>
         </div>
       </section>
 
@@ -83,7 +83,7 @@
         <div class="settings__group">
           <span class="settings__label" data-i18n="ed_source">Source</span>
           <div class="upload" id="svgDrop">
-            <input type="file" id="svgInput" class="upload__input" accept="image/svg+xml,.svg" aria-label="Choose an SVG">
+            <input type="file" id="svgInput" class="upload__input" accept="image/svg+xml,.svg" aria-label="Choose an SVG" data-i18n-aria-label="choose_svg">
             <div class="upload__content">
               <div class="upload__icon" aria-hidden="true">
                 <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -97,19 +97,19 @@
             </div>
           </div>
           <div class="field">
-            <label for="svgText">SVG markup</label>
+            <label for="svgText" data-i18n="svg_markup">SVG markup</label>
             <textarea class="field__textarea" id="svgText" rows="6" placeholder="<svg xmlns='http://www.w3.org/2000/svg' ...>...</svg>"></textarea>
           </div>
         </div>
 
         <div class="settings">
           <div class="settings__group">
-            <label class="settings__label">Optimize</label>
+            <label class="settings__label" data-i18n="svg_optimize">Optimize</label>
             <div class="chips">
               <label class="chip"><input type="checkbox" id="optComments" ><span data-i18n="svg_strip_comments">Strip comments</span></label>
-              <label class="chip"><input type="checkbox" id="optEditor" checked><span>Strip editor cruft (Inkscape/Sodipodi/metadata)</span></label>
+              <label class="chip"><input type="checkbox" id="optEditor" checked><span data-i18n="svg_strip_cruft">Remove editor metadata (Inkscape/Sodipodi/metadata)</span></label>
               <label class="chip"><input type="checkbox" id="optWs" checked><span data-i18n="svg_collapse_ws">Collapse whitespace</span></label>
-              <label class="chip"><input type="checkbox" id="optDecl" checked><span>Drop XML declaration</span></label>
+              <label class="chip"><input type="checkbox" id="optDecl" checked><span data-i18n="svg_drop_decl">Drop XML declaration</span></label>
             </div>
           </div>
         </div>
@@ -117,7 +117,7 @@
 
       <section class="panel card">
         <div class="settings__group">
-          <span class="settings__label">Result</span>
+          <span class="settings__label" data-i18n="svg_result">Result</span>
           <div class="preview">
             <div class="preview__media svg__media" id="svgPreview">
               <span class="svg__placeholder" id="svgPlaceholder" data-i18n="svg_preview">Preview will appear here</span>
@@ -125,7 +125,7 @@
             <div class="preview__info">
               <span id="svgInfo">&mdash;</span>
               <div class="actions__btns">
-                <button class="btn btn--secondary btn--sm" id="copyBtn" type="button">Copy SVG</button>
+                <button class="btn btn--secondary btn--sm" id="copyBtn" type="button" data-i18n="svg_copy_svg">Copy SVG</button>
                 <button class="btn btn--secondary btn--sm" id="downloadSvgBtn" type="button" data-i18n="qr_svg">Download SVG</button>
                 <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button" data-i18n="svg_export_png">Export PNG</button>
               </div>

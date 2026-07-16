@@ -46,13 +46,13 @@
         <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>
       </div>
@@ -62,7 +62,7 @@
       <div class="menu__inner">
         <div class="menu__header">
           <span class="menu__title">70015</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
           </button>
         </div>
@@ -81,36 +81,36 @@
 
       <section class="panel card">
         <div class="settings__group">
-          <span class="settings__label">Colors</span>
+          <span class="settings__label" data-i18n="col_colors">Colors</span>
           <div class="color-row" id="fgRow" data-role="fg">
             <div class="color-row__main">
-              <button class="color-swatch" id="fgSwatch" aria-label="Foreground color"></button>
+              <button class="color-swatch" id="fgSwatch" aria-label="Foreground color" data-i18n-aria-label="col_foreground_color"></button>
               <input type="color" id="fgPicker" class="color-native" value="#203848">
               <div class="color-row__fields">
-                <label class="field"><span>HEX</span><input id="fgHex" type="text" value="#203848"></label>
+                <label class="field"><span data-i18n="col_hex">HEX</span><input id="fgHex" type="text" value="#203848"></label>
               </div>
-              <button class="btn btn--secondary btn--sm color-row__pick" id="fgPick" type="button">Pick</button>
+              <button class="btn btn--secondary btn--sm color-row__pick" id="fgPick" type="button" data-i18n="col_pick">Pick</button>
             </div>
             <div class="color-row__values" id="fgValues"></div>
           </div>
           <div class="color-row" id="bgRow" data-role="bg">
             <div class="color-row__main">
-              <button class="color-swatch" id="bgSwatch" aria-label="Background color"></button>
+              <button class="color-swatch" id="bgSwatch" aria-label="Background color" data-i18n-aria-label="col_background_color"></button>
               <input type="color" id="bgPicker" class="color-native" value="#ffffff">
               <div class="color-row__fields">
-                <label class="field"><span>HEX</span><input id="bgHex" type="text" value="#ffffff"></label>
+                <label class="field"><span data-i18n="col_hex">HEX</span><input id="bgHex" type="text" value="#ffffff"></label>
               </div>
-              <button class="btn btn--secondary btn--sm color-row__pick" id="bgPick" type="button">Pick</button>
+              <button class="btn btn--secondary btn--sm color-row__pick" id="bgPick" type="button" data-i18n="col_pick">Pick</button>
             </div>
             <div class="color-row__values" id="bgValues"></div>
           </div>
-          <p class="settings__note" id="pickHint">Click a swatch or HEX to choose, or use Pick to grab from the screen.</p>
+          <p class="settings__note" id="pickHint" data-i18n="col_pick_short_hint">Click a swatch or HEX to choose, or use Pick to grab from the screen.</p>
         </div>
       </section>
 
       <section class="panel card">
         <div class="settings__group">
-          <span class="settings__label">Contrast</span>
+          <span class="settings__label" data-i18n="col_contrast">Contrast</span>
           <div class="contrast">
             <div class="contrast__ratio">
               <span class="contrast__number" id="ratioNumber">&mdash;</span>
@@ -120,17 +120,17 @@
           </div>
           <div class="contrast__preview" id="preview">
             <p class="contrast__sample contrast__sample--lg">Aa Bb Cc 1234</p>
-            <p class="contrast__sample">The quick brown fox jumps over the lazy dog.</p>
-            <p class="contrast__sample contrast__sample--bold"><strong>Bold text sample</strong></p>
+            <p class="contrast__sample" data-i18n="col_sample_sentence">The quick brown fox jumps over the lazy dog.</p>
+            <p class="contrast__sample contrast__sample--bold"><strong data-i18n="col_sample_bold">Bold text sample</strong></p>
           </div>
         </div>
       </section>
 
       <section class="panel card">
         <div class="settings__group">
-          <span class="settings__label">Swap</span>
+          <span class="settings__label" data-i18n="col_swap_short">Swap</span>
           <div class="settings__row snapshot__controls">
-            <button class="btn btn--secondary btn--sm" id="swapBtn" type="button">Swap FG &harr; BG</button>
+            <button class="btn btn--secondary btn--sm" id="swapBtn" type="button" data-i18n="col_swap_button">Swap FG &harr; BG</button>
           </div>
         </div>
       </section>

@@ -28,7 +28,21 @@
   };
 
   const SAMPLE_LABELS = { 1: 'Low', 2: 'Med', 3: 'High' };
+  const SAMPLE_LABEL_KEYS = { 1: 'pal_sample_low', 2: 'pal_sample_med', 3: 'pal_sample_high' };
   const SAMPLE_SIZES = { 1: 32, 2: 64, 3: 128 };
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
+  function tpl(key, fallback, vars) {
+    let text = t(key, fallback);
+    Object.keys(vars || {}).forEach((name) => {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
+  function sampleLabel(value) {
+    return t(SAMPLE_LABEL_KEYS[value], SAMPLE_LABELS[value]);
+  }
 
   function showToast(message, duration = 2000) {
     toast.textContent = message;
@@ -57,8 +71,8 @@
       originalTitle = uploadTitle.textContent;
       originalHint = uploadHint.textContent;
     }
-    uploadTitle.textContent = 'Drop files to upload';
-    uploadHint.textContent = 'Multiple images and folders supported';
+    uploadTitle.textContent = t('conv_drop_files', 'Drop files to upload');
+    uploadHint.textContent = t('conv_hint', 'Multiple images and folders supported');
   });
 
   dropZone.addEventListener('dragover', (e) => {
@@ -96,7 +110,7 @@
 
   sampleInput.addEventListener('input', () => {
     state.samplePrecision = parseInt(sampleInput.value, 10);
-    sampleValue.textContent = SAMPLE_LABELS[state.samplePrecision];
+    sampleValue.textContent = sampleLabel(state.samplePrecision);
   });
 
   sampleInput.addEventListener('change', () => {
@@ -109,12 +123,12 @@
     });
     state.items = [];
     render();
-    showToast('Cleared');
+    showToast(t('toast_cleared', 'Cleared'));
   });
 
   exportBtn.addEventListener('click', () => {
     if (state.items.length === 0) {
-      showToast('Nothing to export');
+      showToast(t('pal_nothing_export', 'Nothing to export'));
       return;
     }
     const data = state.items.map((item) => ({
@@ -128,7 +142,7 @@
     a.download = `70015-palettes-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('JSON exported');
+    showToast(t('pal_json_exported', 'JSON exported'));
   });
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
@@ -137,13 +151,13 @@
     const accepted = Array.from(fileListObj).filter((file) => {
       if (!file.type.startsWith('image/')) return false;
       if (file.size > MAX_FILE_SIZE) {
-        showToast(`${file.name} is too large (max 50 MB)`);
+        showToast(tpl('conv_too_large', '{name} is too large (max 50 MB)', { name: file.name }));
         return false;
       }
       return true;
     });
     if (accepted.length === 0) {
-      showToast('Please select image files');
+      showToast(t('conv_select_images', 'Please select image files'));
       return;
     }
 
@@ -192,10 +206,10 @@
             reject(err);
           }
         };
-        img.onerror = () => reject(new Error('Could not read image'));
+        img.onerror = () => reject(new Error(t('conv_read_image_fail', 'Could not read image')));
         img.src = e.target.result;
       };
-      reader.onerror = () => reject(new Error('File read failed'));
+      reader.onerror = () => reject(new Error(t('conv_file_read_failed', 'File read failed')));
       reader.readAsDataURL(file);
     });
   }
@@ -295,7 +309,7 @@
       )
       .join('');
 
-    const loading = item.colors.length === 0 ? '<p class="palette-card__name">Extracting\u2026</p>' : '';
+    const loading = item.colors.length === 0 ? '<p class="palette-card__name">' + t('pal_extracting', 'Extracting...') + '</p>' : '';
 
     el.innerHTML = `
       <img class="palette-card__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async">
@@ -304,8 +318,8 @@
         ${loading}
         <div class="palette-card__colors">${colorsHtml}</div>
         <div class="palette-card__actions">
-          <button class="btn btn--secondary btn--sm" data-action="copy-css" data-id="${item.id}" type="button">Copy CSS</button>
-          <button class="btn btn--secondary btn--sm" data-action="remove" data-id="${item.id}" type="button">Remove</button>
+          <button class="btn btn--secondary btn--sm" data-action="copy-css" data-id="${item.id}" type="button">${t('pal_copy_css', 'Copy CSS')}</button>
+          <button class="btn btn--secondary btn--sm" data-action="remove" data-id="${item.id}" type="button">${t('conv_remove', 'Remove')}</button>
         </div>
       </div>
     `;
@@ -337,8 +351,8 @@
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(
-      () => showToast(`Copied ${text}`),
-      () => showToast('Copy failed')
+      () => showToast(tpl('col_copied_value', 'Copied {value}', { value: text })),
+      () => showToast(t('toast_copy_fail', 'Copy failed'))
     );
   }
 
@@ -354,7 +368,7 @@
   function updateActions() {
     const count = state.items.length;
     actionsPanel.hidden = count === 0;
-    fileCount.textContent = `${count} images`;
+    fileCount.textContent = tpl('pal_count_images', '{count} images', { count });
   }
 
   function escapeHtml(str) {
@@ -365,4 +379,8 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+  window.onLangChange = function () {
+    sampleValue.textContent = sampleLabel(state.samplePrecision);
+    render();
+  };
 })();

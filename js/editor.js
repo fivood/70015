@@ -48,6 +48,14 @@
   var SWATCHES = ['#7dd3fc', '#203848', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#000000', '#ffffff', '#6b7280', '#fbbf24'];
 
   function uid() { return 'el-' + (++uidCounter); }
+  function t(key, fallback) { return (typeof window.t === 'function') ? window.t(key) : fallback; }
+  function tpl(key, fallback, vars) {
+    var text = t(key, fallback);
+    Object.keys(vars || {}).forEach(function (name) {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
   function showToast(m, d) { d = d || 2000; toast.textContent = m; toast.classList.add('is-visible'); setTimeout(function () { toast.classList.remove('is-visible'); }, d); }
 
   function el(tag, attrs) {
@@ -295,9 +303,9 @@
   function updateProps() {
     props.innerHTML = '';
     var p = primary();
-    if (!p) { propType.textContent = 'Nothing selected'; return; }
+    if (!p) { propType.textContent = t('ed_no_select', 'Nothing selected'); return; }
     var type = getElementType(p);
-    propType.textContent = type.charAt(0).toUpperCase() + type.slice(1) + (selected.length > 1 ? ' (' + selected.length + ' selected)' : '');
+    propType.textContent = type.charAt(0).toUpperCase() + type.slice(1) + (selected.length > 1 ? ' (' + tpl('ed_selected_count', '{count} selected', { count: selected.length }) + ')' : '');
 
     var fill = p.getAttribute('fill') || 'none';
     var stroke = p.getAttribute('stroke') || 'none';
@@ -502,8 +510,8 @@
     var countEl = panel.querySelector('#layerCount');
     list.innerHTML = '';
     var nodes = Array.from(artboard.children).reverse().filter(function (n) { return n.id !== 'gridRect' && n.tagName !== 'defs'; });
-    if (countEl) countEl.textContent = nodes.length + (nodes.length === 1 ? ' element' : ' elements');
-    if (nodes.length === 0) { list.innerHTML = '<p style="font-size:12px;color:var(--text-dim);padding:8px 0;">No elements yet</p>'; return; }
+    if (countEl) countEl.textContent = nodes.length === 1 ? tpl('ed_element_count', '{count} element', { count: nodes.length }) : tpl('ed_elements_count', '{count} elements', { count: nodes.length });
+    if (nodes.length === 0) { list.innerHTML = '<p style="font-size:12px;color:var(--text-dim);padding:8px 0;">' + t('ed_no_elements', 'No elements yet') + '</p>'; return; }
     nodes.forEach(function (node, i) {
       var type = getElementType(node);
       var fill = node.getAttribute('fill') || 'none';
@@ -570,7 +578,7 @@
     if (tool === 'rect') node = el('rect', { x: p.x, y: p.y, width: 1, height: 1, rx: 0, fill: fill, stroke: stroke, 'stroke-width': sw, 'data-id': id });
     else if (tool === 'ellipse') node = el('ellipse', { cx: p.x, cy: p.y, rx: 1, ry: 1, fill: fill, stroke: stroke, 'stroke-width': sw, 'data-id': id });
     else if (tool === 'line') node = el('line', { x1: p.x, y1: p.y, x2: p.x, y2: p.y, stroke: stroke, 'stroke-width': Math.max(1, sw), 'data-id': id, fill: 'none' });
-    else if (tool === 'text') { node = el('text', { x: p.x, y: p.y, 'font-size': 24, fill: fill, stroke: 'none', 'data-id': id, 'font-family': 'Inter, sans-serif' }); node.textContent = 'Text'; }
+    else if (tool === 'text') { node = el('text', { x: p.x, y: p.y, 'font-size': 24, fill: fill, stroke: 'none', 'data-id': id, 'font-family': 'Inter, sans-serif' }); node.textContent = t('ed_text_default', 'Text'); }
     else if (tool === 'pen') { penPoints.push(p); node = el('path', { d: 'M' + p.x + ' ' + p.y, fill: 'none', stroke: stroke, 'stroke-width': Math.max(1, sw), 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'data-id': id }); }
     else if (tool === 'star') { node = el('path', { d: '', fill: fill, stroke: stroke, 'stroke-width': sw, 'data-id': id, 'data-points': '5', 'data-cx': p.x, 'data-cy': p.y, 'data-r': 1 }); drawing.isStar = true; }
 
@@ -727,7 +735,7 @@
       selectSingle(clones[0]);
       for (var i = 1; i < clones.length; i++) selected.push(clones[i]);
       updateSelection(); updateLayers(); updateActionButtons(); syncToolbar();
-      showToast('Duplicated');
+      showToast(t('toast_duplicated', 'Duplicated'));
     }
     var p = getMouse(e);
     var bboxes = selected.map(function (n) { return n.getBBox(); });
@@ -887,8 +895,8 @@
   document.getElementById('strokeWidth').addEventListener('change', function () { if (selected.length) snapshot(); });
 
   // ---- Actions ----
-  document.getElementById('deleteBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { n.remove(); }); deselect(); snapshot(); showToast('Deleted'); });
-  document.getElementById('duplicateBtn').addEventListener('click', function () { if (!selected.length) return; var clones = []; selected.forEach(function (n) { var c = n.cloneNode(true); c.setAttribute('data-id', uid()); offsetElement(c, 20, 20); artboard.appendChild(c); clones.push(c); }); selectSingle(clones[0]); for (var i = 1; i < clones.length; i++) selected.push(clones[i]); snapshot(); showToast('Duplicated'); });
+  document.getElementById('deleteBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { n.remove(); }); deselect(); snapshot(); showToast(t('toast_deleted', 'Deleted')); });
+  document.getElementById('duplicateBtn').addEventListener('click', function () { if (!selected.length) return; var clones = []; selected.forEach(function (n) { var c = n.cloneNode(true); c.setAttribute('data-id', uid()); offsetElement(c, 20, 20); artboard.appendChild(c); clones.push(c); }); selectSingle(clones[0]); for (var i = 1; i < clones.length; i++) selected.push(clones[i]); snapshot(); showToast(t('toast_duplicated', 'Duplicated')); });
   document.getElementById('frontBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { artboard.appendChild(n); }); snapshot(); updateLayers(); });
   document.getElementById('backBtn').addEventListener('click', function () { if (!selected.length) return; var first = artboard.firstChild; selected.forEach(function (n) { if (first) artboard.insertBefore(n, first); else artboard.appendChild(n); }); snapshot(); updateLayers(); });
   document.getElementById('undoBtn').addEventListener('click', undo);
@@ -907,7 +915,7 @@
     selected.forEach(function (n) { g.appendChild(n); });
     selectSingle(g);
     snapshot();
-    showToast('Grouped');
+    showToast(t('toast_grouped', 'Grouped'));
   });
   document.getElementById('ungroupBtn').addEventListener('click', function () {
     var groups = selected.filter(function (n) { return getElementType(n) === 'g'; });
@@ -919,7 +927,7 @@
     });
     deselect();
     snapshot();
-    showToast('Ungrouped');
+    showToast(t('toast_ungrouped', 'Ungrouped'));
   });
 
   // Align
@@ -959,7 +967,7 @@
     reader.onload = function (e) {
       try {
         var tmp = document.createElement('div'); tmp.innerHTML = e.target.result;
-        var svg = tmp.querySelector('svg'); if (!svg) { showToast('No SVG found'); return; }
+        var svg = tmp.querySelector('svg'); if (!svg) { showToast(t('ed_no_svg_found', 'No SVG found')); return; }
         sanitizeSvg(svg);
         artboard.setAttribute('viewBox', svg.getAttribute('viewBox') || '0 0 800 600');
         VB.x = parseFloat(artboard.getAttribute('viewBox').split(' ')[0]) || 0;
@@ -981,8 +989,8 @@
           artboard.appendChild(imported);
         });
         deselect(); applyViewBox(); snapshot();
-        showToast('Imported ' + children.length + ' elements');
-      } catch (err) { showToast('Import failed'); }
+        showToast(tpl('ed_imported_elements', 'Imported {count} elements', { count: children.length }));
+      } catch (err) { showToast(t('ed_import_fail', 'Import failed')); }
     };
     reader.readAsText(file); this.value = '';
   });
@@ -1024,7 +1032,7 @@
       var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cv.width, cv.height);
       cv.toBlob(function (b) { downloadBlob(b, '70015-editor-' + Date.now() + '.png'); URL.revokeObjectURL(url); }, 'image/png');
     };
-    img.onerror = function () { URL.revokeObjectURL(url); showToast('PNG export failed'); };
+    img.onerror = function () { URL.revokeObjectURL(url); showToast(t('ed_png_export_fail', 'PNG export failed')); };
     img.src = url;
   });
 
@@ -1033,8 +1041,8 @@
   // ---- Copy code ----
   document.getElementById('copyCodeBtn').addEventListener('click', function () {
     var text = codeView.value;
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){showToast('Copied');},function(){showToast('Copy failed');});
-    else { codeView.select(); try{document.execCommand('copy');showToast('Copied');}catch(_){showToast('Copy failed');} }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){showToast(t('toast_copied', 'Copied'));},function(){showToast(t('toast_copy_fail', 'Copy failed'));});
+    else { codeView.select(); try{document.execCommand('copy');showToast(t('toast_copied', 'Copied'));}catch(_){showToast(t('toast_copy_fail', 'Copy failed'));} }
   });
 
   codeView.addEventListener('change', function () {
@@ -1055,15 +1063,15 @@
           artboard.appendChild(imported);
         }
       });
-      deselect(); snapshot(); showToast('Source applied');
-    } catch (err) { showToast('Invalid SVG'); }
+      deselect(); snapshot(); showToast(t('toast_applied', 'Source applied'));
+    } catch (err) { showToast(t('toast_invalid', 'Invalid SVG')); }
   });
 
   // ---- Clear ----
   document.getElementById('clearBtn').addEventListener('click', function () {
     Array.from(artboard.children).forEach(function (c) { if (c.tagName !== 'defs' && c.id !== 'gridRect') c.remove(); });
     var defs = artboard.querySelector('defs'); if (defs) defs.innerHTML = '';
-    deselect(); snapshot(); showToast('Canvas cleared');
+    deselect(); snapshot(); showToast(t('ed_canvas_cleared', 'Canvas cleared'));
   });
 
   // ---- Clipboard ----
@@ -1081,9 +1089,9 @@
       selected.forEach(function (n) { n.remove(); });
       deselect();
       snapshot();
-      showToast('Cut');
+      showToast(t('ed_cut', 'Cut'));
     } else {
-      showToast('Copied');
+      showToast(t('toast_copied', 'Copied'));
     }
   }
 
@@ -1100,7 +1108,7 @@
     for (var i = 1; i < clones.length; i++) selected.push(clones[i]);
     updateSelection(); updateLayers(); updateActionButtons(); syncToolbar();
     snapshot();
-    showToast('Pasted');
+    showToast(t('ed_pasted', 'Pasted'));
   }
 
   // ---- Keyboard ----
@@ -1164,7 +1172,7 @@
   var sidebar = document.querySelector('.editor__sidebar');
   var layersPanel = document.createElement('div');
   layersPanel.className = 'editor__panel editor__panel--layers';
-  layersPanel.innerHTML = '<div class="editor__panel-head"><span class="editor__panel-title">Layers</span><span class="editor__panel-sub" id="layerCount">0 elements</span></div><div class="editor__layers" id="layerList"></div>';
+  layersPanel.innerHTML = '<div class="editor__panel-head"><span class="editor__panel-title" data-i18n="ed_layers">' + t('ed_layers', 'Layers') + '</span><span class="editor__panel-sub" id="layerCount">' + tpl('ed_elements_count', '{count} elements', { count: 0 }) + '</span></div><div class="editor__layers" id="layerList"></div>';
   sidebar.insertBefore(layersPanel, sidebar.firstChild);
 
   // ---- Init ----
@@ -1174,7 +1182,7 @@
   var initRect = el('rect', { x: 250, y: 200, width: 300, height: 200, rx: 12, fill: '#7dd3fc', stroke: '#203848', 'stroke-width': 3, 'data-id': uid() });
   artboard.appendChild(initRect);
   var initText = el('text', { x: 300, y: 310, 'font-size': 28, fill: '#203848', stroke: 'none', 'font-family': 'Inter, sans-serif', 'data-id': uid() });
-  initText.textContent = 'Hello SVG';
+  initText.textContent = t('ed_hello_svg', 'Hello SVG');
   artboard.appendChild(initText);
 
   snapshot();

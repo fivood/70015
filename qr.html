@@ -46,13 +46,13 @@
         <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>
       </div>
@@ -62,7 +62,7 @@
       <div class="menu__inner">
         <div class="menu__header">
           <span class="menu__title">70015</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
           </button>
         </div>
@@ -81,9 +81,9 @@
 
       <section class="panel card">
         <div class="settings__group">
-          <span class="settings__label">Content</span>
+          <span class="settings__label" data-i18n="qr_content">Content</span>
           <div class="field">
-            <textarea class="field__textarea" id="qrText" rows="4" placeholder="Paste a URL or any text">https://70015.net</textarea>
+            <textarea class="field__textarea" id="qrText" rows="4" placeholder="Paste a URL or any text" data-i18n-placeholder="qr_text_placeholder">https://70015.net</textarea>
           </div>
         </div>
 
@@ -96,29 +96,29 @@
               <button class="segmented__btn" data-value="Q" type="button">Q</button>
               <button class="segmented__btn" data-value="H" type="button">H</button>
             </div>
-            <p class="settings__note">Higher levels stay scannable even if partially obscured.</p>
+            <p class="settings__note" data-i18n="qr_ecl_note">Higher levels stay scannable even if partially obscured.</p>
           </div>
 
           <div class="settings__group">
             <div class="settings__row">
-              <label class="settings__label" for="cellSize">Module size <span class="settings__value" id="cellValue">10</span> px</label>
+              <label class="settings__label" for="cellSize"><span data-i18n="qr_module_size">Module size</span> <span class="settings__value" id="cellValue">10</span> px</label>
               <input class="range" type="range" id="cellSize" min="4" max="40" value="10">
             </div>
           </div>
 
           <div class="settings__group">
             <div class="settings__row">
-              <label class="settings__label" for="margin">Quiet zone <span class="settings__value" id="marginValue">4</span> modules</label>
+              <label class="settings__label" for="margin"><span data-i18n="qr_quiet_zone">Quiet zone</span> <span class="settings__value" id="marginValue">4</span> <span data-i18n="qr_modules">modules</span></label>
               <input class="range" type="range" id="margin" min="0" max="10" value="4">
             </div>
           </div>
 
           <div class="settings__group">
-            <label class="settings__label">Colors</label>
+            <label class="settings__label" data-i18n="col_colors">Colors</label>
             <div class="qr-colors">
               <label class="qr-color">
                 <input type="color" id="darkColor" value="#203848">
-                <span>Modules</span>
+                <span data-i18n="qr_modules">Modules</span>
               </label>
               <label class="qr-color">
                 <input type="color" id="lightColor" value="#ffffff">
@@ -135,7 +135,7 @@
 
       <section class="panel card">
         <div class="settings__group">
-          <span class="settings__label">Preview</span>
+          <span class="settings__label" data-i18n="qr_preview">Preview</span>
           <div class="preview">
             <div class="preview__media qr__media">
               <canvas id="qrCanvas"></canvas>
@@ -148,7 +148,7 @@
               </div>
             </div>
           </div>
-          <p class="settings__note" id="qrHint">Updates as you type.</p>
+          <p class="settings__note" id="qrHint" data-i18n="qr_updates">Updates as you type.</p>
         </div>
       </section>
     </main>

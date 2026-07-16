@@ -23,6 +23,16 @@
 
   let fg = '#203848';
   let bg = '#ffffff';
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
+  function tpl(key, fallback, vars) {
+    let text = t(key, fallback);
+    Object.keys(vars || {}).forEach((name) => {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
 
   function showToast(msg) {
     toast.textContent = msg;
@@ -109,17 +119,17 @@
     const ratio = contrastRatio(hexToRgb(fg), hexToRgb(bg));
     ratioNumber.textContent = (Math.round(ratio * 100) / 100).toFixed(2);
     badges.innerHTML =
-      badge('AA normal', ratio >= 4.5) +
-      badge('AA large', ratio >= 3) +
-      badge('AAA normal', ratio >= 7) +
-      badge('AAA large', ratio >= 4.5);
+      badge(t('col_aa_n', 'AA normal'), ratio >= 4.5) +
+      badge(t('col_aa_l', 'AA large'), ratio >= 3) +
+      badge(t('col_aaa_n', 'AAA normal'), ratio >= 7) +
+      badge(t('col_aaa_l', 'AAA large'), ratio >= 4.5);
     preview.style.color = fg;
     preview.style.background = bg;
   }
 
   async function copy(text) {
-    try { await navigator.clipboard.writeText(text); showToast('Copied ' + text); }
-    catch (e) { showToast('Copy failed'); }
+    try { await navigator.clipboard.writeText(text); showToast(tpl('col_copied_value', 'Copied {value}', { value: text })); }
+    catch (e) { showToast(t('toast_copy_fail', 'Copy failed')); }
   }
 
   function setFg(hex) { if (hex) { fg = hex; render(); } }
@@ -128,7 +138,7 @@
   async function pickFromScreen(setter) {
     if (!eyeDropper) return;
     try { const r = await eyeDropper.open(); setter(r.sRGBHex); }
-    catch (e) { if (e && e.name !== 'NotAllowedError') showToast('Pick cancelled'); }
+    catch (e) { if (e && e.name !== 'NotAllowedError') showToast(t('col_pick_cancelled', 'Pick cancelled')); }
   }
 
   fgPicker.addEventListener('input', e => setFg(e.target.value));
@@ -147,8 +157,9 @@
   if (!hasEyeDropper) {
     fgPick.disabled = true; fgPick.classList.add('is-disabled');
     bgPick.disabled = true; bgPick.classList.add('is-disabled');
-    pickHint.textContent = 'Screen picker needs desktop Chrome/Edge. Click a swatch or HEX to choose colors.';
+    pickHint.textContent = t('col_pick_hint', 'Screen picker needs desktop Chrome/Edge. Click a swatch or HEX to choose colors.');
   }
 
   render();
+  window.onLangChange = render;
 })();

@@ -14,6 +14,16 @@
   const toast = document.getElementById('toast');
 
   let previewObjectUrl = null;
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
+  function tpl(key, fallback, vars) {
+    let text = t(key, fallback);
+    Object.keys(vars || {}).forEach((name) => {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
 
   function showToast(message) {
     toast.textContent = message;
@@ -53,13 +63,13 @@
     const validFiles = Array.from(files).filter(f => {
       if (!f.type.startsWith('image/')) return false;
       if (f.size > MAX_FILE_SIZE) {
-        showToast(`${f.name} is too large (max 50 MB)`);
+        showToast(tpl('conv_too_large', '{name} is too large (max 50 MB)', { name: f.name }));
         return false;
       }
       return true;
     });
     if (!validFiles.length) {
-      showToast('Please select image files');
+      showToast(t('conv_select_images', 'Please select image files'));
       return;
     }
 
@@ -69,7 +79,7 @@
         const output = getPrefix() ? dataUrl : stripPrefix(dataUrl);
         addBase64Item(file, output);
       } catch (err) {
-        showToast('Failed to read ' + file.name);
+        showToast(tpl('b64_read_fail', 'Failed to read {name}', { name: file.name }));
       }
     }
   }
@@ -86,12 +96,12 @@
       <img class="file__thumb" src="${url}" alt="" loading="lazy" decoding="async">
       <div class="file__info">
         <p class="file__name">${escapeHtml(file.name)}</p>
-        <p class="file__meta">Base64 length: ${base64.length.toLocaleString()} \u00b7 ~${sizeText}</p>
+        <p class="file__meta">${t('b64_len', 'Base64 length')}: ${base64.length.toLocaleString()} \u00b7 ~${sizeText}</p>
       </div>
       <div class="file__actions">
-        <button class="btn btn--primary btn--sm" type="button" data-copy>Copy</button>
-        <button class="btn btn--secondary btn--sm" type="button" data-download>Download .txt</button>
-        <button class="btn btn--secondary btn--sm" type="button" data-remove title="Remove">Remove</button>
+        <button class="btn btn--primary btn--sm" type="button" data-copy>${t('b64_copy', 'Copy')}</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-download>${t('b64_dl_txt', 'Download .txt')}</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-remove title="${t('b64_remove_title', 'Remove')}">${t('b64_remove', 'Remove')}</button>
       </div>
     `;
 
@@ -102,9 +112,9 @@
     copyBtn.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(base64);
-        showToast('Copied to clipboard');
+        showToast(t('b64_copied_clipboard', 'Copied to clipboard'));
       } catch (e) {
-        showToast('Copy failed');
+        showToast(t('toast_copy_fail', 'Copy failed'));
       }
     });
 
@@ -178,19 +188,19 @@
 
     if (!dataUrl) {
       imgPreview.hidden = true;
-      b64Hint.textContent = 'Preview updates automatically.';
+      b64Hint.textContent = t('b64_preview_hint', 'Preview updates automatically.');
       return;
     }
 
     previewImg.onload = () => {
       imgPreview.hidden = false;
       previewSize.textContent = `${previewImg.naturalWidth} \u00d7 ${previewImg.naturalHeight} px`;
-      b64Hint.textContent = 'Parsed. Click the button to download the image.';
+      b64Hint.textContent = t('b64_parsed', 'Parsed. Click the button to download the image.');
     };
 
     previewImg.onerror = () => {
       imgPreview.hidden = true;
-      b64Hint.textContent = 'Could not parse this Base64 content.';
+      b64Hint.textContent = t('b64_parse_fail', 'Could not parse this Base64 content.');
     };
 
     previewImg.src = dataUrl;

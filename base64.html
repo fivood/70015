@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Base64 Swap &mdash; 70015</title>
+  <title>Base64 Converter &mdash; 70015</title>
   <meta name="description" content="Convert images to Base64 Data URLs or decode Base64 back to images. Runs in your browser.">
   <link rel="canonical" href="https://70015.net/base64">
-  <meta property="og:title" content="Base64 Swap &mdash; 70015">
+  <meta property="og:title" content="Base64 Converter &mdash; 70015">
   <meta property="og:description" content="Image to Base64 Data URL and back. Paste a string or drop an image.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://70015.net/base64">
@@ -14,7 +14,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "70015 Base64 Swap",
+    "name": "70015 Base64 Converter",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Any",
     "url": "https://70015.net/base64",
@@ -51,13 +51,13 @@
         </div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="5" cy="12" r="2"/>
           <circle cx="12" cy="12" r="2"/>
@@ -71,7 +71,7 @@
       <div class="menu__inner">
         <div class="menu__header">
           <span class="menu__title">70015</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <path d="M18 6 L6 18"/>
               <path d="M6 6 L18 18"/>
@@ -86,14 +86,14 @@
       <section class="hero card">
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
-          <h1 class="hero__title" data-i18n="t_base64">Base64 Swap</h1>
+          <h1 class="hero__title" data-i18n="t_base64">Base64 Converter</h1>
           <p class="hero__desc" data-i18n="b64_desc">Image &rarr; Base64 Data URL. Drop an image or paste a string.</p>
         </div>
       </section>
 
       <section class="panel card" id="imgToBase64">
         <div class="settings__group">
-          <span class="settings__label">Image &rarr; Base64</span>
+          <span class="settings__label" data-i18n="b64_img2b64">Image &rarr; Base64</span>
           <div class="upload" id="imgUpload">
             <input class="upload__input" id="imgInput" type="file" accept="image/*" multiple>
             <div class="upload__content">
@@ -122,9 +122,9 @@
 
       <section class="panel card" id="base64ToImg">
         <div class="settings__group">
-          <span class="settings__label">Base64 &rarr; Image</span>
+          <span class="settings__label" data-i18n="b64_b642img">Base64 &rarr; Image</span>
           <div class="field">
-            <label for="base64Input">Paste Base64 string</label>
+            <label for="base64Input" data-i18n="b64_paste">Paste Base64 string</label>
             <textarea class="field__textarea" id="base64Input" rows="6" data-i18n-placeholder="b64_placeholder" placeholder="Supports data:image/...;base64,xxx or raw Base64"></textarea>
           </div>
           <p class="settings__note" id="b64Hint" data-i18n="b64_preview_hint">Preview updates automatically.</p>
@@ -132,7 +132,7 @@
 
         <div class="preview" id="imgPreview" hidden>
           <div class="preview__media">
-            <img id="previewImg" alt="Base64 preview">
+            <img id="previewImg" alt="Base64 preview" data-i18n-aria-label="b64_preview_alt">
           </div>
           <div class="preview__info">
             <span id="previewSize">&mdash;</span>

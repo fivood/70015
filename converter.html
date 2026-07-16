@@ -51,13 +51,13 @@
         </div>
       </a>
       <div class="header__actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
           <span class="theme-toggle__icon" aria-hidden="true">
             <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
         </button>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="5" cy="12" r="2"/>
           <circle cx="12" cy="12" r="2"/>
@@ -71,7 +71,7 @@
       <div class="menu__inner">
         <div class="menu__header">
           <span class="menu__title">70015</span>
-          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu">
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <path d="M18 6 L6 18"/>
               <path d="M6 6 L18 18"/>
@@ -93,7 +93,7 @@
 
       <section class="panel card">
         <div class="upload" id="dropZone">
-          <input type="file" id="fileInput" class="upload__input" accept="image/*" multiple aria-label="Choose images">
+          <input type="file" id="fileInput" class="upload__input" accept="image/*" multiple aria-label="Choose images" data-i18n-aria-label="choose_images">
           <div class="upload__content">
             <div class="upload__icon" aria-hidden="true">
               <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -113,9 +113,9 @@
             <div class="chips" id="presetSelector">
               <button class="chip chip--btn is-active" data-preset="custom" type="button"><span data-i18n="conv_custom">Custom</span></button>
               <button class="chip chip--btn" data-preset="webp-only" type="button"><span data-i18n="conv_p_webp">WebP only</span></button>
-              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span>Blog cover 1200&times;630</span></button>
-              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span>Thumbnail 300&times;300</span></button>
-              <button class="chip chip--btn" data-preset="social" type="button"><span>Social 1080&times;1080</span></button>
+              <button class="chip chip--btn" data-preset="blog-cover" type="button"><span data-i18n="conv_p_blog">Blog cover 1200&times;630</span></button>
+              <button class="chip chip--btn" data-preset="thumbnail" type="button"><span data-i18n="conv_p_thumb">Thumbnail 300&times;300</span></button>
+              <button class="chip chip--btn" data-preset="social" type="button"><span data-i18n="conv_p_social">Social 1080&times;1080</span></button>
               <button class="chip chip--btn" data-preset="favicon" type="button"><span data-i18n="conv_p_favicon">Favicon ICO</span></button>
             </div>
             <p class="settings__note" data-i18n="conv_presets">Presets auto-fill format, size, and fit.</p>
@@ -130,7 +130,7 @@
               <button class="segmented__btn" data-value="png" type="button" data-i18n="ed_png">PNG</button>
               <button class="segmented__btn" data-value="ico" type="button">ICO</button>
             </div>
-            <p class="settings__note" id="formatNote">WebP has the best balance of size and compatibility.</p>
+            <p class="settings__note" id="formatNote" data-i18n="conv_note_webp">WebP has the best balance of size and compatibility.</p>
           </div>
 
           <div class="settings__group ico-sizes" id="icoSizePanel" hidden>
@@ -172,11 +172,11 @@
             <div class="settings__dimensions" id="dimensionsPanel">
               <div class="field" id="widthField">
                 <label for="widthInput" data-i18n="conv_w_px">Width px</label>
-                <input type="number" id="widthInput" min="1" max="16384" placeholder="e.g. 1200">
+                <input type="number" id="widthInput" min="1" max="16384" placeholder="e.g. 1200" data-i18n-placeholder="conv_ph_width">
               </div>
               <div class="field" id="heightField">
                 <label for="heightInput" data-i18n="conv_h_px">Height px</label>
-                <input type="number" id="heightInput" min="1" max="16384" placeholder="e.g. 800">
+                <input type="number" id="heightInput" min="1" max="16384" placeholder="e.g. 800" data-i18n-placeholder="conv_ph_height">
               </div>
             </div>
             <div class="settings__subgroup" id="customFitPanel" hidden>

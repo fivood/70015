@@ -38,6 +38,16 @@
   const toast = document.getElementById('toast');
 
   const ctx = workCanvas.getContext('2d');
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
+  function tpl(key, fallback, vars) {
+    let text = t(key, fallback);
+    Object.keys(vars || {}).forEach((name) => {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
 
   // State
   const state = {
@@ -273,7 +283,7 @@
         // Keep at least one, default to 32
         cb.checked = true;
         state.icoSizes = [32];
-        showToast('Select at least one ICO size');
+        showToast(t('conv_select_ico', 'Select at least one ICO size'));
       } else {
         state.icoSizes = selected;
       }
@@ -324,14 +334,19 @@
     customFitPanel.hidden = mode !== 'custom';
 
     if (mode === 'width') {
-      widthField.querySelector('label').textContent = 'Target width px';
+      widthField.querySelector('label').textContent = t('conv_target_w', 'Target width px');
+      widthField.querySelector('label').setAttribute('data-i18n', 'conv_target_w');
     } else if (mode === 'height') {
-      heightField.querySelector('label').textContent = 'Target height px';
+      heightField.querySelector('label').textContent = t('conv_target_h', 'Target height px');
+      heightField.querySelector('label').setAttribute('data-i18n', 'conv_target_h');
     } else if (mode === 'max') {
-      widthField.querySelector('label').textContent = 'Max edge px';
+      widthField.querySelector('label').textContent = t('conv_max_edge', 'Max edge px');
+      widthField.querySelector('label').setAttribute('data-i18n', 'conv_max_edge');
     } else if (mode === 'custom') {
-      widthField.querySelector('label').textContent = 'Width px';
-      heightField.querySelector('label').textContent = 'Height px';
+      widthField.querySelector('label').textContent = t('conv_w_px', 'Width px');
+      widthField.querySelector('label').setAttribute('data-i18n', 'conv_w_px');
+      heightField.querySelector('label').textContent = t('conv_h_px', 'Height px');
+      heightField.querySelector('label').setAttribute('data-i18n', 'conv_h_px');
     }
   }
 
@@ -365,20 +380,20 @@
     });
     state.files = [];
     render();
-    showToast('All images cleared');
+    showToast(t('conv_all_cleared', 'All images cleared'));
   });
 
   // Download ZIP
   downloadAllBtn.addEventListener('click', async () => {
     const readyItems = state.files.filter((f) => f.status === 'ready' && f.result);
     if (readyItems.length === 0) {
-      showToast('No files ready for download');
+      showToast(t('conv_no_ready', 'No files ready for download'));
       return;
     }
 
     downloadAllBtn.disabled = true;
     const originalText = downloadAllBtn.innerHTML;
-    downloadAllBtn.innerHTML = '<span>Zipping\u2026</span>';
+    downloadAllBtn.innerHTML = '<span>' + t('conv_zipping', 'Zipping...') + '</span>';
 
     try {
       const zip = new JSZip();
@@ -390,10 +405,10 @@
 
       const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, `web-toolbox-images-${state.format}-${Date.now()}.zip`);
-      showToast(`Zipped ${readyItems.length} images`);
+      showToast(tpl('conv_zipped', 'Zipped {count} images', { count: readyItems.length }));
     } catch (err) {
       console.error(err);
-      showToast('Zip failed: ' + err.message);
+      showToast(t('conv_zip_failed', 'ZIP failed') + ': ' + err.message);
     } finally {
       downloadAllBtn.disabled = false;
       downloadAllBtn.innerHTML = originalText;
@@ -407,13 +422,13 @@
     const accepted = Array.from(fileListObj).filter((file) => {
       if (!file.type.startsWith('image/')) return false;
       if (file.size > MAX_FILE_SIZE) {
-        showToast(`${file.name} is too large (max 50 MB)`);
+        showToast(tpl('conv_too_large', '{name} is too large (max 50 MB)', { name: file.name }));
         return false;
       }
       return true;
     });
     if (accepted.length === 0) {
-      showToast('Please select image files');
+      showToast(t('conv_select_images', 'Please select image files'));
       return;
     }
 
@@ -467,7 +482,7 @@
       } catch (err) {
         console.error(err);
         item.status = 'error';
-        item.error = err.message || 'Conversion failed';
+        item.error = err.message || t('conv_conversion_failed', 'Conversion failed');
       }
       renderItem(item);
     }
@@ -509,20 +524,20 @@
           var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
           var img = new Image();
           img.onload = function () { resolve(img); };
-          img.onerror = function () { reject(new Error('Could not read image')); };
+          img.onerror = function () { reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
           img.src = dataUrl;
         };
-        reader.onerror = function () { reject(new Error('File read failed')); };
+        reader.onerror = function () { reject(new Error(t('conv_file_read_failed', 'File read failed'))); };
         reader.readAsText(file);
       } else {
         var reader2 = new FileReader();
         reader2.onload = function (e) {
           var img = new Image();
           img.onload = function () { resolve(img); };
-          img.onerror = function () { reject(new Error('Could not read image')); };
+          img.onerror = function () { reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
           img.src = e.target.result;
         };
-        reader2.onerror = function () { reject(new Error('File read failed')); };
+        reader2.onerror = function () { reject(new Error(t('conv_file_read_failed', 'File read failed'))); };
         reader2.readAsDataURL(file);
       }
     });
@@ -561,7 +576,7 @@
           workCanvas.toBlob(
             function (blob) {
               if (!blob) {
-                reject(new Error('Browser does not support this output format'));
+                reject(new Error(t('conv_output_unsupported', 'Browser does not support this output format')));
                 return;
               }
               resolve({
@@ -598,7 +613,7 @@
       drawSquareImage(c, img, size, state.icoCropMode);
 
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('Could not generate PNG data for ICO');
+      if (!blob) throw new Error(t('ann_export_fail', 'Export failed'));
       const buf = await blobToArrayBuffer(blob);
       pngBuffers.push({ size, buffer: new Uint8Array(buf) });
     }
@@ -779,11 +794,11 @@
 
     const statusClass = isError ? 'file__status--error' : isReady ? 'file__status--ready' : 'file__status--converting';
     const statusHtml = isConverting
-      ? `<span class="file__status ${statusClass}">Converting</span><span class="progress-bar" aria-hidden="true"><span class="progress-bar__fill"></span></span>`
-      : `<span class="file__status ${statusClass}">${isError ? 'Failed' : isReady ? 'Done' : 'Pending'}</span>`;
+      ? `<span class="file__status ${statusClass}">${t('conv_s_converting', 'Converting')}</span><span class="progress-bar" aria-hidden="true"><span class="progress-bar__fill"></span></span>`
+      : `<span class="file__status ${statusClass}">${isError ? t('conv_s_failed', 'Failed') : isReady ? t('conv_s_done', 'Done') : t('conv_s_pending', 'Pending')}</span>`;
 
     const reduction = isReady
-      ? `, saved ${Math.max(0, 100 - Math.round((item.result.blob.size / item.file.size) * 100))}%`
+      ? ', ' + tpl('conv_saved', 'saved {percent}%', { percent: Math.max(0, 100 - Math.round((item.result.blob.size / item.file.size) * 100)) })
       : '';
 
     let meta = `${formatBytes(item.file.size)}`;
@@ -806,10 +821,10 @@
       <div class="file__actions">
         ${
           isReady
-            ? `<button class="btn btn--primary btn--sm" type="button" data-action="download" data-id="${item.id}">Download</button>`
+            ? `<button class="btn btn--primary btn--sm" type="button" data-action="download" data-id="${item.id}">${t('conv_download', 'Download')}</button>`
             : ''
         }
-        <button class="btn btn--secondary btn--sm" type="button" data-action="remove" data-id="${item.id}">Remove</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-action="remove" data-id="${item.id}">${t('conv_remove', 'Remove')}</button>
       </div>
     `;
 
@@ -849,7 +864,7 @@
 
     actionsPanel.hidden = false;
     const readyCount = state.files.filter((f) => f.status === 'ready').length;
-    fileCount.textContent = `${count} images \u00b7 ${readyCount}/${count} done`;
+    fileCount.textContent = tpl('conv_count_done', '{count} images · {ready}/{count} done', { count, ready: readyCount });
     const total = state.files
       .filter((f) => f.status === 'ready' && f.result)
       .reduce((sum, f) => sum + f.result.blob.size, 0);
@@ -867,4 +882,8 @@
 
   // Init
   updateUI();
+  window.onLangChange = function () {
+    updateUI();
+    render();
+  };
 })();

@@ -23,6 +23,16 @@
   const EDITOR_NS = /inkscape|sodipodi|sketch|corel|adobe/i;
 
   let currentSvg = '';
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
+  function tpl(key, fallback, vars) {
+    let text = t(key, fallback);
+    Object.keys(vars || {}).forEach((name) => {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
 
   function showToast(msg) {
     toast.textContent = msg;
@@ -122,9 +132,9 @@
   function render() {
     const text = svgText.value.trim();
     if (!text) {
-      svgPreview.innerHTML = '<span class="svg__placeholder">Preview will appear here</span>';
+      svgPreview.innerHTML = '<span class="svg__placeholder" data-i18n="svg_preview">' + t('svg_preview', 'Preview will appear here') + '</span>';
       svgInfo.textContent = '\u2014';
-      svgHint.textContent = 'Paste or upload an SVG to begin.';
+      svgHint.textContent = t('svg_paste_hint', 'Paste or upload an SVG to begin.');
       currentSvg = '';
       return;
     }
@@ -136,30 +146,30 @@
     };
     const root = parse(text);
     if (!root) {
-      svgPreview.innerHTML = '<span class="svg__placeholder svg__placeholder--err">Invalid SVG markup</span>';
+      svgPreview.innerHTML = '<span class="svg__placeholder svg__placeholder--err" data-i18n="svg_invalid">' + t('svg_invalid', 'Invalid SVG markup') + '</span>';
       svgInfo.textContent = '\u2014';
-      svgHint.textContent = 'Could not parse this SVG. Check the markup.';
+      svgHint.textContent = t('svg_parse_error', 'Could not parse this SVG. Check the markup.');
       currentSvg = '';
       return;
     }
     const original = byteLength(text);
     const optimized = optimize(text, opts);
     currentSvg = optimized;
-    svgPreview.innerHTML = '<img src="' + previewUrl(optimized) + '" alt="SVG preview">';
+    svgPreview.innerHTML = '<img src="' + previewUrl(optimized) + '" alt="' + t('svg_preview_alt', 'SVG preview') + '">';
     const optBytes = byteLength(optimized);
     const saved = original > 0 ? Math.round((1 - optBytes / original) * 100) : 0;
     svgInfo.textContent = formatBytes(original) + ' \u2192 ' + formatBytes(optBytes) + (saved > 0 ? ' (\u2212' + saved + '%)' : '');
-    svgHint.textContent = 'Optimized output is ready. Copy, download, or export PNG.';
+    svgHint.textContent = t('svg_ready', 'Optimized output is ready. Copy, download, or export PNG.');
   }
 
   async function copy() {
-    if (!currentSvg) { showToast('Nothing to copy'); return; }
-    try { await navigator.clipboard.writeText(currentSvg); showToast('Copied SVG'); }
-    catch (e) { showToast('Copy failed'); }
+    if (!currentSvg) { showToast(t('svg_nothing_copy', 'Nothing to copy')); return; }
+    try { await navigator.clipboard.writeText(currentSvg); showToast(t('svg_copied', 'Copied SVG')); }
+    catch (e) { showToast(t('toast_copy_fail', 'Copy failed')); }
   }
 
   function downloadSvg() {
-    if (!currentSvg) { showToast('Nothing to download'); return; }
+    if (!currentSvg) { showToast(t('svg_nothing_download', 'Nothing to download')); return; }
     const blob = new Blob([currentSvg], { type: 'image/svg+xml;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -169,9 +179,9 @@
   }
 
   function exportPng() {
-    if (!currentSvg) { showToast('Nothing to export'); return; }
+    if (!currentSvg) { showToast(t('svg_nothing_export', 'Nothing to export')); return; }
     const root = parse(currentSvg);
-    if (!root) { showToast('Invalid SVG'); return; }
+    if (!root) { showToast(t('toast_invalid', 'Invalid SVG')); return; }
     const { w, h } = getDims(root);
     const scale = parseFloat(pngScale.value);
     const img = new Image();
@@ -183,7 +193,7 @@
         ctx.clearRect(0, 0, workCanvas.width, workCanvas.height);
         ctx.drawImage(img, 0, 0, workCanvas.width, workCanvas.height);
         workCanvas.toBlob((blob) => {
-          if (!blob) { showToast('Export failed'); return; }
+          if (!blob) { showToast(t('ann_export_fail', 'Export failed')); return; }
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = 'graphic-' + Date.now() + '.png';
@@ -191,10 +201,10 @@
           URL.revokeObjectURL(a.href);
         }, 'image/png');
       } catch (e) {
-        showToast('SVG has external resources \u2014 can\'t export');
+        showToast(t('svg_external_blocked', "SVG has external resources - can't export"));
       }
     };
-    img.onerror = () => showToast('Could not render SVG');
+    img.onerror = () => showToast(t('svg_render_fail', 'Could not render SVG'));
     img.src = previewUrl(currentSvg);
   }
 
@@ -221,7 +231,7 @@
   function readFile(file) {
     const reader = new FileReader();
     reader.onload = () => { svgText.value = reader.result; render(); };
-    reader.onerror = () => showToast('Could not read ' + file.name);
+    reader.onerror = () => showToast(tpl('svg_read_fail', 'Could not read {name}', { name: file.name }));
     reader.readAsText(file);
   }
 

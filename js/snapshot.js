@@ -53,6 +53,16 @@
   if (pdfReady) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC;
   }
+  function t(key, fallback) {
+    return (typeof window.t === 'function') ? window.t(key) : fallback;
+  }
+  function tpl(key, fallback, vars) {
+    let text = t(key, fallback);
+    Object.keys(vars || {}).forEach((name) => {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), vars[name]);
+    });
+    return text;
+  }
 
   function showToast(message) {
     toast.textContent = message;
@@ -71,11 +81,11 @@
   if (!supportsCapture()) {
     startBtn.disabled = true;
     startBtn.classList.add('is-disabled');
-    hint.textContent = 'This browser does not support screen capture. Try desktop Chrome or Edge, or switch to PDF mode.';
+    hint.textContent = t('snp_no_screen_capture', 'This browser does not support screen capture. Try desktop Chrome or Edge, or switch to PDF mode.');
   }
 
   if (!pdfReady) {
-    pdfHint.textContent = 'PDF library failed to load. Reload the page or check your network.';
+    pdfHint.textContent = t('snp_pdf_lib_failed', 'PDF library failed to load. Reload the page or check your network.');
   }
 
   // ---------- Stage visibility ----------
@@ -120,11 +130,11 @@
     dragStart = null;
 
     if (mode === 'screen') {
-      modeNote.textContent = 'Share a tab or screen for live capture.';
+      modeNote.textContent = t('snp_screen_note', 'Share a tab or screen for live capture.');
       hideStage();
       startWrap.hidden = false;
     } else {
-      modeNote.textContent = 'Open a local PDF (or print-to-PDF a long page) to capture or stitch pages.';
+      modeNote.textContent = t('snp_pdf_note', 'Open a local PDF (or print-to-PDF a long page) to capture or stitch pages.');
       if (pdfDoc && pdfCanvas.width) showPdfStage();
       else hideStage();
     }
@@ -149,8 +159,8 @@
         audio: false
       });
     } catch (err) {
-      if (err && err.name === 'NotAllowedError') showToast('Capture cancelled');
-      else showToast('Could not start capture');
+      if (err && err.name === 'NotAllowedError') showToast(t('snp_capture_cancelled', 'Capture cancelled'));
+      else showToast(t('snp_capture_start_fail', 'Could not start capture'));
       return;
     }
 
@@ -160,7 +170,7 @@
     try {
       await video.play();
     } catch (e) {
-      showToast('Playback failed');
+      showToast(t('snp_playback_failed', 'Playback failed'));
       stopCapture();
       return;
     }
@@ -172,8 +182,8 @@
 
     startWrap.hidden = true;
     showScreenStage();
-    hint.textContent = 'Drag on the preview to select a region. Release to capture.';
-    resultNote.textContent = 'Drag on the preview above to capture a different region.';
+    hint.textContent = t('snp_drag_hint', 'Drag on the preview to select a region. Release to capture.');
+    resultNote.textContent = t('snp_result_note', 'Drag on the preview above to capture a different region.');
     resultPanel.hidden = true;
     sel.hidden = true;
   }
@@ -188,7 +198,7 @@
     if (activeMode === 'screen') {
       hideStage();
       startWrap.hidden = false;
-      hint.textContent = 'Click "Start capture" and pick a tab or window to share.';
+      hint.textContent = t('snp_hint', 'Click "Start capture" and pick a tab or window to share.');
     }
     dragStart = null;
   }
@@ -196,14 +206,14 @@
   // ---------- PDF ----------
 
   async function loadPdf(file) {
-    if (!pdfReady) { showToast('PDF library not loaded'); return; }
+    if (!pdfReady) { showToast(t('snp_pdf_not_loaded', 'PDF library not loaded')); return; }
     if (!file) return;
     const name = file.name.toLowerCase();
     if (file.type !== 'application/pdf' && !name.endsWith('.pdf')) {
-      showToast('Please choose a PDF file');
+      showToast(t('snp_choose_pdf', 'Please choose a PDF file'));
       return;
     }
-    pdfHint.textContent = 'Loading PDF\u2026';
+    pdfHint.textContent = t('snp_pdf_loading', 'Loading PDF...');
     try {
       const buf = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: buf });
@@ -211,11 +221,11 @@
       totalPages = pdfDoc.numPages;
       currentPage = 1;
       await renderPage(currentPage);
-      pdfHint.textContent = 'Drag on the page to select a region, or stitch all pages into one image.';
+      pdfHint.textContent = t('snp_pdf_select_hint', 'Drag on the page to select a region, or stitch all pages into one image.');
     } catch (err) {
       console.error(err);
-      pdfHint.textContent = 'Could not open this PDF. Try another file.';
-      showToast('Could not open PDF');
+      pdfHint.textContent = t('snp_pdf_open_fail', 'Could not open this PDF. Try another file.');
+      showToast(t('snp_pdf_open_toast', 'Could not open PDF'));
     }
   }
 
@@ -249,7 +259,7 @@
   }
 
   function updatePageInfo() {
-    pageInfo.textContent = 'Page ' + currentPage + ' / ' + totalPages;
+    pageInfo.textContent = tpl('snp_page_info', 'Page {page} / {total}', { page: currentPage, total: totalPages });
     prevPageBtn.disabled = currentPage <= 1;
     nextPageBtn.disabled = currentPage >= totalPages;
   }
@@ -270,14 +280,14 @@
     pdfCanvas.hidden = true;
     hideStage();
     pdfHint.textContent = pdfReady
-      ? "Tip: for long web pages, use your browser's Print \u2192 Save as PDF, then open it here to capture or stitch all pages."
-      : 'PDF library failed to load. Reload the page or check your network.';
+      ? t('snp_pdf_tip', "Tip: for long web pages, use your browser's Print → Save as PDF, then open it here to capture or stitch all pages.")
+      : t('snp_pdf_lib_failed', 'PDF library failed to load. Reload the page or check your network.');
   }
 
   async function stitchAll() {
     if (!pdfDoc) return;
     stitchBtn.disabled = true;
-    pdfHint.textContent = 'Stitching pages\u2026 this can take a moment.';
+    pdfHint.textContent = t('snp_stitching', 'Stitching pages... this can take a moment.');
     try {
       const first = await pdfDoc.getPage(1);
       const scale = computeScale(first.getViewport({ scale: 1 }));
@@ -309,11 +319,11 @@
         y += c.height;
       }
       finalizeCapture(maxWidth, totalHeight);
-      pdfHint.textContent = 'Stitched ' + totalPages + ' pages into one image.';
+      pdfHint.textContent = tpl('snp_stitched_pages', 'Stitched {total} pages into one image.', { total: totalPages });
     } catch (err) {
       console.error(err);
-      showToast('Stitching failed');
-      pdfHint.textContent = 'Stitching failed \u2014 the document may be too large.';
+      showToast(t('snp_stitching_failed', 'Stitching failed'));
+      pdfHint.textContent = t('snp_stitching_failed_note', 'Stitching failed - the document may be too large.');
     } finally {
       stitchBtn.disabled = false;
     }
@@ -406,7 +416,7 @@
       if (!stream) return;
       const w = video.videoWidth;
       const h = video.videoHeight;
-      if (!w || !h) { showToast('Stream not ready'); return; }
+      if (!w || !h) { showToast(t('snp_stream_not_ready', 'Stream not ready')); return; }
       workCanvas.width = w;
       workCanvas.height = h;
       const ctx = workCanvas.getContext('2d');
@@ -429,7 +439,7 @@
   function finalizeCapture(w, h) {
     if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
     workCanvas.toBlob((blob) => {
-      if (!blob) { showToast('Capture failed'); return; }
+      if (!blob) { showToast(t('snp_capture_failed', 'Capture failed')); return; }
       lastBlob = blob;
       lastBlobUrl = URL.createObjectURL(blob);
       resultImg.src = lastBlobUrl;
@@ -455,7 +465,7 @@
   var stitchCountEl = document.getElementById('stitchCount');
 
   function addToStitch() {
-    if (!lastBlob) { showToast('Capture a region first'); return; }
+    if (!lastBlob) { showToast(t('snp_capture_first', 'Capture a region first')); return; }
     var img = new Image();
     img.onload = function () {
       var w = img.naturalWidth, h = img.naturalHeight;
@@ -483,21 +493,21 @@
       stitchCountEl.textContent = stitchCount;
       stitchPanel.hidden = false;
       stitchPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      showToast('Added segment ' + stitchCount);
+      showToast(tpl('snp_added_segment', 'Added segment {count}', { count: stitchCount }));
     };
     img.src = lastBlobUrl;
   }
 
   function downloadStitch() {
-    if (!stitchCanvas || stitchCount === 0) { showToast('Nothing stitched yet'); return; }
+    if (!stitchCanvas || stitchCount === 0) { showToast(t('snp_nothing_stitched', 'Nothing stitched yet')); return; }
     stitchCanvas.toBlob(function (blob) {
-      if (!blob) { showToast('Export failed'); return; }
+      if (!blob) { showToast(t('ann_export_fail', 'Export failed')); return; }
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'stitched-' + Date.now() + '.png';
       a.click();
       URL.revokeObjectURL(a.href);
-      showToast('Downloaded ' + stitchCount + ' segments');
+      showToast(tpl('snp_downloaded_segments', 'Downloaded {count} segments', { count: stitchCount }));
     }, 'image/png');
   }
 
@@ -506,7 +516,7 @@
     stitchCount = 0;
     stitchCountEl.textContent = '0';
     stitchPanel.hidden = true;
-    showToast('Stitch cleared');
+    showToast(t('snp_stitch_cleared', 'Stitch cleared'));
   }
 
   async function copyToClipboard() {
@@ -514,12 +524,12 @@
     try {
       if (navigator.clipboard && window.ClipboardItem && ClipboardItem.supports('image/png')) {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': lastBlob })]);
-        showToast('Copied to clipboard');
+        showToast(t('b64_copied_clipboard', 'Copied to clipboard'));
       } else {
-        showToast('Clipboard images not supported here');
+        showToast(t('snp_clipboard_unsupported', 'Clipboard images not supported here'));
       }
     } catch (e) {
-      showToast('Copy failed');
+      showToast(t('toast_copy_fail', 'Copy failed'));
     }
   }
 
