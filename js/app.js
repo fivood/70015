@@ -688,7 +688,8 @@
 
   // Draw image as square: cover crop or contain scale with transparent padding
   function drawSquareImage(c, img, size, mode) {
-    const ratio = img.naturalWidth / img.naturalHeight;
+    const source = getVisibleImageBounds(img);
+    const ratio = source.width / source.height;
 
     if (mode === 'contain') {
       let dw, dh;
@@ -702,25 +703,79 @@
       const dx = (size - dw) / 2;
       const dy = (size - dh) / 2;
       c.clearRect(0, 0, size, size);
-      c.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, dw, dh);
+      c.drawImage(img, source.x, source.y, source.width, source.height, dx, dy, dw, dh);
       return;
     }
 
     // Cover: center crop
     let sx, sy, sWidth, sHeight;
     if (ratio > 1) {
-      sHeight = img.naturalHeight;
+      sHeight = source.height;
       sWidth = sHeight;
-      sx = (img.naturalWidth - sWidth) / 2;
-      sy = 0;
+      sx = source.x + (source.width - sWidth) / 2;
+      sy = source.y;
     } else {
-      sWidth = img.naturalWidth;
+      sWidth = source.width;
       sHeight = sWidth;
-      sx = 0;
-      sy = (img.naturalHeight - sHeight) / 2;
+      sx = source.x;
+      sy = source.y + (source.height - sHeight) / 2;
     }
 
     c.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, size, size);
+  }
+
+  function getVisibleImageBounds(img) {
+    const fallback = { x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight };
+    if (!img.naturalWidth || !img.naturalHeight) return fallback;
+
+    const scanMax = 512;
+    const scale = Math.min(1, scanMax / Math.max(img.naturalWidth, img.naturalHeight));
+    const sw = Math.max(1, Math.round(img.naturalWidth * scale));
+    const sh = Math.max(1, Math.round(img.naturalHeight * scale));
+    const scan = document.createElement('canvas');
+    scan.width = sw;
+    scan.height = sh;
+    const sc = scan.getContext('2d', { willReadFrequently: true });
+    if (!sc) return fallback;
+    try {
+      sc.clearRect(0, 0, sw, sh);
+      sc.drawImage(img, 0, 0, sw, sh);
+    } catch (_) {
+      return fallback;
+    }
+
+    let minX = sw, minY = sh, maxX = -1, maxY = -1;
+    let data;
+    try {
+      data = sc.getImageData(0, 0, sw, sh).data;
+    } catch (_) {
+      return fallback;
+    }
+    for (let y = 0; y < sh; y++) {
+      for (let x = 0; x < sw; x++) {
+        if (data[(y * sw + x) * 4 + 3] > 8) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX < minX || maxY < minY) return fallback;
+
+    const pad = 1;
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(sw - 1, maxX + pad);
+    maxY = Math.min(sh - 1, maxY + pad);
+
+    return {
+      x: Math.floor(minX / scale),
+      y: Math.floor(minY / scale),
+      width: Math.min(img.naturalWidth, Math.ceil((maxX - minX + 1) / scale)),
+      height: Math.min(img.naturalHeight, Math.ceil((maxY - minY + 1) / scale))
+    };
   }
 
   function calculateDimensions(originalWidth, originalHeight) {
