@@ -34,10 +34,9 @@
   const clearBtn = document.getElementById('clearBtn');
   const downloadAllBtn = document.getElementById('downloadAllBtn');
   const fileList = document.getElementById('fileList');
-  const workCanvas = document.getElementById('workCanvas');
   const toast = document.getElementById('toast');
 
-  const ctx = workCanvas.getContext('2d');
+  let conversionGeneration = 0;
   function t(key, fallback) {
     return (typeof window.t === 'function') ? window.t(key) : fallback;
   }
@@ -139,8 +138,11 @@
   // Check if browser supports a canvas output format
   async function isFormatSupported(mime) {
     try {
-      const blob = await new Promise((resolve) => workCanvas.toBlob(resolve, mime));
-      return !!blob;
+      const probe = document.createElement('canvas');
+      probe.width = 1;
+      probe.height = 1;
+      const blob = await new Promise((resolve) => probe.toBlob(resolve, mime));
+      return !!blob && blob.type === mime;
     } catch {
       return false;
     }
@@ -375,6 +377,7 @@
 
   // Clear
   clearBtn.addEventListener('click', () => {
+    conversionGeneration++;
     state.files.forEach((item) => {
       if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
     });
@@ -385,6 +388,9 @@
 
   // Download ZIP
   downloadAllBtn.addEventListener('click', async () => {
+    if (typeof JSZip !== 'function' || typeof saveAs !== 'function') {
+      showToast(t('conv_zip_failed', 'ZIP dependencies are unavailable')); return;
+    }
     const readyItems = state.files.filter((f) => f.status === 'ready' && f.result);
     if (readyItems.length === 0) {
       showToast(t('conv_no_ready', 'No files ready for download'));
@@ -443,7 +449,7 @@
 
     state.files.push(...newItems);
     render();
-    convertItems(newItems);
+    convertItems(newItems, conversionGeneration, captureSettings());
 
     // Scroll to file list after upload
     setTimeout(() => {
@@ -453,6 +459,7 @@
 
   // Reconvert all
   function reconvertAll() {
+    const generation = ++conversionGeneration;
     if (state.files.length === 0) return;
     state.files.forEach((item) => {
       item.status = 'pending';
@@ -462,32 +469,54 @@
       item.blobUrl = null;
     });
     render();
-    convertItems(state.files);
+    convertItems(state.files, generation, captureSettings());
   }
 
   // Core conversion
-  async function convertItems(items) {
-    const supportsAvif = state.format === 'avif' ? await isFormatSupported('image/avif') : true;
-    const actualFormat = state.format === 'avif' && !supportsAvif ? 'webp' : state.format;
+  function captureSettings() {
+    return {
+      format: state.format,
+      quality: state.quality,
+      resizeMode: state.resizeMode,
+      width: state.width,
+      height: state.height,
+      icoSizes: [...state.icoSizes],
+      icoCropMode: state.icoCropMode,
+      customFit: state.customFit,
+    };
+  }
+
+  async function convertItems(items, generation = conversionGeneration, settings = captureSettings()) {
+    const supportsAvif = settings.format === 'avif' ? await isFormatSupported('image/avif') : true;
+    const actualFormat = settings.format === 'avif' && !supportsAvif ? 'webp' : settings.format;
 
     for (const item of items) {
+      if (generation !== conversionGeneration || !state.files.includes(item)) return;
       try {
         item.status = 'converting';
         renderItem(item);
 
-        const result = await convertFile(item.file, actualFormat);
+        const result = await convertFile(item.file, actualFormat, settings);
+        if (generation !== conversionGeneration || !state.files.includes(item)) return;
         item.result = result;
         item.status = 'ready';
+        if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
         item.blobUrl = URL.createObjectURL(result.blob);
       } catch (err) {
-        console.error(err);
+        if (generation !== conversionGeneration || !state.files.includes(item)) return;
         item.status = 'error';
         item.error = err.message || t('conv_conversion_failed', 'Conversion failed');
       }
       renderItem(item);
     }
 
-    updateActions();
+    if (generation === conversionGeneration) updateActions();
+  }
+
+  function getCanvasContext(canvas) {
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error(t('conv_output_unsupported', 'Browser does not support canvas output'));
+    return context;
   }
 
   function loadImageFromFile(file) {
@@ -521,40 +550,41 @@
           } catch (err) {
             // If parsing fails, use original text
           }
-          var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+          var svgUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' }));
           var img = new Image();
-          img.onload = function () { resolve(img); };
-          img.onerror = function () { reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
-          img.src = dataUrl;
+          img.onload = function () { URL.revokeObjectURL(svgUrl); resolve(img); };
+          img.onerror = function () { URL.revokeObjectURL(svgUrl); reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
+          img.src = svgUrl;
         };
         reader.onerror = function () { reject(new Error(t('conv_file_read_failed', 'File read failed'))); };
         reader.readAsText(file);
       } else {
-        var reader2 = new FileReader();
-        reader2.onload = function (e) {
-          var img = new Image();
-          img.onload = function () { resolve(img); };
-          img.onerror = function () { reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
-          img.src = e.target.result;
-        };
-        reader2.onerror = function () { reject(new Error(t('conv_file_read_failed', 'File read failed'))); };
-        reader2.readAsDataURL(file);
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
+        img.src = url;
       }
     });
   }
 
-  function convertFile(file, format) {
+  function convertFile(file, format, settings) {
     return loadImageFromFile(file).then(function (img) {
       try {
         if (format === 'ico') {
-          return convertToIco(img);
+          return convertToIco(img, settings);
         }
 
-        var dims = calculateDimensions(img.naturalWidth, img.naturalHeight);
+        var canvas = document.createElement('canvas');
+        var ctx = getCanvasContext(canvas);
+        var dims = calculateDimensions(img.naturalWidth, img.naturalHeight, settings);
         var width = dims.width;
         var height = dims.height;
-        workCanvas.width = width;
-        workCanvas.height = height;
+        if (width * height > 64 * 1024 * 1024) {
+          throw new Error(t('conv_conversion_failed', 'Output is too large'));
+        }
+        canvas.width = width;
+        canvas.height = height;
 
         ctx.clearRect(0, 0, width, height);
         if (format === 'jpeg') {
@@ -562,7 +592,7 @@
           ctx.fillRect(0, 0, width, height);
         }
 
-        var isCustomCover = state.resizeMode === 'custom' && state.customFit === 'cover' && state.width && state.height;
+        var isCustomCover = settings.resizeMode === 'custom' && settings.customFit === 'cover' && settings.width && settings.height;
         if (isCustomCover) {
           drawCoverRect(ctx, img, width, height);
         } else {
@@ -570,10 +600,10 @@
         }
 
         var mime = FORMAT_MIMES[format];
-        var quality = format === 'png' ? undefined : state.quality;
+        var quality = format === 'png' ? undefined : settings.quality;
 
         return new Promise(function (resolve, reject) {
-          workCanvas.toBlob(
+          canvas.toBlob(
             function (blob) {
               if (!blob) {
                 reject(new Error(t('conv_output_unsupported', 'Browser does not support this output format')));
@@ -599,18 +629,19 @@
   }
 
   // ICO generation: multi-size PNG-encoded icon
-  async function convertToIco(img) {
-    const sizes = [...state.icoSizes].sort((a, b) => a - b);
+  async function convertToIco(img, settings) {
+    const sizes = [...settings.icoSizes].sort((a, b) => a - b);
     if (sizes.length === 0) sizes.push(32);
 
     const pngBuffers = [];
+    const visibleBounds = getVisibleImageBounds(img);
     for (const size of sizes) {
       const canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;
       const c = canvas.getContext('2d');
       c.clearRect(0, 0, size, size);
-      drawSquareImage(c, img, size, state.icoCropMode);
+      drawSquareImage(c, img, size, settings.icoCropMode, visibleBounds);
 
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error(t('ann_export_fail', 'Export failed'));
@@ -687,8 +718,8 @@
   }
 
   // Draw image as square: cover crop or contain scale with transparent padding
-  function drawSquareImage(c, img, size, mode) {
-    const source = getVisibleImageBounds(img);
+  function drawSquareImage(c, img, size, mode, visibleBounds) {
+    const source = visibleBounds || getVisibleImageBounds(img);
     const ratio = source.width / source.height;
 
     if (mode === 'contain') {
@@ -778,10 +809,10 @@
     };
   }
 
-  function calculateDimensions(originalWidth, originalHeight) {
-    const mode = state.resizeMode;
-    const w = state.width;
-    const h = state.height;
+  function calculateDimensions(originalWidth, originalHeight, settings = state) {
+    const mode = settings.resizeMode;
+    const w = settings.width;
+    const h = settings.height;
 
     if (mode === 'original') {
       return { width: originalWidth, height: originalHeight };
@@ -807,7 +838,7 @@
     }
 
     if (mode === 'custom' && w && h) {
-      if (state.customFit === 'cover') {
+      if (settings.customFit === 'cover') {
         // Center crop to fill target size
         return { width: w, height: h };
       }

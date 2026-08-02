@@ -26,6 +26,7 @@
     colorCount: 5,
     samplePrecision: 2,
   };
+  let extractionVersion = 0;
 
   const SAMPLE_LABELS = { 1: 'Low', 2: 'Med', 3: 'High' };
   const SAMPLE_LABEL_KEYS = { 1: 'pal_sample_low', 2: 'pal_sample_med', 3: 'pal_sample_high' };
@@ -55,7 +56,10 @@
   }
 
   function rgbToHex(r, g, b) {
-    return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    return '#' + [r, g, b]
+      .map((x) => Math.max(0, Math.min(255, Math.round(x))))
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   function getLuminance(r, g, b) {
@@ -141,7 +145,7 @@
     a.href = url;
     a.download = `70015-palettes-${Date.now()}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     showToast(t('pal_json_exported', 'JSON exported'));
   });
 
@@ -175,42 +179,45 @@
 
   function reextractAll() {
     if (state.items.length === 0) return;
+    const version = ++extractionVersion;
     state.items.forEach((item) => (item.colors = []));
     render();
-    extractItems(state.items);
+    extractItems(state.items, version);
   }
 
-  async function extractItems(items) {
+  async function extractItems(items, version = extractionVersion) {
     for (const item of items) {
       try {
-        item.colors = await extractColors(item.file);
+        const colors = await extractColors(item.file);
+        // A removed item or a newer extraction must not write stale results
+        // back into the page.
+        if (version !== extractionVersion || !state.items.includes(item)) continue;
+        item.colors = colors;
       } catch (err) {
-        console.error(err);
+        if (version !== extractionVersion || !state.items.includes(item)) continue;
         item.colors = [];
       }
-      renderItem(item);
+      if (version === extractionVersion && state.items.includes(item)) renderItem(item);
     }
-    updateActions();
+    if (version === extractionVersion) updateActions();
   }
 
   function extractColors(file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const colors = getPalette(img, state.colorCount, SAMPLE_SIZES[state.samplePrecision]);
-            resolve(colors);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        img.onerror = () => reject(new Error(t('conv_read_image_fail', 'Could not read image')));
-        img.src = e.target.result;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const colors = getPalette(img, state.colorCount, SAMPLE_SIZES[state.samplePrecision]);
+          resolve(colors);
+        } catch (err) {
+          reject(err);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
       };
-      reader.onerror = () => reject(new Error(t('conv_file_read_failed', 'File read failed')));
-      reader.readAsDataURL(file);
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
+      img.src = url;
     });
   }
 
@@ -222,11 +229,11 @@
     const ratio = img.naturalWidth / img.naturalHeight;
     let w, h;
     if (ratio > 1) {
-      w = sampleSize;
-      h = Math.round(sampleSize / ratio);
+      w = Math.max(1, sampleSize);
+      h = Math.max(1, Math.round(sampleSize / ratio));
     } else {
-      h = sampleSize;
-      w = Math.round(sampleSize * ratio);
+      h = Math.max(1, sampleSize);
+      w = Math.max(1, Math.round(sampleSize * ratio));
     }
     canvas.width = w;
     canvas.height = h;
@@ -244,9 +251,9 @@
       if (a < 128) continue;
 
       // Quantize to 6bit, merge similar colors
-      const qr = Math.round(r / 32) * 32;
-      const qg = Math.round(g / 32) * 32;
-      const qb = Math.round(b / 32) * 32;
+      const qr = Math.min(255, Math.round(r / 32) * 32);
+      const qg = Math.min(255, Math.round(g / 32) * 32);
+      const qb = Math.min(255, Math.round(b / 32) * 32);
       const key = `${qr},${qg},${qb}`;
 
       buckets.set(key, (buckets.get(key) || 0) + 1);
@@ -349,11 +356,20 @@
     copyToClipboard(`:root {\n${css}\n}`);
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(
-      () => showToast(tpl('col_copied_value', 'Copied {value}', { value: text })),
-      () => showToast(t('toast_copy_fail', 'Copy failed'))
-    );
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+      else {
+        const fallback = document.createElement('textarea');
+        fallback.value = text; fallback.style.position = 'fixed'; fallback.style.opacity = '0';
+        document.body.appendChild(fallback); fallback.select();
+        if (!document.execCommand('copy')) throw new Error('copy failed');
+        fallback.remove();
+      }
+      showToast(tpl('col_copied_value', 'Copied {value}', { value: text }));
+    } catch (err) {
+      showToast(t('toast_copy_fail', 'Copy failed'));
+    }
   }
 
   function removeItem(itemId) {

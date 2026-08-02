@@ -24,6 +24,8 @@
   const toast = document.getElementById('toast');
 
   const MAX_SIDE = 4096;
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;
+  const MAX_EXPORT_PIXELS = 64 * 1024 * 1024;
 
   let img = null;
   let naturalW = 0, naturalH = 0, cScale = 1;
@@ -49,6 +51,11 @@
 
   function loadImageFile(file) {
     if (!file || !file.type.startsWith('image/')) { showToast((typeof window.t === 'function') ? window.t('ann_need_image') : 'Please choose an image'); return; }
+    if (file.size > MAX_FILE_SIZE) {
+      const message = (typeof window.t === 'function') ? window.t('conv_too_large', 'File is too large (max 50 MB)') : 'File is too large (max 50 MB)';
+      showToast(message.replace('{name}', file.name));
+      return;
+    }
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
@@ -252,49 +259,51 @@
     if (!img) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    for (const s of shapes) drawShape(s);
-    if (current) drawShape(current);
+    for (const s of shapes) drawShape(s, ctx, 1);
+    if (current) drawShape(current, ctx, 1);
   }
 
-  function drawShape(s) {
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+  function drawShape(s, targetCtx, scale) {
+    targetCtx = targetCtx || ctx;
+    scale = scale || 1;
+    targetCtx.lineCap = 'round';
+    targetCtx.lineJoin = 'round';
     if (s.type === 'rect') {
       const x = Math.min(s.x1, s.x2), y = Math.min(s.y1, s.y2), w = Math.abs(s.x2 - s.x1), h = Math.abs(s.y2 - s.y1);
-      ctx.strokeStyle = s.color; ctx.lineWidth = s.width;
-      ctx.strokeRect(x, y, w, h);
+      targetCtx.strokeStyle = s.color; targetCtx.lineWidth = s.width * scale;
+      targetCtx.strokeRect(x * scale, y * scale, w * scale, h * scale);
     } else if (s.type === 'line') {
-      ctx.strokeStyle = s.color; ctx.lineWidth = s.width;
-      ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+      targetCtx.strokeStyle = s.color; targetCtx.lineWidth = s.width * scale;
+      targetCtx.beginPath(); targetCtx.moveTo(s.x1 * scale, s.y1 * scale); targetCtx.lineTo(s.x2 * scale, s.y2 * scale); targetCtx.stroke();
     } else if (s.type === 'arrow') {
-      ctx.strokeStyle = s.color; ctx.lineWidth = s.width;
+      targetCtx.strokeStyle = s.color; targetCtx.lineWidth = s.width * scale;
       const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
       const ang = Math.atan2(dy, dx);
-      const head = Math.max(12, s.width * 3.5);
-      ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(s.x2, s.y2);
-      ctx.lineTo(s.x2 - head * Math.cos(ang - Math.PI / 6), s.y2 - head * Math.sin(ang - Math.PI / 6));
-      ctx.moveTo(s.x2, s.y2);
-      ctx.lineTo(s.x2 - head * Math.cos(ang + Math.PI / 6), s.y2 - head * Math.sin(ang + Math.PI / 6));
-      ctx.stroke();
+      const head = Math.max(12, s.width * 3.5) * scale;
+      targetCtx.beginPath(); targetCtx.moveTo(s.x1 * scale, s.y1 * scale); targetCtx.lineTo(s.x2 * scale, s.y2 * scale); targetCtx.stroke();
+      targetCtx.beginPath();
+      targetCtx.moveTo(s.x2 * scale, s.y2 * scale);
+      targetCtx.lineTo((s.x2 - head / scale * Math.cos(ang - Math.PI / 6)) * scale, (s.y2 - head / scale * Math.sin(ang - Math.PI / 6)) * scale);
+      targetCtx.moveTo(s.x2 * scale, s.y2 * scale);
+      targetCtx.lineTo((s.x2 - head / scale * Math.cos(ang + Math.PI / 6)) * scale, (s.y2 - head / scale * Math.sin(ang + Math.PI / 6)) * scale);
+      targetCtx.stroke();
     } else if (s.type === 'pen' || s.type === 'highlight') {
-      ctx.strokeStyle = s.color; ctx.lineWidth = s.width;
-      ctx.globalAlpha = s.type === 'highlight' ? 0.35 : 1;
-      ctx.beginPath();
+      targetCtx.strokeStyle = s.color; targetCtx.lineWidth = s.width * scale;
+      targetCtx.globalAlpha = s.type === 'highlight' ? 0.35 : 1;
+      targetCtx.beginPath();
       const pts = s.points;
-      if (pts.length) { ctx.moveTo(pts[0].x, pts[0].y); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y); }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      if (pts.length) { targetCtx.moveTo(pts[0].x * scale, pts[0].y * scale); for (let i = 1; i < pts.length; i++) targetCtx.lineTo(pts[i].x * scale, pts[i].y * scale); }
+      targetCtx.stroke();
+      targetCtx.globalAlpha = 1;
     } else if (s.type === 'text') {
-      ctx.fillStyle = s.color;
-      ctx.textBaseline = 'top';
-      ctx.font = s.size + 'px Inter, system-ui, sans-serif';
-      ctx.fillText(s.text, s.x, s.y);
+      targetCtx.fillStyle = s.color;
+      targetCtx.textBaseline = 'top';
+      targetCtx.font = (s.size * scale) + 'px Inter, system-ui, sans-serif';
+      targetCtx.fillText(s.text, s.x * scale, s.y * scale);
     } else if (s.type === 'mosaic') {
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(s.tile, 0, 0, s._tw, s._th, s._x, s._y, s._w, s._h);
-      ctx.imageSmoothingEnabled = true;
+      targetCtx.imageSmoothingEnabled = false;
+      targetCtx.drawImage(s.tile, 0, 0, s._tw, s._th, s._x * scale, s._y * scale, s._w * scale, s._h * scale);
+      targetCtx.imageSmoothingEnabled = true;
     }
   }
 
@@ -339,13 +348,25 @@
   exportBtn.addEventListener('click', () => {
     if (!img) return;
     try {
-      canvas.toBlob(blob => {
+      if (naturalW * naturalH > MAX_EXPORT_PIXELS) {
+        showToast((typeof window.t === 'function') ? window.t('ann_export_fail') : 'Image is too large to export at full resolution');
+        return;
+      }
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = naturalW;
+      exportCanvas.height = naturalH;
+      const exportCtx = exportCanvas.getContext('2d');
+      exportCtx.drawImage(img, 0, 0, naturalW, naturalH);
+      const exportScale = 1 / cScale;
+      for (const s of shapes) drawShape(s, exportCtx, exportScale);
+      exportCanvas.toBlob(blob => {
         if (!blob) { showToast((typeof window.t === 'function') ? window.t('ann_export_fail') : 'Export failed'); return; }
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+        a.href = url;
         a.download = 'annotated-' + Date.now() + '.png';
         a.click();
-        URL.revokeObjectURL(a.href);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }, 'image/png');
     } catch (e) {
       showToast((typeof window.t === 'function') ? window.t('ann_export_blocked') : 'Image is protected \u2014 export blocked');

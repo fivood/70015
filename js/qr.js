@@ -39,6 +39,7 @@
       t = setTimeout(() => fn.apply(this, args), wait);
     };
   }
+  const renderSoon = debounce(render, 40);
 
   eclSelector.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-value]');
@@ -49,11 +50,11 @@
     render();
   });
 
-  cellSize.addEventListener('input', e => { cellValue.textContent = e.target.value; render(); });
-  margin.addEventListener('input', e => { marginValue.textContent = e.target.value; render(); });
-  darkColor.addEventListener('input', render);
-  lightColor.addEventListener('input', render);
-  transparentBg.addEventListener('change', render);
+  cellSize.addEventListener('input', e => { cellValue.textContent = e.target.value; renderSoon(); });
+  margin.addEventListener('input', e => { marginValue.textContent = e.target.value; renderSoon(); });
+  darkColor.addEventListener('input', renderSoon);
+  lightColor.addEventListener('input', renderSoon);
+  transparentBg.addEventListener('change', renderSoon);
   qrText.addEventListener('input', debounce(render, 250));
 
   function render() {
@@ -100,8 +101,15 @@
     const { count, cell, m, size, transparent, dark, light } = lastMeta;
     const darks = [];
     for (let r = 0; r < count; r++) {
-      for (let c = 0; c < count; c++) {
-        if (lastQr.isDark(r, c)) darks.push('<rect x="' + ((c + m) * cell) + '" y="' + ((r + m) * cell) + '" width="' + cell + '" height="' + cell + '"/>');
+      let runStart = -1;
+      for (let c = 0; c <= count; c++) {
+        const isDark = c < count && lastQr.isDark(r, c);
+        if (isDark && runStart < 0) runStart = c;
+        if (!isDark && runStart >= 0) {
+          const width = c - runStart;
+          darks.push('<path d="M' + ((runStart + m) * cell) + ' ' + ((r + m) * cell) + 'h' + (width * cell) + 'v' + cell + 'h-' + (width * cell) + 'z"/>');
+          runStart = -1;
+        }
       }
     }
     const bg = transparent ? '' : '<rect width="' + size + '" height="' + size + '" fill="' + light + '"/>';
@@ -116,7 +124,7 @@
       a.href = URL.createObjectURL(blob);
       a.download = 'qr-' + Date.now() + '.png';
       a.click();
-      URL.revokeObjectURL(a.href);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }, 'image/png');
   }
 
@@ -124,10 +132,11 @@
     if (!lastQr) { showToast(t('qr_nothing_download', 'Nothing to download')); return; }
     const blob = new Blob([buildSvg()], { type: 'image/svg+xml;charset=utf-8' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'qr-' + Date.now() + '.svg';
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   downloadPngBtn.addEventListener('click', downloadPng);

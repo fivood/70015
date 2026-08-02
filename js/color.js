@@ -128,7 +128,17 @@
   }
 
   async function copy(text) {
-    try { await navigator.clipboard.writeText(text); showToast(tpl('col_copied_value', 'Copied {value}', { value: text })); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+      else {
+        const input = document.createElement('textarea');
+        input.value = text; input.style.position = 'fixed'; input.style.opacity = '0';
+        document.body.appendChild(input); input.select();
+        if (!document.execCommand('copy')) throw new Error('copy failed');
+        input.remove();
+      }
+      showToast(tpl('col_copied_value', 'Copied {value}', { value: text }));
+    }
     catch (e) { showToast(t('toast_copy_fail', 'Copy failed')); }
   }
 

@@ -39,6 +39,8 @@
 
   const PDF_WORKER_SRC = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   const pdfReady = typeof window.pdfjsLib === 'object' && window.pdfjsLib;
+  const MAX_PDF_FILE_SIZE = 100 * 1024 * 1024;
+  const MAX_OUTPUT_PIXELS = 64 * 1024 * 1024;
 
   let activeMode = 'screen';
   let stream = null;
@@ -210,6 +212,7 @@
   async function loadPdf(file) {
     if (!pdfReady) { showToast(t('snp_pdf_not_loaded', 'PDF library not loaded')); return; }
     if (!file) return;
+    if (file.size > MAX_PDF_FILE_SIZE) { showToast(t('snp_pdf_open_fail', 'PDF is too large to open in the browser')); return; }
     const name = file.name.toLowerCase();
     if (file.type !== 'application/pdf' && !name.endsWith('.pdf')) {
       showToast(t('snp_choose_pdf', 'Please choose a PDF file'));
@@ -217,6 +220,12 @@
     }
     pdfHint.textContent = t('snp_pdf_loading', 'Loading PDF...');
     try {
+      if (currentRender) { try { currentRender.cancel(); } catch (e) {} }
+      if (pdfDoc && typeof pdfDoc.destroy === 'function') {
+        const oldPdf = pdfDoc;
+        pdfDoc = null;
+        try { await oldPdf.destroy(); } catch (e) {}
+      }
       const buf = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: buf });
       pdfDoc = await loadingTask.promise;
@@ -242,6 +251,10 @@
     const page = await pdfDoc.getPage(num);
     const scale = computeScale(page.getViewport({ scale: 1 }));
     const viewport = page.getViewport({ scale });
+    if (viewport.width * viewport.height > MAX_OUTPUT_PIXELS) {
+      pdfHint.textContent = t('snp_pdf_open_fail', 'This PDF page is too large to render safely.');
+      return;
+    }
     pdfCanvas.width = Math.floor(viewport.width);
     pdfCanvas.height = Math.floor(viewport.height);
     const ctx = pdfCanvas.getContext('2d');
@@ -276,10 +289,14 @@
 
   function clearPdf() {
     if (currentRender) { try { currentRender.cancel(); } catch (e) {} }
+    const oldPdf = pdfDoc;
     pdfDoc = null;
     totalPages = 0;
     currentPage = 1;
     pdfCanvas.hidden = true;
+    pdfCanvas.width = 1;
+    pdfCanvas.height = 1;
+    if (oldPdf && typeof oldPdf.destroy === 'function') Promise.resolve(oldPdf.destroy()).catch(() => {});
     hideStage();
     pdfHint.textContent = pdfReady
       ? t('snp_pdf_tip', "Tip: for long web pages, use your browser's Print → Save as PDF, then open it here to capture or stitch all pages.")
@@ -293,22 +310,19 @@
     try {
       const first = await pdfDoc.getPage(1);
       const scale = computeScale(first.getViewport({ scale: 1 }));
-      const pages = [];
+      const pageSizes = [];
       let maxWidth = 0;
       let totalHeight = 0;
       for (let i = 1; i <= totalPages; i++) {
         const page = await pdfDoc.getPage(i);
         const vp = page.getViewport({ scale });
-        const c = document.createElement('canvas');
-        c.width = Math.floor(vp.width);
-        c.height = Math.floor(vp.height);
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, c.width, c.height);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        pages.push(c);
-        if (c.width > maxWidth) maxWidth = c.width;
-        totalHeight += c.height;
+        const width = Math.floor(vp.width), height = Math.floor(vp.height);
+        pageSizes.push({ width, height });
+        if (width > maxWidth) maxWidth = width;
+        totalHeight += height;
+      }
+      if (!maxWidth || !totalHeight || maxWidth * totalHeight > MAX_OUTPUT_PIXELS) {
+        throw new Error('PDF output is too large');
       }
       workCanvas.width = maxWidth;
       workCanvas.height = totalHeight;
@@ -316,9 +330,18 @@
       wctx.fillStyle = '#ffffff';
       wctx.fillRect(0, 0, maxWidth, totalHeight);
       let y = 0;
-      for (const c of pages) {
-        wctx.drawImage(c, Math.floor((maxWidth - c.width) / 2), y);
-        y += c.height;
+      for (let i = 0; i < pageSizes.length; i++) {
+        const page = await pdfDoc.getPage(i + 1);
+        const vp = page.getViewport({ scale });
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = pageSizes[i].width;
+        pageCanvas.height = pageSizes[i].height;
+        const pageCtx = pageCanvas.getContext('2d');
+        pageCtx.fillStyle = '#ffffff';
+        pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        await page.render({ canvasContext: pageCtx, viewport: vp }).promise;
+        wctx.drawImage(pageCanvas, Math.floor((maxWidth - pageCanvas.width) / 2), y);
+        y += pageCanvas.height;
       }
       finalizeCapture(maxWidth, totalHeight);
       pdfHint.textContent = tpl('snp_stitched_pages', 'Stitched {total} pages into one image.', { total: totalPages });
@@ -406,6 +429,7 @@
     const sy = Math.round(rect.y * scale.sy);
     const sw = Math.max(1, Math.round(rect.w * scale.sx));
     const sh = Math.max(1, Math.round(rect.h * scale.sy));
+    if (sw * sh > MAX_OUTPUT_PIXELS) { sel.hidden = true; showToast(t('snp_capture_failed', 'Capture is too large')); return; }
     workCanvas.width = sw;
     workCanvas.height = sh;
     const ctx = workCanvas.getContext('2d');
@@ -421,6 +445,7 @@
       const w = video.videoWidth;
       const h = video.videoHeight;
       if (!w || !h) { showToast(t('snp_stream_not_ready', 'Stream not ready')); return; }
+      if (w * h > MAX_OUTPUT_PIXELS) { showToast(t('snp_capture_failed', 'Capture is too large')); return; }
       workCanvas.width = w;
       workCanvas.height = h;
       const ctx = workCanvas.getContext('2d');
@@ -431,6 +456,7 @@
       if (!pdfDoc || !pdfCanvas.width) return;
       const w = pdfCanvas.width;
       const h = pdfCanvas.height;
+      if (w * h > MAX_OUTPUT_PIXELS) { showToast(t('snp_capture_failed', 'Capture is too large')); return; }
       workCanvas.width = w;
       workCanvas.height = h;
       const ctx = workCanvas.getContext('2d');
@@ -441,6 +467,9 @@
   }
 
   function finalizeCapture(w, h) {
+    if (!w || !h || w * h > MAX_OUTPUT_PIXELS) {
+      showToast(t('snp_capture_failed', 'Capture is too large')); return;
+    }
     if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
     workCanvas.toBlob((blob) => {
       if (!blob) { showToast(t('snp_capture_failed', 'Capture failed')); return; }
@@ -472,7 +501,9 @@
   function addToStitch() {
     if (!lastBlob) { showToast(t('snp_capture_first', 'Capture a region first')); return; }
     var img = new Image();
+    var sourceUrl = URL.createObjectURL(lastBlob);
     img.onload = function () {
+      URL.revokeObjectURL(sourceUrl);
       var w = img.naturalWidth, h = img.naturalHeight;
       if (!stitchCanvas) {
         stitchCanvas = document.createElement('canvas');
@@ -483,7 +514,11 @@
       } else {
         var oldH = stitchCanvas.height;
         var newW = Math.max(stitchCanvas.width, w);
-        var newH = oldH + h;
+      var newH = oldH + h;
+        if (newW * newH > MAX_OUTPUT_PIXELS) {
+          showToast(t('snp_stitching_failed', 'Stitched image is too large'));
+          return;
+        }
         var tmp = document.createElement('canvas');
         tmp.width = newW;
         tmp.height = newH;
@@ -500,7 +535,11 @@
       stitchPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       showToast(tpl('snp_added_segment', 'Added segment {count}', { count: stitchCount }));
     };
-    img.src = lastBlobUrl;
+    img.onerror = function () {
+      URL.revokeObjectURL(sourceUrl);
+      showToast(t('snp_capture_failed', 'Could not add capture'));
+    };
+    img.src = sourceUrl;
   }
 
   function downloadStitch() {
@@ -508,10 +547,11 @@
     stitchCanvas.toBlob(function (blob) {
       if (!blob) { showToast(t('ann_export_fail', 'Export failed')); return; }
       var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      var url = URL.createObjectURL(blob);
+      a.href = url;
       a.download = 'stitched-' + Date.now() + '.png';
       a.click();
-      URL.revokeObjectURL(a.href);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       showToast(tpl('snp_downloaded_segments', 'Downloaded {count} segments', { count: stitchCount }));
     }, 'image/png');
   }

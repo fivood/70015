@@ -14,6 +14,7 @@
   const toast = document.getElementById('toast');
 
   let previewObjectUrl = null;
+  let previewVersion = 0;
   function t(key, fallback) {
     return (typeof window.t === 'function') ? window.t(key) : fallback;
   }
@@ -55,6 +56,22 @@
 
   function stripPrefix(dataUrl) {
     return dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const fallback = document.createElement('textarea');
+    fallback.value = text;
+    fallback.style.position = 'fixed';
+    fallback.style.opacity = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand('copy');
+    fallback.remove();
+    if (!copied) throw new Error('copy failed');
   }
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
@@ -111,7 +128,7 @@
 
     copyBtn.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(base64);
+        await copyText(base64);
         showToast(t('b64_copied_clipboard', 'Copied to clipboard'));
       } catch (e) {
         showToast(t('toast_copy_fail', 'Copy failed'));
@@ -121,10 +138,11 @@
     downloadBtn.addEventListener('click', () => {
       const blob = new Blob([base64], { type: 'text/plain;charset=utf-8' });
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
+      a.href = url;
       a.download = file.name.replace(/\.[^/.]+$/, '') + '.txt';
       a.click();
-      URL.revokeObjectURL(a.href);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
 
     removeBtn.addEventListener('click', () => {
@@ -172,12 +190,17 @@
     let raw = value.trim();
     if (!raw) return null;
     if (!raw.startsWith('data:')) {
+      raw = raw.replace(/\s+/g, '');
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(raw) || raw.length % 4 === 1) return null;
       raw = 'data:image/png;base64,' + raw;
+    } else if (!/^data:image\/[A-Za-z0-9.+-]+;base64,[A-Za-z0-9+/\s]*={0,2}$/i.test(raw)) {
+      return null;
     }
     return raw;
   }
 
-  function updatePreview() {
+  async function updatePreview() {
+    const version = ++previewVersion;
     const value = base64Input.value;
     const dataUrl = parseBase64Input(value);
 
@@ -192,6 +215,17 @@
       return;
     }
 
+    try {
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      if (version !== previewVersion) return;
+      previewObjectUrl = URL.createObjectURL(blob);
+    } catch (err) {
+      imgPreview.hidden = true;
+      b64Hint.textContent = t('b64_parse_fail', 'Could not parse this Base64 content.');
+      return;
+    }
+
     previewImg.onload = () => {
       imgPreview.hidden = false;
       previewSize.textContent = `${previewImg.naturalWidth} \u00d7 ${previewImg.naturalHeight} px`;
@@ -203,23 +237,29 @@
       b64Hint.textContent = t('b64_parse_fail', 'Could not parse this Base64 content.');
     };
 
-    previewImg.src = dataUrl;
+    previewImg.src = previewObjectUrl;
   }
 
   base64Input.addEventListener('input', debounce(updatePreview, 300));
 
-  downloadImgBtn.addEventListener('click', () => {
+  downloadImgBtn.addEventListener('click', async () => {
     const dataUrl = parseBase64Input(base64Input.value);
     if (!dataUrl) return;
 
-    const a = document.createElement('a');
-    a.href = dataUrl;
-
-    // Try to infer extension
-    const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,/);
-    const ext = match && match[1] ? match[1].replace('jpeg', 'jpg') : 'png';
-    a.download = 'base64-image.' + ext;
-    a.click();
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Try to infer extension
+      const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,/i);
+      const ext = match && match[1] ? match[1].replace(/^jpeg$/i, 'jpg') : 'png';
+      a.download = 'base64-image.' + ext;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      showToast(t('b64_parse_fail', 'Could not parse this Base64 content.'));
+    }
   });
 
   function debounce(fn, wait) {

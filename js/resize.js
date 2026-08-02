@@ -16,6 +16,8 @@
   }
 
   var MAX_SIDE = 4096;
+  var MAX_FILE_SIZE = 50 * 1024 * 1024;
+  var MAX_OUTPUT_PIXELS = 64 * 1024 * 1024;
 
   // ---------- Mode switching ----------
   var modeSelector = document.getElementById('modeSelector');
@@ -72,6 +74,7 @@
 
   var cImg = null;
   var cNatW = 0, cNatH = 0, cScale = 1;
+  var cropLoadVersion = 0;
   var crop = { x: 0, y: 0, w: 0, h: 0 }; // in canvas (display) px
   var ratio = null; // {w,h} or null=free
   var cropFormat = 'png';
@@ -79,10 +82,13 @@
 
   function loadCropImage(file) {
     if (!file || !file.type.startsWith('image/')) { showToast(t('sz_need_image')); return; }
+    if (file.size > MAX_FILE_SIZE) { showToast(t('conv_too_large').replace('{name}', file.name)); return; }
+    var version = ++cropLoadVersion;
     var url = URL.createObjectURL(file);
     var image = new Image();
     image.onload = function () {
       URL.revokeObjectURL(url);
+      if (version !== cropLoadVersion) return;
       setupCropImage(image);
     };
     image.onerror = function () { showToast(t('sz_load_fail')); URL.revokeObjectURL(url); };
@@ -367,6 +373,7 @@
     renderCrop();
   });
   cropReplaceBtn.addEventListener('click', function () {
+    cropLoadVersion++;
     cImg = null; cropSettings.hidden = true; cropStageWrap.hidden = true; cropActions.hidden = true;
   });
 
@@ -376,6 +383,7 @@
     var tw = parseInt(cropWInput.value, 10) || Math.round(sw);
     var th = parseInt(cropHInput.value, 10) || Math.round(sh);
     tw = clamp(tw, 1, 16384); th = clamp(th, 1, 16384);
+    if (tw * th > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return; }
     var c = document.createElement('canvas');
     c.width = tw; c.height = th;
     var cx = c.getContext('2d');
@@ -414,21 +422,27 @@
   var stitchExportBtn = document.getElementById('stitchExportBtn');
 
   var stitchFiles = []; // { id, file, img, w, h }
+  var stitchLoadVersion = 0;
   var stitchDir = 'h';
   var stitchAlign = 'start';
   var stitchBg = '#ffffff';
   var stitchFormat = 'png';
 
   function addStitchFiles(files) {
-    var imgs = [].filter.call(files, function (f) { return f.type.startsWith('image/'); });
+    var imgs = [].filter.call(files, function (f) {
+      if (!f.type.startsWith('image/')) return false;
+      if (f.size > MAX_FILE_SIZE) { showToast(t('conv_too_large').replace('{name}', f.name)); return false; }
+      return true;
+    });
     if (!imgs.length) { showToast(t('sz_need_image')); return; }
+    var version = stitchLoadVersion;
     var pending = imgs.length;
     imgs.forEach(function (f) {
       var url = URL.createObjectURL(f);
       var image = new Image();
       image.onload = function () {
-        URL.revokeObjectURL(url);
-        stitchFiles.push({ id: Math.random().toString(36).slice(2, 10), file: f, img: image, w: image.naturalWidth, h: image.naturalHeight });
+        if (version !== stitchLoadVersion) { URL.revokeObjectURL(url); pending--; return; }
+        stitchFiles.push({ id: Math.random().toString(36).slice(2, 10), file: f, img: image, url: url, w: image.naturalWidth, h: image.naturalHeight });
         pending--;
         if (pending === 0) { renderStitchList(); updateStitchUI(); }
       };
@@ -466,7 +480,7 @@
     }
     stitchList.innerHTML = stitchFiles.map(function (it, i) {
       return '<div class="sz-stitch-item" data-id="' + it.id + '">' +
-        '<img src="' + it.img.src + '" alt="">' +
+        '<img src="' + it.url + '" alt="">' +
         '<div class="sz-stitch-item__info">' +
         '<p class="sz-stitch-item__name">' + escapeHtml(it.file.name) + '</p>' +
         '<p class="sz-stitch-item__meta">' + it.w + ' × ' + it.h + '</p>' +
@@ -495,6 +509,7 @@
     if (act === 'up' && idx > 0) { var a = stitchFiles[idx]; stitchFiles[idx] = stitchFiles[idx - 1]; stitchFiles[idx - 1] = a; renderStitchList(); renderStitchInfo(); }
     else if (act === 'down' && idx < stitchFiles.length - 1) { var b = stitchFiles[idx]; stitchFiles[idx] = stitchFiles[idx + 1]; stitchFiles[idx + 1] = b; renderStitchList(); renderStitchInfo(); }
     else if (act === 'del') {
+      if (stitchFiles[idx].url) URL.revokeObjectURL(stitchFiles[idx].url);
       stitchFiles.splice(idx, 1); renderStitchList(); updateStitchUI();
     }
   });
@@ -538,7 +553,11 @@
     btn.classList.add('is-active');
     stitchFormat = btn.dataset.value;
   });
-  stitchClearBtn.addEventListener('click', function () { stitchFiles = []; renderStitchList(); updateStitchUI(); });
+  stitchClearBtn.addEventListener('click', function () {
+    stitchLoadVersion++;
+    stitchFiles.forEach(function (f) { if (f.url) URL.revokeObjectURL(f.url); });
+    stitchFiles = []; renderStitchList(); updateStitchUI();
+  });
 
   function renderStitchInfo() {
     if (!stitchFiles.length) { stitchInfo.textContent = '—'; return; }
@@ -573,44 +592,47 @@
   stitchExportBtn.addEventListener('click', function () {
     if (stitchFiles.length < 2) { showToast(t('sz_stitch_need_two')); return; }
     var layout = computeStitchLayout();
+    if (!layout.w || !layout.h || layout.w * layout.h > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return; }
     var c = document.createElement('canvas');
-    c.width = layout.w; c.height = layout.h;
-    var cx = c.getContext('2d');
-    cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
-    if (stitchBg !== 'transparent') { cx.fillStyle = stitchBg; cx.fillRect(0, 0, layout.w, layout.h); }
-    var gap = layout.gap;
-    if (layout.dir === 'h') {
-      var x = 0;
-      for (var i = 0; i < layout.scaled.length; i++) {
-        var s = layout.scaled[i];
-        var y = alignOffset(stitchAlign, layout.h, s.h);
-        cx.drawImage(s.img, x, y, s.w, s.h);
-        x += s.w + gap;
+    try {
+      c.width = layout.w; c.height = layout.h;
+      var cx = c.getContext('2d');
+      cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
+      if (stitchBg !== 'transparent') { cx.fillStyle = stitchBg; cx.fillRect(0, 0, layout.w, layout.h); }
+      var gap = layout.gap;
+      if (layout.dir === 'h') {
+        var x = 0;
+        for (var i = 0; i < layout.scaled.length; i++) {
+          var s = layout.scaled[i];
+          var y = alignOffset(stitchAlign, layout.h, s.h);
+          cx.drawImage(s.img, x, y, s.w, s.h);
+          x += s.w + gap;
+        }
+      } else if (layout.dir === 'v') {
+        var yy = 0;
+        for (var j = 0; j < layout.scaled.length; j++) {
+          var sv = layout.scaled[j];
+          var xx = alignOffset(stitchAlign, layout.w, sv.w);
+          cx.drawImage(sv.img, xx, yy, sv.w, sv.h);
+          yy += sv.h + gap;
+        }
+      } else {
+        var cellW = layout.cellW, cellH = layout.cellH;
+        for (var k = 0; k < stitchFiles.length; k++) {
+          var f = stitchFiles[k];
+          var col = k % layout.cols;
+          var row = Math.floor(k / layout.cols);
+          var cellX = col * (cellW + gap);
+          var cellY = row * (cellH + gap);
+          // contain-fit within cell, aligned
+          var scale = Math.min(cellW / f.w, cellH / f.h);
+          var dw = Math.round(f.w * scale), dh = Math.round(f.h * scale);
+          var ox = alignOffset(stitchAlign, cellW, dw);
+          var oy = alignOffset(stitchAlign, cellH, dh);
+          cx.drawImage(f.img, cellX + ox, cellY + oy, dw, dh);
+        }
       }
-    } else if (layout.dir === 'v') {
-      var yy = 0;
-      for (var j = 0; j < layout.scaled.length; j++) {
-        var sv = layout.scaled[j];
-        var xx = alignOffset(stitchAlign, layout.w, sv.w);
-        cx.drawImage(sv.img, xx, yy, sv.w, sv.h);
-        yy += sv.h + gap;
-      }
-    } else {
-      var cellW = layout.cellW, cellH = layout.cellH;
-      for (var k = 0; k < stitchFiles.length; k++) {
-        var f = stitchFiles[k];
-        var col = k % layout.cols;
-        var row = Math.floor(k / layout.cols);
-        var cellX = col * (cellW + gap);
-        var cellY = row * (cellH + gap);
-        // contain-fit within cell, aligned
-        var scale = Math.min(cellW / f.w, cellH / f.h);
-        var dw = Math.round(f.w * scale), dh = Math.round(f.h * scale);
-        var ox = alignOffset(stitchAlign, cellW, dw);
-        var oy = alignOffset(stitchAlign, cellH, dh);
-        cx.drawImage(f.img, cellX + ox, cellY + oy, dw, dh);
-      }
-    }
+    } catch (err) { showToast(t('sz_export_fail')); return; }
     var mime = stitchFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
     if (stitchFormat === 'jpeg' && stitchBg === 'transparent') {
       // jpeg has no alpha — fill white
@@ -653,12 +675,15 @@
   var scaleExportBtn = document.getElementById('scaleExportBtn');
 
   var sImg = null, sNatW = 0, sNatH = 0, scaleFormat = 'png';
+  var scaleLoadVersion = 0;
 
   function loadScaleImage(file) {
     if (!file || !file.type.startsWith('image/')) { showToast(t('sz_need_image')); return; }
+    if (file.size > MAX_FILE_SIZE) { showToast(t('conv_too_large').replace('{name}', file.name)); return; }
+    var version = ++scaleLoadVersion;
     var url = URL.createObjectURL(file);
     var image = new Image();
-    image.onload = function () { URL.revokeObjectURL(url); setupScaleImage(image); };
+    image.onload = function () { URL.revokeObjectURL(url); if (version === scaleLoadVersion) setupScaleImage(image); };
     image.onerror = function () { showToast(t('sz_load_fail')); URL.revokeObjectURL(url); };
     image.src = url;
   }
@@ -717,7 +742,7 @@
     scaleQualityPanel.hidden = scaleFormat !== 'jpeg';
   });
   scaleQuality.addEventListener('input', function (e) { scaleQualityValue.textContent = e.target.value; });
-  scaleReplaceBtn.addEventListener('click', function () { sImg = null; scaleSettings.hidden = true; scaleActions.hidden = true; });
+  scaleReplaceBtn.addEventListener('click', function () { scaleLoadVersion++; sImg = null; scaleSettings.hidden = true; scaleActions.hidden = true; });
 
   function updateScaleInfo() {
     if (!sImg) { scaleInfo.textContent = '—'; scaleOrigInfo.textContent = '—'; return; }
@@ -731,6 +756,7 @@
     if (!sImg) return;
     var tw = clamp(parseInt(scaleWInput.value, 10) || sNatW, 1, 16384);
     var th = clamp(parseInt(scaleHInput.value, 10) || sNatH, 1, 16384);
+    if (tw * th > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return; }
     var c = document.createElement('canvas');
     c.width = tw; c.height = th;
     var cx = c.getContext('2d');
