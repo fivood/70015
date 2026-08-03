@@ -39,6 +39,7 @@
   var maxHistoryBytes = 8 * 1024 * 1024;
   var uidCounter = 0;
   var clipboard = [];
+  var codeDirty = false;
 
   // Viewport (zoom/pan via viewBox)
   var VB = { x: 0, y: 0, w: 800, h: 600 };
@@ -72,6 +73,77 @@
     var m = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (m) return '#' + [1,2,3].map(function(i){ return ('0'+parseInt(m[i],10).toString(16)).slice(-2); }).join('');
     return '#000000';
+  }
+
+  function matrixOf(node) {
+    var consolidated = node && node.transform && node.transform.baseVal ? node.transform.baseVal.consolidate() : null;
+    var m = consolidated ? consolidated.matrix : null;
+    return m ? new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]) : new DOMMatrix();
+  }
+
+  function matrixText(m) {
+    return [m.a, m.b, m.c, m.d, m.e, m.f].map(function (value) {
+      var rounded = Math.abs(value) < 0.000001 ? 0 : Math.round(value * 1000000) / 1000000;
+      return String(rounded);
+    }).join(' ');
+  }
+
+  function setNodeMatrix(node, matrix) {
+    var identity = Math.abs(matrix.a - 1) < 0.000001 && Math.abs(matrix.b) < 0.000001 &&
+      Math.abs(matrix.c) < 0.000001 && Math.abs(matrix.d - 1) < 0.000001 &&
+      Math.abs(matrix.e) < 0.000001 && Math.abs(matrix.f) < 0.000001;
+    if (identity) node.removeAttribute('transform');
+    else node.setAttribute('transform', 'matrix(' + matrixText(matrix) + ')');
+  }
+
+  function translationMatrix(dx, dy) {
+    return new DOMMatrix().translate(dx, dy);
+  }
+
+  function scaleAtMatrix(sx, sy, cx, cy) {
+    return new DOMMatrix().translate(cx, cy).scale(sx, sy).translate(-cx, -cy);
+  }
+
+  function rotateAtMatrix(angle, cx, cy) {
+    return new DOMMatrix().translate(cx, cy).rotate(angle).translate(-cx, -cy);
+  }
+
+  function transformPoint(matrix, x, y) {
+    var point = new DOMPoint(x, y).matrixTransform(matrix);
+    return { x: point.x, y: point.y };
+  }
+
+  function getParentBounds(node, matrix) {
+    var bb = node.getBBox();
+    var m = matrix || matrixOf(node);
+    var points = [
+      transformPoint(m, bb.x, bb.y),
+      transformPoint(m, bb.x + bb.width, bb.y),
+      transformPoint(m, bb.x, bb.y + bb.height),
+      transformPoint(m, bb.x + bb.width, bb.y + bb.height)
+    ];
+    var xs = points.map(function (point) { return point.x; });
+    var ys = points.map(function (point) { return point.y; });
+    var minX = Math.min.apply(Math, xs), maxX = Math.max.apply(Math, xs);
+    var minY = Math.min.apply(Math, ys), maxY = Math.max.apply(Math, ys);
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  function pointerInParent(e, node) {
+    var parent = node.parentNode;
+    var ctm = parent && parent.getScreenCTM ? parent.getScreenCTM() : null;
+    if (!ctm) return getMouse(e);
+    var point = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return { x: point.x, y: point.y };
+  }
+
+  function rotationOf(node) {
+    var m = matrixOf(node);
+    return Math.atan2(m.b, m.a) * 180 / Math.PI;
+  }
+
+  function translateNode(node, dx, dy, baseMatrix) {
+    setNodeMatrix(node, translationMatrix(dx, dy).multiply(baseMatrix || matrixOf(node)));
   }
 
   // ---- Viewport ----
@@ -112,13 +184,20 @@
   // ---- Grid ----
   var gridPattern = null;
   function initGrid() {
-    gridPattern = el('pattern', { id: 'gridPattern', width: GRID, height: GRID, patternUnits: 'userSpaceOnUse' });
-    gridPattern.appendChild(el('path', { d: 'M ' + GRID + ' 0 L 0 0 0 ' + GRID, fill: 'none', stroke: 'currentColor', 'stroke-width': 0.5, opacity: 0.3 }));
     var defs = artboard.querySelector('defs') || el('defs');
     if (!artboard.querySelector('defs')) artboard.insertBefore(defs, artboard.firstChild);
-    defs.appendChild(gridPattern);
-    var rect = el('rect', { id: 'gridRect', width: '100%', height: '100%', fill: 'url(#gridPattern)', opacity: '0', pointerEvents: 'none' });
-    artboard.appendChild(rect);
+    gridPattern = artboard.querySelector('#gridPattern');
+    if (!gridPattern) {
+      gridPattern = el('pattern', { id: 'gridPattern', width: GRID, height: GRID, patternUnits: 'userSpaceOnUse' });
+      gridPattern.appendChild(el('path', { d: 'M ' + GRID + ' 0 L 0 0 0 ' + GRID, fill: 'none', stroke: 'currentColor', 'stroke-width': 0.5, opacity: 0.3 }));
+      defs.appendChild(gridPattern);
+    }
+    var rect = artboard.querySelector('#gridRect');
+    if (!rect) {
+      rect = el('rect', { id: 'gridRect', width: '100%', height: '100%', fill: 'url(#gridPattern)', opacity: '0', 'pointer-events': 'none' });
+      artboard.appendChild(rect);
+    }
+    updateGrid();
   }
 
   function updateGrid() {
@@ -127,22 +206,30 @@
   }
 
   // ---- History ----
+  function cleanArtboardClone() {
+    var clone = artboard.cloneNode(true);
+    var gr = clone.querySelector('#gridRect'); if (gr) gr.remove();
+    var gp = clone.querySelector('#gridPattern'); if (gp) gp.remove();
+    var defs = clone.querySelector('defs'); if (defs && defs.children.length === 0) defs.remove();
+    return clone;
+  }
+
+  function currentHistoryState() {
+    return {
+      markup: cleanArtboardClone().innerHTML,
+      viewBox: artboard.getAttribute('viewBox') || '0 0 800 600',
+      viewport: { x: VB.x, y: VB.y, w: VB.w, h: VB.h }
+    };
+  }
+
   function snapshot() {
     history = history.slice(0, historyIdx + 1);
-    // Save without grid rect
-    var clone = artboard.cloneNode(true);
-    var gr = clone.querySelector('#gridRect');
-    if (gr) gr.remove();
-    var gp = clone.querySelector('#gridPattern');
-    if (gp) gp.remove();
-    var defs = clone.querySelector('defs');
-    if (defs && defs.children.length === 0) defs.remove();
-    history.push(clone.innerHTML);
+    history.push(currentHistoryState());
     if (history.length > maxHistory) history.shift();
     historyIdx = history.length - 1;
-    var historyBytes = history.reduce(function (sum, item) { return sum + item.length * 2; }, 0);
+    var historyBytes = history.reduce(function (sum, item) { return sum + JSON.stringify(item).length * 2; }, 0);
     while (history.length > 1 && historyBytes > maxHistoryBytes) {
-      historyBytes -= history[0].length * 2;
+      historyBytes -= JSON.stringify(history[0]).length * 2;
       history.shift();
       historyIdx--;
     }
@@ -153,29 +240,13 @@
 
   function restore() {
     if (historyIdx < 0 || historyIdx >= history.length) return;
-    // Remove all children except defs and grid
-    var defs = artboard.querySelector('defs') || el('defs');
-    if (!artboard.querySelector('defs')) artboard.insertBefore(defs, artboard.firstChild);
-    var toRemove = [];
-    Array.from(artboard.children).forEach(function (c) {
-      if (c.tagName !== 'defs' && c.id !== 'gridRect' && c.id !== 'gridPattern') toRemove.push(c);
-    });
-    toRemove.forEach(function (c) { c.remove(); });
-    // Parse and insert history
-    var tmp = document.createElementNS(SVG_NS, 'svg');
-    tmp.innerHTML = history[historyIdx];
-    while (tmp.firstChild) {
-      var child = tmp.firstChild;
-      tmp.removeChild(child);
-      if (child.tagName === 'defs') {
-        // Merge defs
-        while (child.firstChild) { defs.appendChild(child.firstChild); }
-      } else {
-        artboard.appendChild(child);
-      }
-    }
+    var state = history[historyIdx];
+    artboard.innerHTML = state.markup;
+    VB = state.viewport ? { x: state.viewport.x, y: state.viewport.y, w: state.viewport.w, h: state.viewport.h } : { x: 0, y: 0, w: 800, h: 600 };
+    artboard.setAttribute('viewBox', state.viewBox || (VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h));
+    initGrid();
     selected = [];
-    updateSelection();
+    applyViewBox();
     updateProps();
     updateLayers();
     syncCode();
@@ -211,32 +282,23 @@
       rotateHandle.hidden = true;
       return;
     }
-    // Compute combined bbox
+    var stageRect = stage.getBoundingClientRect();
     var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    selected.forEach(function (n) {
-      var bb = n.getBBox();
-      var tr = getTransform(n);
-      var cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2;
-      // For rotated elements, approximate with bbox corners
-      [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]].forEach(function (pt) {
-        var scaledPoint = [cx + (pt[0] - cx) * tr.sx + tr.tx, cy + (pt[1] - cy) * tr.sy + tr.ty];
-        var rx = tr.angle ? rotatePt(scaledPoint[0], scaledPoint[1], cx, cy, tr.angle) : scaledPoint;
-        if (rx[0] < minX) minX = rx[0]; if (rx[1] < minY) minY = rx[1];
-        if (rx[0] > maxX) maxX = rx[0]; if (rx[1] > maxY) maxY = rx[1];
-      });
+    selected.forEach(function (node) {
+      var rect = node.getBoundingClientRect();
+      minX = Math.min(minX, rect.left - stageRect.left);
+      minY = Math.min(minY, rect.top - stageRect.top);
+      maxX = Math.max(maxX, rect.right - stageRect.left);
+      maxY = Math.max(maxY, rect.bottom - stageRect.top);
     });
     if (minX === Infinity) { selBox.hidden = true; return; }
-    var bb = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-    var s = svgToScreen(bb.x, bb.y);
-    var se = svgToScreen(bb.x + bb.width, bb.y + bb.height);
-
     selBox.hidden = false;
-    selBox.style.left = s.x + 'px';
-    selBox.style.top = s.y + 'px';
-    selBox.style.width = (se.x - s.x) + 'px';
-    selBox.style.height = (se.y - s.y) + 'px';
+    selBox.style.left = minX + 'px';
+    selBox.style.top = minY + 'px';
+    selBox.style.width = (maxX - minX) + 'px';
+    selBox.style.height = (maxY - minY) + 'px';
 
-    var x = s.x, y = s.y, w = se.x - s.x, h = se.y - s.y;
+    var x = minX, y = minY, w = maxX - minX, h = maxY - minY;
     var pos = {
       nw: [x, y], n: [x + w / 2, y], ne: [x + w, y],
       e: [x + w, y + h / 2], se: [x + w, y + h],
@@ -255,36 +317,6 @@
     }
   }
 
-  function rotatePt(x, y, cx, cy, ang) {
-    var r = ang * Math.PI / 180;
-    var dx = x - cx, dy = y - cy;
-    return [cx + dx * Math.cos(r) - dy * Math.sin(r), cy + dx * Math.sin(r) + dy * Math.cos(r)];
-  }
-
-  function getTransform(node) {
-    var t = node.getAttribute('transform') || '';
-    var tm = t.match(/translate\(\s*([-\d.]+)(?:\s*[,\s]\s*([-\d.]+))?\s*\)/);
-    var rm = t.match(/rotate\(\s*([-\d.]+)(?:\s+([-\d.]+)\s*[,\s]\s*([-\d.]+))?\s*\)/);
-    var sm = t.match(/scale\(([-\d.]+)\s*,?\s*([-\d.]+)?\)/);
-    return {
-      tx: tm ? parseFloat(tm[1]) : 0,
-      ty: tm && tm[2] ? parseFloat(tm[2]) : 0,
-      angle: rm ? parseFloat(rm[1]) : 0,
-      rcx: rm && rm[2] ? parseFloat(rm[2]) : 0,
-      rcy: rm && rm[3] ? parseFloat(rm[3]) : 0,
-      sx: sm ? parseFloat(sm[1]) : 1,
-      sy: sm && sm[2] ? parseFloat(sm[2]) : (sm ? parseFloat(sm[1]) : 1)
-    };
-  }
-
-  function setTransform(node, tr) {
-    var parts = [];
-    if (tr.tx || tr.ty) parts.push('translate(' + tr.tx + ' ' + tr.ty + ')');
-    if (tr.angle) parts.push('rotate(' + tr.angle + ' ' + tr.rcx + ' ' + tr.rcy + ')');
-    if (tr.sx !== 1 || tr.sy !== 1) parts.push('scale(' + tr.sx + ' ' + tr.sy + ')');
-    if (parts.length) node.setAttribute('transform', parts.join(' '));
-    else node.removeAttribute('transform');
-  }
 
   // ---- Toolbar sync ----
   function syncToolbar() {
@@ -324,7 +356,7 @@
     var stroke = p.getAttribute('stroke') || 'none';
     var sw = p.getAttribute('stroke-width') || '0';
     var opacity = parseFloat(p.getAttribute('opacity') || '1');
-    var tr = getTransform(p);
+    var rotation = rotationOf(p);
     var html = '';
 
     // Fill
@@ -363,7 +395,7 @@
 
     html += '<div class="prop-row"><label>Width</label><input class="range" type="range" id="propStrokeWidth" min="0" max="40" value="' + sw + '"><span class="prop-value" id="propStrokeWidthVal">' + sw + '</span></div>';
     html += '<div class="prop-row"><label>Opacity</label><input class="range" type="range" id="propOpacity" min="0" max="100" value="' + Math.round(opacity * 100) + '"><span class="prop-value" id="propOpacityVal">' + Math.round(opacity * 100) + '</span></div>';
-    html += '<div class="prop-row"><label>Rotation</label><input class="range" type="range" id="propRotation" min="0" max="360" value="' + Math.round(tr.angle) + '"><span class="prop-value" id="propRotationVal">' + Math.round(tr.angle) + '</span></div>';
+    html += '<div class="prop-row"><label>Rotation</label><input class="range" type="range" id="propRotation" min="-180" max="180" value="' + Math.round(rotation) + '"><span class="prop-value" id="propRotationVal">' + Math.round(rotation) + '</span></div>';
 
     if (type === 'rect') {
       var rx = p.getAttribute('rx') || '0';
@@ -412,13 +444,19 @@
 
     var propRot = document.getElementById('propRotation');
     if (propRot) {
+      var rotationStates = selected.map(function (node) {
+        var matrix = matrixOf(node);
+        return { node: node, matrix: matrix, bounds: getParentBounds(node, matrix), angle: rotationOf(node) };
+      });
       propRot.addEventListener('input', function () {
         document.getElementById('propRotationVal').textContent = propRot.value;
-        applyToSelected(function (n) {
-          var tr = getTransform(n); tr.angle = parseFloat(propRot.value);
-          var bb = n.getBBox(); tr.rcx = bb.x + bb.width / 2; tr.rcy = bb.y + bb.height / 2;
-          setTransform(n, tr);
+        var targetAngle = parseFloat(propRot.value);
+        rotationStates.forEach(function (state) {
+          var cx = state.bounds.x + state.bounds.width / 2;
+          var cy = state.bounds.y + state.bounds.height / 2;
+          setNodeMatrix(state.node, rotateAtMatrix(targetAngle - state.angle, cx, cy).multiply(state.matrix));
         });
+        syncToolbar(); updateLayers(); syncCode(); updateSelection();
       });
       propRot.addEventListener('change', function () { snapAll(function () {}); });
     }
@@ -539,12 +577,22 @@
     });
   }
 
-  function syncCode() {
-    var clone = artboard.cloneNode(true);
-    var gr = clone.querySelector('#gridRect'); if (gr) gr.remove();
-    var gp = clone.querySelector('#gridPattern'); if (gp) gp.remove();
-    var defs = clone.querySelector('defs'); if (defs && defs.children.length === 0) defs.remove();
-    codeView.value = clone.innerHTML.replace(/></g, '>\n<');
+  function updateSourceButtons() {
+    var applyButton = document.getElementById('applyCodeBtn');
+    var revertButton = document.getElementById('revertCodeBtn');
+    if (applyButton) applyButton.disabled = !codeDirty;
+    if (revertButton) revertButton.disabled = !codeDirty;
+  }
+
+  function syncCode(force) {
+    if (codeDirty && !force) return;
+    var clone = cleanArtboardClone();
+    clone.removeAttribute('id');
+    clone.setAttribute('xmlns', SVG_NS);
+    codeView.value = new XMLSerializer().serializeToString(clone).replace(/></g, '>\n<');
+    codeDirty = false;
+    codeView.removeAttribute('aria-invalid');
+    updateSourceButtons();
   }
 
   // ---- Tools ----
@@ -746,64 +794,56 @@
   function startDrag(e) {
     if (selected.length === 0) return;
     if (e.altKey) {
-      var clones = [];
-      selected.forEach(function (n) { var c = n.cloneNode(true); c.setAttribute('data-id', uid()); artboard.appendChild(c); clones.push(c); });
+      var clones = cloneNodesWithReferences(selected);
+      clones.forEach(function (clone) { artboard.appendChild(clone); });
       selectSingle(clones[0]);
       for (var i = 1; i < clones.length; i++) selected.push(clones[i]);
       updateSelection(); updateLayers(); updateActionButtons(); syncToolbar();
       showToast(t('toast_duplicated', 'Duplicated'));
     }
-    var p = getMouse(e);
-    var bboxes = selected.map(function (n) { return n.getBBox(); });
-    dragging = { sx: p.x, sy: p.y, bbs: bboxes, transforms: selected.map(function (n) { return n.getAttribute('transform') || ''; }) };
+    dragging = {
+      states: selected.map(function (node) {
+        var matrix = matrixOf(node);
+        return { node: node, start: pointerInParent(e, node), matrix: matrix, bounds: getParentBounds(node, matrix) };
+      })
+    };
     stage.setPointerCapture(e.pointerId);
   }
 
   function updateDrag(e) {
-    var p = getMouse(e);
-    var dx = snapVal(p.x) - snapVal(dragging.sx);
-    var dy = snapVal(p.y) - snapVal(dragging.sy);
-    selected.forEach(function (n, i) { moveElement(n, dragging.bbs[i].x + dx, dragging.bbs[i].y + dy, dragging.bbs[i], dragging.transforms[i]); });
+    dragging.states.forEach(function (state) {
+      var point = pointerInParent(e, state.node);
+      var dx = point.x - state.start.x;
+      var dy = point.y - state.start.y;
+      if (snapToGrid) {
+        dx = snapVal(state.bounds.x + dx) - state.bounds.x;
+        dy = snapVal(state.bounds.y + dy) - state.bounds.y;
+      }
+      translateNode(state.node, dx, dy, state.matrix);
+    });
     updateSelection();
   }
 
   function endDrag(e) { dragging = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} snapshot(); }
 
-  function moveElement(node, x, y, baseBBox, baseTransform) {
-    var type = getElementType(node);
-    if (type === 'rect') { node.setAttribute('x', Math.round(x)); node.setAttribute('y', Math.round(y)); }
-    else if (type === 'image') { node.setAttribute('x', Math.round(x)); node.setAttribute('y', Math.round(y)); }
-    else if (type === 'circle') { var r = parseFloat(node.getAttribute('r') || 0); node.setAttribute('cx', Math.round(x + r)); node.setAttribute('cy', Math.round(y + r)); }
-    else if (type === 'ellipse') { var rx = parseFloat(node.getAttribute('rx')), ry = parseFloat(node.getAttribute('ry')); node.setAttribute('cx', Math.round(x + rx)); node.setAttribute('cy', Math.round(y + ry)); }
-    else if (type === 'line') { var x1=parseFloat(node.getAttribute('x1')),y1=parseFloat(node.getAttribute('y1')),x2=parseFloat(node.getAttribute('x2')),y2=parseFloat(node.getAttribute('y2')); node.setAttribute('x1',Math.round(x));node.setAttribute('y1',Math.round(y));node.setAttribute('x2',Math.round(x+x2-x1));node.setAttribute('y2',Math.round(y+y2-y1)); }
-    else if (type === 'text') { node.setAttribute('x',Math.round(x));node.setAttribute('y',Math.round(y+parseFloat(node.getAttribute('font-size')||16)*0.8)); }
-    else if (type === 'path') {
-      var d = node.getAttribute('d');
-      var fm = d.match(/[Mm]\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/);
-      if (!fm) return;
-      var ddx = Math.round(x - parseFloat(fm[1])), ddy = Math.round(y - parseFloat(fm[2]));
-      d = d.replace(/([MLml])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g, function(m,cmd,a,b){ return cmd+' '+(parseFloat(a)+ddx)+' '+(parseFloat(b)+ddy); }).replace(/([Hh])\s*(-?[\d.]+)/g, function(m,cmd,a){ return cmd+' '+(parseFloat(a)+ddx); }).replace(/([Vv])\s*(-?[\d.]+)/g, function(m,cmd,a){ return cmd+' '+(parseFloat(a)+ddy); });
-      node.setAttribute('d', d);
-      if (node.getAttribute('data-cx')) { node.setAttribute('data-cx', parseFloat(node.getAttribute('data-cx')) + ddx); node.setAttribute('data-cy', parseFloat(node.getAttribute('data-cy')) + ddy); }
-    }
-    else if (baseBBox) {
-      var tx = Math.round(x - baseBBox.x), ty = Math.round(y - baseBBox.y);
-      node.setAttribute('transform', 'translate(' + tx + ' ' + ty + ')' + (baseTransform ? ' ' + baseTransform : ''));
-    }
+  function moveElement(node, x, y) {
+    var bounds = getParentBounds(node);
+    translateNode(node, x - bounds.x, y - bounds.y);
   }
 
   // ---- Resize ----
   function startResize(e) {
     var handle = e.target.closest('.editor__handle'); if (!handle || selected.length !== 1) return;
-    var dir = handle.dataset.h, p = getMouse(e), node = primary();
-    var bb = node.getBBox();
-    resizing = { dir: dir, sx: p.x, sy: p.y, bx: bb.x, by: bb.y, bw: bb.width, bh: bb.height };
+    var dir = handle.dataset.h, node = primary();
+    var matrix = matrixOf(node), bounds = getParentBounds(node, matrix), p = pointerInParent(e, node);
+    resizing = { dir: dir, sx: p.x, sy: p.y, bx: bounds.x, by: bounds.y, bw: bounds.width, bh: bounds.height, matrix: matrix, node: node };
     stage.setPointerCapture(e.pointerId); e.preventDefault();
   }
 
   function updateResize(e) {
-    var p = getMouse(e); p.x = snapVal(p.x); p.y = snapVal(p.y);
-    var dx = p.x - resizing.sx, dy = p.y - resizing.sy, dir = resizing.dir, node = primary();
+    var node = resizing.node, p = pointerInParent(e, node);
+    if (snapToGrid) { p.x = snapVal(p.x); p.y = snapVal(p.y); }
+    var dx = p.x - resizing.sx, dy = p.y - resizing.sy, dir = resizing.dir;
     var nx = resizing.bx, ny = resizing.by, nw = resizing.bw, nh = resizing.bh;
     if (dir.indexOf('w') >= 0) { nx = resizing.bx + dx; nw = resizing.bw - dx; }
     if (dir.indexOf('e') >= 0) nw = resizing.bw + dx;
@@ -819,26 +859,12 @@
       if (dir.indexOf('w') >= 0) nx = resizing.bx + resizing.bw - nw;
       if (dir.indexOf('n') >= 0) ny = resizing.by + resizing.bh - nh;
     }
-    nw = Math.max(2, nw); nh = Math.max(2, nh);
-    var type = getElementType(node);
-    if (type === 'rect') { node.setAttribute('x',nx);node.setAttribute('y',ny);node.setAttribute('width',nw);node.setAttribute('height',nh); }
-    else if (type === 'ellipse') { node.setAttribute('cx',nx+nw/2);node.setAttribute('cy',ny+nh/2);node.setAttribute('rx',nw/2);node.setAttribute('ry',nh/2); }
-    else if (type === 'line') {
-      if (dir.indexOf('w') >= 0) { node.setAttribute('x1',nx); node.setAttribute('y1',ny); }
-      if (dir.indexOf('e') >= 0) { node.setAttribute('x2',nx+nw); node.setAttribute('y2',ny+nh); }
-    } else if (type === 'text') {
-      var fs = parseFloat(node.getAttribute('font-size')||16);
-      var ratio = dir.indexOf('e')>=0||dir.indexOf('w')>=0 ? nw/resizing.bw : nh/resizing.bh;
-      node.setAttribute('font-size', Math.max(8, Math.round(fs*ratio)));
-      node.setAttribute('x',nx); node.setAttribute('y',ny + Math.max(8,Math.round(fs*ratio))*0.8);
-    } else if (type === 'path' || type === 'star') {
-      if (type === 'star') {
-        var cx = parseFloat(node.getAttribute('data-cx')), cy = parseFloat(node.getAttribute('data-cy'));
-        var r = Math.max(nw, nh) / 2;
-        node.setAttribute('data-cx', nx + nw / 2); node.setAttribute('data-cy', ny + nh / 2); node.setAttribute('data-r', r);
-        rebuildStar(node, parseInt(node.getAttribute('data-points') || '5', 10));
-      }
-    }
+    if (nw < 2) { nw = 2; if (dir.indexOf('w') >= 0) nx = resizing.bx + resizing.bw - nw; }
+    if (nh < 2) { nh = 2; if (dir.indexOf('n') >= 0) ny = resizing.by + resizing.bh - nh; }
+    var sx = resizing.bw ? nw / resizing.bw : 1;
+    var sy = resizing.bh ? nh / resizing.bh : 1;
+    var resizeMatrix = new DOMMatrix().translate(nx, ny).scale(sx, sy).translate(-resizing.bx, -resizing.by);
+    setNodeMatrix(node, resizeMatrix.multiply(resizing.matrix));
     updateSelection();
   }
 
@@ -847,25 +873,23 @@
   // ---- Rotation ----
   function startRotate(e) {
     if (selected.length !== 1) return;
-    var p = getMouse(e), node = primary(), bb = node.getBBox();
-    var cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2;
-    var tr = getTransform(node);
+    var node = primary(), matrix = matrixOf(node), bounds = getParentBounds(node, matrix);
+    var p = pointerInParent(e, node), cx = bounds.x + bounds.width / 2, cy = bounds.y + bounds.height / 2;
     rotating = {
-      cx: cx, cy: cy,
+      node: node, matrix: matrix, cx: cx, cy: cy,
       startPointerAngle: Math.atan2(p.y - cy, p.x - cx) * 180 / Math.PI,
-      initialAngle: tr.angle
+      initialAngle: rotationOf(node)
     };
     stage.setPointerCapture(e.pointerId); e.preventDefault();
   }
 
   function updateRotate(e) {
-    var p = getMouse(e), node = primary();
+    var node = rotating.node, p = pointerInParent(e, node);
     var pointerAngle = Math.atan2(p.y - rotating.cy, p.x - rotating.cx) * 180 / Math.PI;
-    var ang = rotating.initialAngle + pointerAngle - rotating.startPointerAngle;
-    ang = Math.round(ang);
-    if (e.shiftKey) ang = Math.round(ang / 15) * 15;
-    var tr = getTransform(node); tr.angle = ang; tr.rcx = rotating.cx; tr.rcy = rotating.cy;
-    setTransform(node, tr);
+    var targetAngle = rotating.initialAngle + pointerAngle - rotating.startPointerAngle;
+    targetAngle = Math.round(targetAngle);
+    if (e.shiftKey) targetAngle = Math.round(targetAngle / 15) * 15;
+    setNodeMatrix(node, rotateAtMatrix(targetAngle - rotating.initialAngle, rotating.cx, rotating.cy).multiply(rotating.matrix));
     updateSelection();
   }
 
@@ -918,15 +942,24 @@
 
   // ---- Actions ----
   document.getElementById('deleteBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { n.remove(); }); deselect(); snapshot(); showToast(t('toast_deleted', 'Deleted')); });
-  document.getElementById('duplicateBtn').addEventListener('click', function () { if (!selected.length) return; var clones = []; selected.forEach(function (n) { var c = n.cloneNode(true); c.setAttribute('data-id', uid()); offsetElement(c, 20, 20); artboard.appendChild(c); clones.push(c); }); selectSingle(clones[0]); for (var i = 1; i < clones.length; i++) selected.push(clones[i]); snapshot(); showToast(t('toast_duplicated', 'Duplicated')); });
+  document.getElementById('duplicateBtn').addEventListener('click', function () { if (!selected.length) return; var clones = cloneNodesWithReferences(selected); clones.forEach(function (c) { offsetElement(c, 20, 20); artboard.appendChild(c); }); selectSingle(clones[0]); for (var i = 1; i < clones.length; i++) selected.push(clones[i]); updateSelection(); updateLayers(); updateActionButtons(); syncToolbar(); snapshot(); showToast(t('toast_duplicated', 'Duplicated')); });
   document.getElementById('frontBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { artboard.appendChild(n); }); snapshot(); updateLayers(); });
   document.getElementById('backBtn').addEventListener('click', function () { if (!selected.length) return; var first = artboard.firstChild; selected.forEach(function (n) { if (first) artboard.insertBefore(n, first); else artboard.appendChild(n); }); snapshot(); updateLayers(); });
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('redoBtn').addEventListener('click', redo);
 
   // Flip
-  document.getElementById('flipHBtn').addEventListener('click', function () { selected.forEach(function (n) { var tr = getTransform(n); tr.sx = -tr.sx; var bb = n.getBBox(); tr.rcx = bb.x + bb.width / 2; tr.rcy = bb.y + bb.height / 2; setTransform(n, tr); }); snapshot(); updateSelection(); updateProps(); });
-  document.getElementById('flipVBtn').addEventListener('click', function () { selected.forEach(function (n) { var tr = getTransform(n); tr.sy = -tr.sy; var bb = n.getBBox(); tr.rcx = bb.x + bb.width / 2; tr.rcy = bb.y + bb.height / 2; setTransform(n, tr); }); snapshot(); updateSelection(); updateProps(); });
+  function flipSelected(horizontal) {
+    selected.forEach(function (node) {
+      var matrix = matrixOf(node), bounds = getParentBounds(node, matrix);
+      var cx = bounds.x + bounds.width / 2, cy = bounds.y + bounds.height / 2;
+      var flip = scaleAtMatrix(horizontal ? -1 : 1, horizontal ? 1 : -1, cx, cy);
+      setNodeMatrix(node, flip.multiply(matrix));
+    });
+    snapshot(); updateSelection(); updateProps();
+  }
+  document.getElementById('flipHBtn').addEventListener('click', function () { flipSelected(true); });
+  document.getElementById('flipVBtn').addEventListener('click', function () { flipSelected(false); });
 
   // Group / Ungroup
   document.getElementById('groupBtn').addEventListener('click', function () {
@@ -944,7 +977,16 @@
     if (groups.length === 0) return;
     groups.forEach(function (g) {
       var parent = g.parentNode;
-      while (g.firstChild) { var child = g.firstChild; g.removeChild(child); parent.insertBefore(child, g); child.setAttribute('data-id', child.getAttribute('data-id') || uid()); }
+      var groupMatrix = matrixOf(g);
+      while (g.firstChild) {
+        var child = g.firstChild;
+        g.removeChild(child);
+        if (child.nodeType !== Node.ELEMENT_NODE) { parent.insertBefore(child, g); continue; }
+        var childMatrix = matrixOf(child);
+        parent.insertBefore(child, g);
+        setNodeMatrix(child, groupMatrix.multiply(childMatrix));
+        child.setAttribute('data-id', child.getAttribute('data-id') || uid());
+      }
       parent.removeChild(g);
     });
     deselect();
@@ -955,7 +997,7 @@
   // Align
   document.getElementById('alignGroup').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-align]'); if (!btn || selected.length < 2) return;
-    var bbs = selected.map(function (n) { return n.getBBox(); });
+    var bbs = selected.map(function (n) { return getParentBounds(n); });
     var type = btn.dataset.align;
     if (type === 'left') bbs.forEach(function (b, i) { moveElement(selected[i], bbs[0].x, b.y); });
     else if (type === 'right') bbs.forEach(function (b, i) { moveElement(selected[i], bbs[0].x + bbs[0].width - b.width, b.y); });
@@ -991,11 +1033,9 @@
         var tmp = document.createElement('div'); tmp.innerHTML = e.target.result;
         var svg = tmp.querySelector('svg'); if (!svg) { showToast(t('ed_no_svg_found', 'No SVG found')); return; }
         sanitizeSvg(svg);
-        artboard.setAttribute('viewBox', svg.getAttribute('viewBox') || '0 0 800 600');
-        VB.x = parseFloat(artboard.getAttribute('viewBox').split(' ')[0]) || 0;
-        VB.y = parseFloat(artboard.getAttribute('viewBox').split(' ')[1]) || 0;
-        VB.w = parseFloat(artboard.getAttribute('viewBox').split(' ')[2]) || 800;
-        VB.h = parseFloat(artboard.getAttribute('viewBox').split(' ')[3]) || 600;
+        var importedViewBox = sourceViewBox(svg);
+        artboard.setAttribute('viewBox', importedViewBox.join(' '));
+        VB = { x: importedViewBox[0], y: importedViewBox[1], w: importedViewBox[2], h: importedViewBox[3] };
         artboard.innerHTML = '';
         initGrid();
         var children = Array.from(svg.children);
@@ -1007,6 +1047,7 @@
             return;
           }
           var imported = deepImport(child);
+          if (!imported) return;
           imported.setAttribute('data-id', uid());
           artboard.appendChild(imported);
         });
@@ -1126,46 +1167,151 @@
     else { codeView.select(); try{document.execCommand('copy');showToast(t('toast_copied', 'Copied'));}catch(_){showToast(t('toast_copy_fail', 'Copy failed'));} }
   });
 
-  codeView.addEventListener('change', function () {
+  function sourceViewBox(svg) {
+    var raw = (svg.getAttribute('viewBox') || '').trim();
+    var values = raw ? raw.split(/[\s,]+/).map(Number) : [];
+    if (values.length === 4 && values.every(isFinite) && values[2] > 0 && values[3] > 0) return values;
+    var width = parseFloat(svg.getAttribute('width')) || 800;
+    var height = parseFloat(svg.getAttribute('height')) || 600;
+    return [0, 0, width, height];
+  }
+
+  function applySourceCode() {
     try {
-      var tmp = document.createElement('div'); tmp.innerHTML = codeView.value;
-      var parsed = tmp.querySelector('svg'); if (!parsed) return;
+      var doc = new DOMParser().parseFromString(codeView.value, 'image/svg+xml');
+      if (doc.querySelector('parsererror') || !doc.documentElement || doc.documentElement.tagName.toLowerCase() !== 'svg') throw new Error('Invalid SVG');
+      var parsed = doc.documentElement;
       sanitizeSvg(parsed);
-      var toRemove = Array.from(artboard.children).filter(function (c) { return c.tagName !== 'defs' && c.id !== 'gridRect'; });
-      toRemove.forEach(function (c) { c.remove(); });
-      var defs = artboard.querySelector('defs') || el('defs');
-      if (!artboard.querySelector('defs')) artboard.insertBefore(defs, artboard.firstChild);
+      var viewBox = sourceViewBox(parsed);
+      artboard.innerHTML = '';
+      var defs = el('defs');
+      artboard.appendChild(defs);
       Array.from(parsed.children).forEach(function (child) {
         if (child.tagName.toLowerCase() === 'defs') {
-          while (child.firstChild) defs.appendChild(deepImport(child.firstChild));
+          Array.from(child.childNodes).forEach(function (definition) {
+            var importedDefinition = deepImport(definition);
+            if (importedDefinition) defs.appendChild(importedDefinition);
+          });
         } else {
           var imported = deepImport(child);
           if (!imported.getAttribute('data-id')) imported.setAttribute('data-id', uid());
           artboard.appendChild(imported);
         }
       });
-      deselect(); snapshot(); showToast(t('toast_applied', 'Source applied'));
-    } catch (err) { showToast(t('toast_invalid', 'Invalid SVG')); }
+      VB = { x: viewBox[0], y: viewBox[1], w: viewBox[2], h: viewBox[3] };
+      artboard.setAttribute('viewBox', viewBox.join(' '));
+      initGrid();
+      codeDirty = false;
+      codeView.removeAttribute('aria-invalid');
+      deselect(); applyViewBox(); snapshot(); showToast(t('toast_applied', 'Source applied'));
+    } catch (err) {
+      codeView.setAttribute('aria-invalid', 'true');
+      showToast(t('toast_invalid', 'Invalid SVG'));
+    }
+  }
+
+  codeView.addEventListener('input', function () {
+    codeDirty = true;
+    codeView.removeAttribute('aria-invalid');
+    updateSourceButtons();
   });
+  document.getElementById('applyCodeBtn').addEventListener('click', applySourceCode);
+  document.getElementById('revertCodeBtn').addEventListener('click', function () { syncCode(true); });
 
   // ---- Clear ----
   document.getElementById('clearBtn').addEventListener('click', function () {
     Array.from(artboard.children).forEach(function (c) { if (c.tagName !== 'defs' && c.id !== 'gridRect') c.remove(); });
-    var defs = artboard.querySelector('defs'); if (defs) defs.innerHTML = '';
+    var defs = artboard.querySelector('defs');
+    if (defs) Array.from(defs.children).forEach(function (child) { if (child.id !== 'gridPattern') child.remove(); });
+    initGrid();
     deselect(); snapshot(); showToast(t('ed_canvas_cleared', 'Canvas cleared'));
   });
 
   // ---- Clipboard ----
-  function cloneWithNewIds(node) {
+  function elementsIn(root) {
+    return [root].concat(Array.from(root.querySelectorAll('*')));
+  }
+
+  function referencedIds(root) {
+    var ids = [];
+    elementsIn(root).forEach(function (node) {
+      Array.from(node.attributes || []).forEach(function (attr) {
+        var value = attr.value || '', match;
+        var urlPattern = /url\(\s*#([^)\s]+)\s*\)/g;
+        while ((match = urlPattern.exec(value))) ids.push(match[1]);
+        if ((attr.name === 'href' || attr.name === 'xlink:href') && value.charAt(0) === '#') ids.push(value.slice(1));
+      });
+    });
+    return ids;
+  }
+
+  function findArtboardId(id) {
+    return Array.from(artboard.querySelectorAll('[id]')).find(function (node) { return node.id === id; }) || null;
+  }
+
+  function nextReferenceId(base) {
+    return (base || 'ref') + '-copy-' + (++uidCounter);
+  }
+
+  function rewriteReferences(root, idMap) {
+    elementsIn(root).forEach(function (node) {
+      Array.from(node.attributes || []).forEach(function (attr) {
+        var value = attr.value;
+        Object.keys(idMap).forEach(function (oldId) {
+          var newId = idMap[oldId];
+          value = value.split('url(#' + oldId + ')').join('url(#' + newId + ')');
+          if ((attr.name === 'href' || attr.name === 'xlink:href') && value === '#' + oldId) value = '#' + newId;
+        });
+        if (value !== attr.value) node.setAttribute(attr.name, value);
+      });
+    });
+  }
+
+  function cloneWithNewIds(node, idMap) {
     var clone = node.cloneNode(true);
-    clone.querySelectorAll('[data-id]').forEach(function (child) { child.setAttribute('data-id', uid()); });
+    idMap = idMap || {};
+    elementsIn(clone).forEach(function (child) {
+      if (child.hasAttribute && child.hasAttribute('data-id')) child.setAttribute('data-id', uid());
+      if (child.id) {
+        var oldId = child.id;
+        if (!idMap[oldId]) idMap[oldId] = nextReferenceId(oldId);
+        child.id = idMap[oldId];
+      }
+    });
     clone.setAttribute('data-id', uid());
+
+    var defs = artboard.querySelector('defs') || el('defs');
+    if (!artboard.querySelector('defs')) artboard.insertBefore(defs, artboard.firstChild);
+    var queue = referencedIds(clone);
+    var definitionClones = [];
+    while (queue.length) {
+      var refId = queue.shift();
+      if (idMap[refId]) continue;
+      var source = findArtboardId(refId);
+      if (!source || !source.closest('defs')) continue;
+      var definition = source.cloneNode(true);
+      elementsIn(definition).forEach(function (child) {
+        if (!child.id) return;
+        var oldId = child.id;
+        if (!idMap[oldId]) idMap[oldId] = nextReferenceId(oldId);
+        child.id = idMap[oldId];
+      });
+      definitionClones.push(definition);
+      queue = queue.concat(referencedIds(definition));
+    }
+    rewriteReferences(clone, idMap);
+    definitionClones.forEach(function (definition) { rewriteReferences(definition, idMap); defs.appendChild(definition); });
     return clone;
+  }
+
+  function cloneNodesWithReferences(nodes) {
+    var idMap = {};
+    return nodes.map(function (node) { return cloneWithNewIds(node, idMap); });
   }
 
   function copySelected(cut) {
     if (!selected.length) return;
-    clipboard = selected.map(function (n) { return cloneWithNewIds(n); });
+    clipboard = selected.map(function (n) { return n.cloneNode(true); });
     if (cut) {
       selected.forEach(function (n) { n.remove(); });
       deselect();
@@ -1178,12 +1324,10 @@
 
   function pasteClipboard() {
     if (!clipboard.length) return;
-    var clones = [];
-    clipboard.forEach(function (n) {
-      var c = cloneWithNewIds(n);
+    var clones = cloneNodesWithReferences(clipboard);
+    clones.forEach(function (c) {
       offsetElement(c, 20, 20);
       artboard.appendChild(c);
-      clones.push(c);
     });
     selectSingle(clones[0]);
     for (var i = 1; i < clones.length; i++) selected.push(clones[i]);
@@ -1214,10 +1358,10 @@
     // Arrow nudge
     if (selected.length && !spaceDown) {
       var step = e.shiftKey ? 10 : 1;
-      if (e.key === 'ArrowLeft') { e.preventDefault(); selected.forEach(function(n){ var bb=n.getBBox(); moveElement(n, bb.x - step, bb.y); }); updateSelection(); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); selected.forEach(function(n){ var bb=n.getBBox(); moveElement(n, bb.x + step, bb.y); }); updateSelection(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); selected.forEach(function(n){ var bb=n.getBBox(); moveElement(n, bb.x, bb.y - step); }); updateSelection(); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); selected.forEach(function(n){ var bb=n.getBBox(); moveElement(n, bb.x, bb.y + step); }); updateSelection(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x - step, bb.y); }); updateSelection(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x + step, bb.y); }); updateSelection(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x, bb.y - step); }); updateSelection(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x, bb.y + step); }); updateSelection(); }
     }
     // Tool shortcuts
     if (e.key === '1') setTool('select');
@@ -1236,27 +1380,7 @@
 
   // ---- Helper: offset element ----
   function offsetElement(node, dx, dy) {
-    var type = getElementType(node);
-    if (type === 'rect' || type === 'image') { var x=parseFloat(node.getAttribute('x')); var y=parseFloat(node.getAttribute('y')); node.setAttribute('x', x+dx); node.setAttribute('y', y+dy); }
-    else if (type === 'circle') { node.setAttribute('cx', parseFloat(node.getAttribute('cx'))+dx); node.setAttribute('cy', parseFloat(node.getAttribute('cy'))+dy); }
-    else if (type === 'ellipse') { node.setAttribute('cx', parseFloat(node.getAttribute('cx'))+dx); node.setAttribute('cy', parseFloat(node.getAttribute('cy'))+dy); }
-    else if (type === 'line') { node.setAttribute('x1',parseFloat(node.getAttribute('x1'))+dx);node.setAttribute('y1',parseFloat(node.getAttribute('y1'))+dy);node.setAttribute('x2',parseFloat(node.getAttribute('x2'))+dx);node.setAttribute('y2',parseFloat(node.getAttribute('y2'))+dy); }
-    else if (type === 'text') { node.setAttribute('x', parseFloat(node.getAttribute('x'))+dx); node.setAttribute('y', parseFloat(node.getAttribute('y'))+dy); }
-    else if (type === 'path') {
-      var d = node.getAttribute('d');
-      d = d.replace(/([MLml])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g, function(m,cmd,a,b){ return cmd+' '+(parseFloat(a)+dx)+' '+(parseFloat(b)+dy); }).replace(/([Hh])\s*(-?[\d.]+)/g, function(m,cmd,a){ return cmd+' '+(parseFloat(a)+dx); }).replace(/([Vv])\s*(-?[\d.]+)/g, function(m,cmd,a){ return cmd+' '+(parseFloat(a)+dy); });
-      node.setAttribute('d', d);
-      if (node.getAttribute('data-cx')) { node.setAttribute('data-cx', parseFloat(node.getAttribute('data-cx'))+dx); node.setAttribute('data-cy', parseFloat(node.getAttribute('data-cy'))+dy); }
-    }
-    else if (type === 'polygon' || type === 'polyline') {
-      var points = (node.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
-      for (var pi = 0; pi + 1 < points.length; pi += 2) { points[pi] += dx; points[pi + 1] += dy; }
-      node.setAttribute('points', points.join(' '));
-    }
-    else if (type === 'g' || type === 'use') {
-      var transform = node.getAttribute('transform') || '';
-      node.setAttribute('transform', 'translate(' + dx + ' ' + dy + ')' + (transform ? ' ' + transform : ''));
-    }
+    translateNode(node, dx, dy);
   }
 
   // ---- Layers panel ----

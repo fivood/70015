@@ -190,14 +190,18 @@
             <div class="editor__panel">
               <div class="editor__panel-head">
                 <span class="editor__panel-title" data-i18n="ed_props">Properties</span>
-                <span class="editor__panel-sub" id="propType" data-i18n="ed_no_select">Nothing selected</span>
+                <span class="editor__panel-sub" id="propType">Nothing selected</span>
               </div>
               <div class="editor__props" id="props"></div>
             </div>
             <div class="editor__panel">
               <div class="editor__panel-head">
                 <span class="editor__panel-title" data-i18n="ed_source">Source</span>
-                <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button" data-i18n="b64_copy">Copy</button>
+                <div class="editor__panel-actions">
+                  <button class="btn btn--primary btn--sm" id="applyCodeBtn" type="button" data-i18n="ed_apply_source" disabled>Apply</button>
+                  <button class="btn btn--secondary btn--sm" id="revertCodeBtn" type="button" data-i18n="ed_revert_source" disabled>Revert</button>
+                  <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button" data-i18n="b64_copy">Copy</button>
+                </div>
               </div>
               <textarea class="editor__code" id="codeView" rows="8" spellcheck="false" data-i18n-placeholder="ed_source_placeholder" placeholder="SVG source appears here"></textarea>
             </div>

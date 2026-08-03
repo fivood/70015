@@ -339,6 +339,15 @@
   color: var(--text);
 }
 
+.editor__panel-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.editor__panel-actions .btn {
+  padding: 6px 8px;
+}
+
 .editor__panel-sub {
   font-size: 11px;
   color: var(--text-dim);
