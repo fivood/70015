@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Image Editor &mdash; 70015</title>
+  <meta name="description" content="Quickly rotate, flip, crop, style, blur, mosaic, and watermark images locally in your browser.">
+  <link rel="canonical" href="https://70015.net/image-editor">
+  <meta property="og:title" content="Quick Image Editor &mdash; 70015">
+  <meta property="og:description" content="Rotate, crop, style, and watermark images locally. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/image-editor">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 Quick Image Editor",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/image-editor",
+    "description": "Browser-based quick image editor.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/image-editor.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true"><img src="logo.svg" alt="" width="26" height="26"></span>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title" data-i18n="image_editor_hero">Quick Image Editor</h1>
+          <p class="hero__desc" data-i18n="image_editor_desc">Rotate, flip, crop, style, blur, mosaic, and watermark an image locally.</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="upload image-editor__drop" id="editorDrop">
+          <input class="upload__input" id="editorInput" type="file" accept="image/*" data-i18n-aria-label="choose_image">
+          <div class="upload__content">
+            <div class="upload__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 17l3-4 2.5 3 2-2.5L19 17"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+            </div>
+            <p class="upload__title" data-i18n="image_editor_drop">Drop an image here or click to upload</p>
+            <p class="upload__hint" data-i18n="image_editor_hint">Or paste an image from the clipboard (Ctrl+V).</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card image-editor__workspace" id="editorWorkspace" hidden>
+        <div class="image-editor__stage-wrap">
+          <div class="image-editor__stage" id="editorStage">
+            <canvas id="editorCanvas"></canvas>
+            <div class="image-editor__crop-box" id="editorCropBox" hidden></div>
+          </div>
+          <p class="settings__note" id="editorInfo">&mdash;</p>
+        </div>
+
+        <div class="image-editor__controls">
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="image_editor_transform">Transform</label>
+            <div class="actions__btns image-editor__buttons">
+              <button class="btn btn--secondary btn--sm" id="rotateLeftBtn" type="button" data-i18n="image_editor_rotate_left">Rotate left</button>
+              <button class="btn btn--secondary btn--sm" id="rotateRightBtn" type="button" data-i18n="image_editor_rotate_right">Rotate right</button>
+              <button class="btn btn--secondary btn--sm" id="flipHBtn" type="button" data-i18n="image_editor_flip_h">Flip horizontal</button>
+              <button class="btn btn--secondary btn--sm" id="flipVBtn" type="button" data-i18n="image_editor_flip_v">Flip vertical</button>
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="image_editor_crop">Crop</label>
+            <p class="settings__note" data-i18n="image_editor_crop_hint">Drag on the preview to select a crop area.</p>
+            <div class="actions__btns image-editor__buttons">
+              <button class="btn btn--secondary btn--sm" id="applyCropBtn" type="button" data-i18n="image_editor_apply_crop">Apply crop</button>
+              <button class="btn btn--secondary btn--sm" id="clearCropBtn" type="button" data-i18n="image_editor_clear_crop">Clear selection</button>
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" for="cornerRadius"><span data-i18n="image_editor_radius">Corner radius</span> <span class="settings__value" id="cornerRadiusValue">0</span> px</label>
+            <input class="range" type="range" id="cornerRadius" min="0" max="200" value="0">
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="image_editor_background">Background</label>
+            <div class="image-editor__inline">
+              <input type="color" id="backgroundColor" value="#ffffff" aria-label="Background color" data-i18n-aria-label="image_editor_background_color">
+              <label class="chip chip--btn"><input type="checkbox" id="transparentBackground" checked><span data-i18n="image_editor_transparent">Transparent</span></label>
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="image_editor_effect">Effect</label>
+            <div class="segmented" id="effectSelector">
+              <button class="segmented__btn is-active" data-value="none" type="button" data-i18n="image_editor_none">None</button>
+              <button class="segmented__btn" data-value="blur" type="button" data-i18n="image_editor_blur">Blur</button>
+              <button class="segmented__btn" data-value="mosaic" type="button" data-i18n="image_editor_mosaic">Mosaic</button>
+            </div>
+            <div class="settings__row image-editor__effect-row" id="effectAmountRow" hidden>
+              <label class="settings__label" for="effectAmount"><span data-i18n="image_editor_strength">Strength</span> <span class="settings__value" id="effectAmountValue">12</span></label>
+              <input class="range" type="range" id="effectAmount" min="2" max="40" value="12">
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="image_editor_watermark">Watermark</label>
+            <div class="image-editor__watermark">
+              <div class="field"><label for="watermarkText" data-i18n="image_editor_text">Text</label><input type="text" id="watermarkText" maxlength="120" placeholder="Optional watermark" data-i18n-placeholder="image_editor_text_placeholder"></div>
+              <div class="image-editor__inline"><input type="color" id="watermarkColor" value="#ffffff" aria-label="Watermark color" data-i18n-aria-label="image_editor_watermark_color"><label class="settings__label" for="watermarkOpacity"><span data-i18n="image_editor_opacity">Opacity</span> <span class="settings__value" id="watermarkOpacityValue">70</span>%</label><input class="range" type="range" id="watermarkOpacity" min="10" max="100" value="70"></div>
+            </div>
+          </div>
+
+          <div class="settings__group image-editor__export">
+            <label class="settings__label" data-i18n="image_editor_export">Export</label>
+            <div class="segmented" id="exportFormatSelector">
+              <button class="segmented__btn is-active" data-value="png" type="button">PNG</button>
+              <button class="segmented__btn" data-value="jpeg" type="button">JPEG</button>
+              <button class="segmented__btn" data-value="webp" type="button">WebP</button>
+            </div>
+            <button class="btn btn--primary" id="downloadEditedBtn" type="button" data-i18n="image_editor_download">Download edited image</button>
+            <button class="btn btn--secondary" id="resetEditorBtn" type="button" data-i18n="image_editor_reset">Reset</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/image-editor.js"></script>
+</body>
+</html>

@@ -67,9 +67,10 @@
     jpeg: 'JPEG is the most compatible format for photos; transparent areas become white.',
     png: 'PNG is lossless and keeps transparency, but files are usually larger.',
     ico: 'ICO is used for favicons. Include 32\u00d732 and 256\u00d7256 for best coverage.',
+    favicon: 'Creates favicon.ico, common PNG sizes, and a web manifest in one ZIP.',
   };
   const FORMAT_NOTE_KEYS = {
-    webp: 'conv_note_webp', avif: 'conv_note_avif', jpeg: 'conv_note_jpeg', png: 'conv_note_png', ico: 'conv_note_ico'
+    webp: 'conv_note_webp', avif: 'conv_note_avif', jpeg: 'conv_note_jpeg', png: 'conv_note_png', ico: 'conv_note_ico', favicon: 'conv_note_favicon'
   };
   function formatNoteText(fmt) {
     if (typeof window.t === 'function' && FORMAT_NOTE_KEYS[fmt]) return window.t(FORMAT_NOTE_KEYS[fmt]);
@@ -90,6 +91,7 @@
     jpeg: 'jpg',
     png: 'png',
     ico: 'ico',
+    favicon: 'zip',
   };
 
   const DEFAULT_ICO_SIZES = [32, 256];
@@ -100,7 +102,7 @@
     'blog-cover': { format: 'webp', resizeMode: 'custom', width: 1200, height: 630, customFit: 'cover', quality: 0.85 },
     thumbnail: { format: 'jpeg', resizeMode: 'custom', width: 300, height: 300, customFit: 'cover', quality: 0.8 },
     social: { format: 'jpeg', resizeMode: 'custom', width: 1080, height: 1080, customFit: 'cover', quality: 0.9 },
-    favicon: { format: 'ico', resizeMode: 'original', icoSizes: [32, 256], icoCropMode: 'cover', quality: 0.9 },
+    favicon: { format: 'favicon', resizeMode: 'original', icoCropMode: 'cover', quality: 0.9 },
   };
 
   // Utilities
@@ -405,6 +407,11 @@
       const zip = new JSZip();
       const folder = zip.folder('converted-images');
       readyItems.forEach((item) => {
+        if (item.result.format === 'favicon' && item.result.files) {
+          const kitFolder = folder.folder(getBaseName(item.file.name));
+          item.result.files.forEach((file) => kitFolder.file(file.name, file.blob));
+          return;
+        }
         const name = `${getBaseName(item.file.name)}.${FORMAT_EXTENSIONS[item.result.format]}`;
         folder.file(name, item.result.blob);
       });
@@ -501,7 +508,7 @@
         item.result = result;
         item.status = 'ready';
         if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
-        item.blobUrl = URL.createObjectURL(result.blob);
+        item.blobUrl = URL.createObjectURL(result.previewBlob || result.blob);
       } catch (err) {
         if (generation !== conversionGeneration || !state.files.includes(item)) return;
         item.status = 'error';
@@ -573,6 +580,9 @@
       try {
         if (format === 'ico') {
           return convertToIco(img, settings);
+        }
+        if (format === 'favicon') {
+          return convertToFaviconKit(img, settings);
         }
 
         var canvas = document.createElement('canvas');
@@ -693,6 +703,69 @@
       originalWidth: img.naturalWidth,
       originalHeight: img.naturalHeight,
       format: 'ico',
+    };
+  }
+
+  async function renderSquarePng(img, size, mode, visibleBounds) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = getCanvasContext(canvas);
+    ctx.clearRect(0, 0, size, size);
+    drawSquareImage(ctx, img, size, mode, visibleBounds);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error(t('ann_export_fail', 'Export failed'));
+    return blob;
+  }
+
+  async function convertToFaviconKit(img, settings) {
+    if (typeof JSZip !== 'function') throw new Error(t('conv_zip_failed', 'ZIP failed'));
+    const visibleBounds = getVisibleImageBounds(img);
+    const pngSizes = [16, 32, 48, 180, 192, 512];
+    const files = [];
+    const pngBlobs = {};
+    for (const size of pngSizes) {
+      pngBlobs[size] = await renderSquarePng(img, size, 'cover', visibleBounds);
+    }
+
+    const ico = await convertToIco(img, {
+      ...settings,
+      icoSizes: [16, 32, 48, 64, 128, 256],
+      icoCropMode: 'cover'
+    });
+    files.push({ name: 'favicon.ico', blob: ico.blob });
+    files.push({ name: 'favicon-16x16.png', blob: pngBlobs[16] });
+    files.push({ name: 'favicon-32x32.png', blob: pngBlobs[32] });
+    files.push({ name: 'favicon-48x48.png', blob: pngBlobs[48] });
+    files.push({ name: 'apple-touch-icon.png', blob: pngBlobs[180] });
+    files.push({ name: 'android-chrome-192x192.png', blob: pngBlobs[192] });
+    files.push({ name: 'android-chrome-512x512.png', blob: pngBlobs[512] });
+
+    const manifest = {
+      name: 'Web App',
+      short_name: 'Web App',
+      icons: [
+        { src: 'android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: 'android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
+      ],
+      theme_color: '#ffffff',
+      background_color: '#ffffff',
+      display: 'standalone'
+    };
+    files.push({ name: 'site.webmanifest', blob: new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/manifest+json' }) });
+
+    const zip = new JSZip();
+    files.forEach((file) => zip.file(file.name, file.blob));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    return {
+      blob,
+      previewBlob: pngBlobs[192],
+      files,
+      width: 512,
+      height: 512,
+      originalWidth: img.naturalWidth,
+      originalHeight: img.naturalHeight,
+      format: 'favicon'
     };
   }
 
@@ -889,7 +962,9 @@
 
     let meta = `${formatBytes(item.file.size)}`;
     if (isReady) {
-      if (item.result.format === 'ico' && item.result.icoSizes) {
+      if (item.result.format === 'favicon' && item.result.files) {
+        meta = tpl('conv_favicon_meta', 'Favicon kit · {count} files · {size}', { count: item.result.files.length, size: formatBytes(item.result.blob.size) });
+      } else if (item.result.format === 'ico' && item.result.icoSizes) {
         const sizesText = item.result.icoSizes.join(', ') + ' px';
         meta = `ICO (${sizesText}) \u00b7 ${formatBytes(item.result.blob.size)}${reduction}`;
       } else {

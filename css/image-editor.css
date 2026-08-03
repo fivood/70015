@@ -1,0 +1,95 @@
+/* Quick Image Editor */
+.image-editor__drop {
+  margin-bottom: var(--space-sm);
+}
+
+.image-editor__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.image-editor__stage-wrap {
+  min-width: 0;
+}
+
+.image-editor__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  padding: var(--space);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: repeating-conic-gradient(var(--surface-3) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+  touch-action: none;
+}
+
+.image-editor__stage canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  width: auto;
+  height: auto;
+  cursor: crosshair;
+}
+
+.image-editor__crop-box {
+  position: absolute;
+  border: 2px dashed var(--primary);
+  background: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+.image-editor__controls {
+  display: grid;
+  gap: var(--space);
+}
+
+.image-editor__buttons {
+  flex-wrap: wrap;
+}
+
+.image-editor__inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.image-editor__inline input[type="color"] {
+  width: 44px;
+  height: 36px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.image-editor__watermark {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.image-editor__effect-row {
+  margin-top: var(--space-sm);
+}
+
+.image-editor__export {
+  display: grid;
+  gap: var(--space-sm);
+  padding-top: var(--space);
+  border-top: 1px solid var(--border);
+}
+
+.image-editor__export .btn + .btn {
+  margin-top: var(--space-xs);
+}
+
+@media (max-width: 800px) {
+  .image-editor__workspace {
+    grid-template-columns: 1fr;
+  }
+}

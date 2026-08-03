@@ -4,6 +4,9 @@ A small set of browser-based image tools. Everything runs locally; no files are 
 
 ## Tools
 
+- **[Image Metadata](https://70015.net/metadata)** — view EXIF details and remove embedded metadata locally before sharing.
+- **[Quick Image Editor](https://70015.net/image-editor)** — rotate, flip, crop, style, blur, mosaic, and watermark images locally.
+
 - **[Image Converter](https://70015.net/converter)** — convert to WebP / AVIF / JPEG / PNG / ICO, resize, compress, and download as ZIP.
 - **[Image Size](https://70015.net/resize)** — crop a single image to a size or ratio, stitch multiple images together, or scale by exact dimensions.
 - **[Web Snapshot](https://70015.net/snapshot)** — capture a region of any web page or PDF via screen sharing or PDF.js. Drag to select, stitch pages, export PNG.

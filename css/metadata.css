@@ -1,0 +1,108 @@
+/* Image Metadata */
+.metadata__drop {
+  margin-bottom: var(--space-sm);
+}
+
+.metadata__summary {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.metadata__preview-media {
+  min-height: 180px;
+  background: repeating-conic-gradient(var(--surface-3) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+}
+
+.metadata__preview-media img {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.metadata__file h2 {
+  margin: 0 0 var(--space-sm);
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.metadata__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.metadata__fact {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.metadata__cleaner {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.metadata__quality-row {
+  margin-top: var(--space);
+}
+
+.metadata__cleaner .btn {
+  margin-top: var(--space-sm);
+}
+
+.metadata__details {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.metadata__table {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.5fr) minmax(0, 1fr);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.metadata__row {
+  display: contents;
+}
+
+.metadata__key,
+.metadata__value {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.metadata__key {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.metadata__value {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+.metadata__row:last-child .metadata__key,
+.metadata__row:last-child .metadata__value {
+  border-bottom: 0;
+}
+
+@media (max-width: 620px) {
+  .metadata__summary {
+    grid-template-columns: 1fr;
+  }
+}
