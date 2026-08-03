@@ -52,6 +52,9 @@
       'd_metadata': 'View EXIF details and remove embedded metadata locally before sharing.',
       't_image_editor': 'Quick Image Editor',
       'd_image_editor': 'Rotate, flip, crop, style, blur, mosaic, and watermark images locally.',
+      'mobile_snapshot_notice': 'On mobile, screen sharing may be unavailable and region selection is harder. Use PDF mode or a desktop browser for the best result.',
+      'mobile_color_notice': 'Screen picking is often unavailable on mobile. Use the swatch or HEX field instead.',
+      'mobile_editor_notice': 'The SVG editor works on touch screens, but its dense toolbar and canvas are easier to use on a larger screen.',
 
       // Converter
       'conv_title': 'Image Converter \u2014 70015',
@@ -627,6 +630,9 @@
       'home_tools': '\u5de5\u5177',
       'home_count': '12 个工具',
       'home_intro': '\u4e00\u5957\u57fa\u4e8e\u6d4f\u89c8\u5668\u7684\u56fe\u7247\u5de5\u5177\u3002\u5168\u90e8\u672c\u5730\u8fd0\u884c\uff0c\u65e0\u4e0a\u4f20\uff0c\u65e0\u670d\u52a1\u5668\u3002',
+      'mobile_snapshot_notice': '\u79fb\u52a8\u7aef\u4e0a\u5c4f\u5e55\u5171\u4eab\u53ef\u80fd\u4e0d\u53ef\u7528\uff0c\u533a\u57df\u9009\u62e9\u4e5f\u66f4\u96be\u64cd\u4f5c\u3002\u5efa\u8bae\u5207\u6362\u4e3a PDF \u6a21\u5f0f\u6216\u4f7f\u7528\u684c\u9762\u6d4f\u89c8\u5668\u3002',
+      'mobile_color_notice': '\u79fb\u52a8\u7aef\u901a\u5e38\u65e0\u6cd5\u4f7f\u7528\u5c4f\u5e55\u53d6\u8272\uff0c\u8bf7\u6539\u7528\u8272\u5757\u6216 HEX \u8f93\u5165\u3002',
+      'mobile_editor_notice': 'SVG \u7f16\u8f91\u5668\u652f\u6301\u89e6\u63a7\uff0c\u4f46\u5de5\u5177\u680f\u548c\u753b\u5e03\u64cd\u4f5c\u8f83\u5bc6\u96c6\uff0c\u5927\u5c4f\u8bbe\u5907\u66f4\u6613\u4f7f\u7528\u3002',
 
       't_converter': '\u56fe\u7247\u8f6c\u6362',
       'd_converter': '\u6279\u91cf\u8f6c\u6362\u4e3a WebP / AVIF / JPEG / PNG / ICO\u3002\u8c03\u6574\u5c3a\u5bf8\u3001\u538b\u7f29\u3001\u6253\u5305\u4e0b\u8f7d\u3002',

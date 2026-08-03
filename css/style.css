@@ -318,6 +318,24 @@ body {
   text-wrap: balance;
 }
 
+.mobile-notice {
+  display: none;
+  margin: 0 0 var(--space-lg);
+  padding: var(--space) var(--space-lg);
+  border: 1px solid rgba(157, 99, 24, 0.2);
+  border-radius: var(--radius);
+  background: rgba(255, 205, 112, 0.22);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .mobile-notice {
+    display: block;
+  }
+}
+
 /* Tools grid on homepage */
 .tools {
   padding: var(--space-lg);
