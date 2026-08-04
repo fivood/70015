@@ -787,7 +787,7 @@
       html += '<div class="prop-actions"><button type="button" class="btn btn--sm" id="propEditNodes">' + (editingNodes ? t('ed_finish_path_nodes', 'Finish editing') : t('ed_edit_path_nodes', 'Edit nodes')) + '</button>';
       if (editingNodes) html += '<button type="button" class="btn btn--sm" id="propDeleteNode" disabled>' + t('ed_delete_path_node', 'Delete node') + '</button>';
       html += '</div><p class="prop-hint">' + t('ed_path_node_hint', 'Drag anchors and curve controls. Arc endpoints can be moved.') + '</p>';
-      html += '<p class="prop-hint prop-hint--mobile">' + t('ed_path_mobile_hint', 'Complex paths are easier to refine on a desktop.') + '</p></div>';
+      html += '<p class="prop-hint prop-hint--mobile">' + t('ed_path_mobile_hint', 'When path nodes are crowded, zoom in before editing.') + '</p></div>';
     }
     if (type === 'text') {
       var ts = p.textContent || '';
