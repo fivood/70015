@@ -41,6 +41,13 @@
   var clipboard = [];
   var codeDirty = false;
   var geometryRatioLocked = true;
+  var pathEditing = null;
+  var pathNodeDragging = null;
+
+  var pathNodeLayer = document.createElement('div');
+  pathNodeLayer.className = 'editor__path-nodes';
+  pathNodeLayer.hidden = true;
+  overlay.appendChild(pathNodeLayer);
 
   // Document bounds and viewport (zoom/pan via viewBox)
   var DOC = { x: 0, y: 0, w: 800, h: 600 };
@@ -83,6 +90,85 @@
   function formatNumber(value) {
     var rounded = Math.round(Number(value) * 1000) / 1000;
     return String(Object.is(rounded, -0) ? 0 : rounded);
+  }
+
+  var PATH_PARAM_COUNTS = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0 };
+
+  function parsePathData(data) {
+    var tokens = String(data || '').match(/[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g) || [];
+    var segments = [], index = 0, command = null;
+    var x = 0, y = 0, subpathX = 0, subpathY = 0;
+    while (index < tokens.length) {
+      if (/^[a-zA-Z]$/.test(tokens[index])) command = tokens[index++];
+      if (!command) throw new Error('Missing path command');
+      var upper = command.toUpperCase();
+      var relative = command !== upper;
+      var count = PATH_PARAM_COUNTS[upper];
+      if (count === undefined) throw new Error('Unsupported path command');
+      if (upper === 'Z') {
+        segments.push({ cmd: 'Z', values: [] });
+        x = subpathX; y = subpathY; command = null;
+        continue;
+      }
+      var firstGroup = true;
+      while (index < tokens.length && !/^[a-zA-Z]$/.test(tokens[index])) {
+        if (index + count > tokens.length) throw new Error('Incomplete path command');
+        var values = tokens.slice(index, index + count).map(Number);
+        if (values.some(function (value) { return !isFinite(value); })) throw new Error('Invalid path number');
+        index += count;
+        var normalized = upper;
+        if (upper === 'M' && !firstGroup) normalized = 'L';
+        if (normalized === 'H') {
+          values = [relative ? x + values[0] : values[0], y];
+          normalized = 'L';
+        } else if (normalized === 'V') {
+          values = [x, relative ? y + values[0] : values[0]];
+          normalized = 'L';
+        } else if (relative) {
+          if (normalized === 'A') {
+            values[5] += x; values[6] += y;
+          } else {
+            for (var valueIndex = 0; valueIndex < values.length; valueIndex += 2) {
+              values[valueIndex] += x;
+              values[valueIndex + 1] += y;
+            }
+          }
+        }
+        segments.push({ cmd: normalized, values: values });
+        var endpoint = pathSegmentEndpoint(segments[segments.length - 1]);
+        if (endpoint) { x = endpoint.x; y = endpoint.y; }
+        if (normalized === 'M') { subpathX = x; subpathY = y; }
+        firstGroup = false;
+        if (upper === 'M') command = relative ? 'l' : 'L';
+      }
+      if (firstGroup) throw new Error('Missing path values');
+    }
+    if (!segments.length || segments[0].cmd !== 'M') throw new Error('Path must start with M');
+    return segments;
+  }
+
+  function serializePathData(segments) {
+    return segments.map(function (segment) {
+      return segment.cmd + (segment.values.length ? segment.values.map(formatNumber).join(' ') : '');
+    }).join(' ');
+  }
+
+  function pathSegmentEndpoint(segment) {
+    if (!segment) return null;
+    var indexes = { M: [0, 1], L: [0, 1], C: [4, 5], S: [2, 3], Q: [2, 3], T: [0, 1], A: [5, 6] }[segment.cmd];
+    return indexes ? { x: segment.values[indexes[0]], y: segment.values[indexes[1]], xIndex: indexes[0], yIndex: indexes[1] } : null;
+  }
+
+  function pathSegmentStart(segments, targetIndex) {
+    var current = { x: 0, y: 0 }, subpath = { x: 0, y: 0 };
+    for (var i = 0; i < targetIndex; i++) {
+      var segment = segments[i];
+      var endpoint = pathSegmentEndpoint(segment);
+      if (endpoint) current = { x: endpoint.x, y: endpoint.y };
+      if (segment.cmd === 'M') subpath = { x: current.x, y: current.y };
+      if (segment.cmd === 'Z') current = { x: subpath.x, y: subpath.y };
+    }
+    return current;
   }
 
   function matrixOf(node) {
@@ -287,6 +373,7 @@
     DOC = state.document ? { x: state.document.x, y: state.document.y, w: state.document.w, h: state.document.h } : { x: restoredViewBox[0] || 0, y: restoredViewBox[1] || 0, w: restoredViewBox[2] || 800, h: restoredViewBox[3] || 600 };
     VB = state.viewport ? { x: state.viewport.x, y: state.viewport.y, w: state.viewport.w, h: state.viewport.h } : { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
     initGrid();
+    clearPathEditing();
     selected = [];
     applyViewBox();
     syncCanvasControls();
@@ -312,7 +399,11 @@
     return Array.from(artboard.children).filter(function (node) { return node.tagName !== 'defs' && node.id !== 'gridRect'; });
   }
 
-  function selectSingle(node) { selected = node && !isLocked(node) && !isHidden(node) ? [node] : []; updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons(); }
+  function selectSingle(node) {
+    if (!pathEditing || pathEditing.node !== node) clearPathEditing();
+    selected = node && !isLocked(node) && !isHidden(node) ? [node] : [];
+    updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons();
+  }
 
   function toggleSelect(node) {
     if (isLocked(node) || isHidden(node)) return;
@@ -320,16 +411,18 @@
     if (idx >= 0) selected.splice(idx, 1);
     else selected.push(node);
     if (selected.length === 0) { node = null; }
+    if (selected.length !== 1 || !pathEditing || pathEditing.node !== selected[0]) clearPathEditing();
     updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons();
   }
 
-  function deselect() { selected = []; updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons(); }
+  function deselect() { clearPathEditing(); selected = []; updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons(); }
 
   function updateSelection() {
     if (selected.length === 0) {
       selBox.hidden = true;
       handles.forEach(function (h) { h.hidden = true; });
       rotateHandle.hidden = true;
+      renderPathNodes();
       return;
     }
     var stageRect = stage.getBoundingClientRect();
@@ -365,6 +458,217 @@
       rotateHandle.style.left = (x + w / 2) + 'px';
       rotateHandle.style.top = (y - 28) + 'px';
     }
+    var editingThisPath = !!pathEditing && selected.length === 1 && pathEditing.node === primary();
+    if (editingThisPath) {
+      handles.forEach(function (handle) { handle.hidden = true; });
+      rotateHandle.hidden = true;
+    }
+    renderPathNodes();
+  }
+
+  // ---- Path node editing ----
+  function clearPathEditing() {
+    pathEditing = null;
+    pathNodeDragging = null;
+    if (pathNodeLayer) { pathNodeLayer.hidden = true; pathNodeLayer.innerHTML = ''; }
+  }
+
+  function startPathEditing(node) {
+    try {
+      var segments = parsePathData(node.getAttribute('d'));
+      var nodeCount = segments.filter(pathSegmentEndpoint).length;
+      if (nodeCount > 500) {
+        showToast(t('ed_path_too_many_nodes', 'This path has too many nodes to edit comfortably.'));
+        return false;
+      }
+      pathEditing = { node: node, segments: segments, selectedIndex: null };
+      renderPathNodes();
+      updateSelection();
+      return true;
+    } catch (_) {
+      showToast(t('ed_path_parse_fail', 'This path uses data that cannot be edited here.'));
+      return false;
+    }
+  }
+
+  function pathPointToOverlay(node, x, y) {
+    var ctm = node.getScreenCTM();
+    if (!ctm) return null;
+    var point = new DOMPoint(x, y).matrixTransform(ctm);
+    var rect = stage.getBoundingClientRect();
+    return { x: point.x - rect.left, y: point.y - rect.top };
+  }
+
+  function pointerInPath(e, node) {
+    var ctm = node.getScreenCTM();
+    if (!ctm) return null;
+    var point = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return { x: point.x, y: point.y };
+  }
+
+  function addPathGuide(from, to) {
+    if (!from || !to) return;
+    var line = document.createElement('span');
+    var dx = to.x - from.x, dy = to.y - from.y;
+    line.className = 'editor__path-guide';
+    line.style.left = from.x + 'px';
+    line.style.top = from.y + 'px';
+    line.style.width = Math.hypot(dx, dy) + 'px';
+    line.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
+    pathNodeLayer.appendChild(line);
+  }
+
+  function addPathHandle(segmentIndex, pointName, xIndex, yIndex, control) {
+    var segment = pathEditing.segments[segmentIndex];
+    var point = pathPointToOverlay(pathEditing.node, segment.values[xIndex], segment.values[yIndex]);
+    if (!point) return null;
+    var handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'editor__path-node editor__path-node--' + (control ? 'control' : 'anchor');
+    if (!control && pathEditing.selectedIndex === segmentIndex) handle.classList.add('is-active');
+    handle.dataset.segment = segmentIndex;
+    handle.dataset.point = pointName;
+    handle.dataset.xIndex = xIndex;
+    handle.dataset.yIndex = yIndex;
+    handle.style.left = point.x + 'px';
+    handle.style.top = point.y + 'px';
+    handle.title = control ? t('ed_path_control_node', 'Curve control') : t('ed_path_anchor_node', 'Path node');
+    handle.setAttribute('aria-label', handle.title + ' ' + (segmentIndex + 1));
+    handle.addEventListener('focus', function () {
+      if (!pathEditing) return;
+      pathEditing.selectedIndex = segmentIndex;
+      pathNodeLayer.querySelectorAll('.editor__path-node--anchor').forEach(function (anchor) { anchor.classList.remove('is-active'); });
+      var anchor = pathNodeLayer.querySelector('.editor__path-node--anchor[data-segment="' + segmentIndex + '"]');
+      if (anchor) anchor.classList.add('is-active');
+      syncPathNodeButtons();
+    });
+    pathNodeLayer.appendChild(handle);
+    return point;
+  }
+
+  function renderPathNodes() {
+    if (!pathNodeLayer) return;
+    pathNodeLayer.innerHTML = '';
+    if (!pathEditing || !pathEditing.node.isConnected || selected.length !== 1 || primary() !== pathEditing.node) {
+      pathNodeLayer.hidden = true;
+      return;
+    }
+    pathNodeLayer.hidden = false;
+    pathEditing.segments.forEach(function (segment, segmentIndex) {
+      var endpoint = pathSegmentEndpoint(segment);
+      if (!endpoint) return;
+      var endPoint = pathPointToOverlay(pathEditing.node, endpoint.x, endpoint.y);
+      var start = pathSegmentStart(pathEditing.segments, segmentIndex);
+      var startPoint = pathPointToOverlay(pathEditing.node, start.x, start.y);
+      if (segment.cmd === 'C') {
+        var c1 = pathPointToOverlay(pathEditing.node, segment.values[0], segment.values[1]);
+        var c2 = pathPointToOverlay(pathEditing.node, segment.values[2], segment.values[3]);
+        addPathGuide(startPoint, c1); addPathGuide(endPoint, c2);
+        addPathHandle(segmentIndex, 'c1', 0, 1, true);
+        addPathHandle(segmentIndex, 'c2', 2, 3, true);
+      } else if (segment.cmd === 'S') {
+        var smoothControl = pathPointToOverlay(pathEditing.node, segment.values[0], segment.values[1]);
+        addPathGuide(endPoint, smoothControl);
+        addPathHandle(segmentIndex, 'c2', 0, 1, true);
+      } else if (segment.cmd === 'Q') {
+        var quadraticControl = pathPointToOverlay(pathEditing.node, segment.values[0], segment.values[1]);
+        addPathGuide(startPoint, quadraticControl); addPathGuide(endPoint, quadraticControl);
+        addPathHandle(segmentIndex, 'c1', 0, 1, true);
+      }
+      addPathHandle(segmentIndex, 'endpoint', endpoint.xIndex, endpoint.yIndex, false);
+    });
+    syncPathNodeButtons();
+  }
+
+  function syncPathNodeButtons() {
+    var button = document.getElementById('propDeleteNode');
+    if (!button) return;
+    var segment = pathEditing && pathEditing.selectedIndex !== null ? pathEditing.segments[pathEditing.selectedIndex] : null;
+    var endpointCount = pathEditing ? pathEditing.segments.filter(pathSegmentEndpoint).length : 0;
+    button.disabled = !segment || segment.cmd === 'M' || endpointCount <= 2;
+  }
+
+  function detachParametricPath(node) {
+    ['data-points', 'data-cx', 'data-cy', 'data-r'].forEach(function (name) { node.removeAttribute(name); });
+  }
+
+  function startPathNodeDrag(e, handle) {
+    if (!pathEditing) return;
+    var segmentIndex = Number(handle.dataset.segment);
+    pathEditing.selectedIndex = segmentIndex;
+    pathNodeDragging = {
+      pointerId: e.pointerId,
+      segmentIndex: segmentIndex,
+      point: handle.dataset.point,
+      xIndex: Number(handle.dataset.xIndex),
+      yIndex: Number(handle.dataset.yIndex),
+      moved: false
+    };
+    renderPathNodes();
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function shiftPathControl(segment, indexes, dx, dy) {
+    if (!segment || !indexes) return;
+    segment.values[indexes[0]] += dx;
+    segment.values[indexes[1]] += dy;
+  }
+
+  function updatePathNodeDrag(e) {
+    if (!pathNodeDragging || !pathEditing) return;
+    var point = pointerInPath(e, pathEditing.node);
+    if (!point) return;
+    var drag = pathNodeDragging;
+    var segment = pathEditing.segments[drag.segmentIndex];
+    var oldX = segment.values[drag.xIndex], oldY = segment.values[drag.yIndex];
+    var nextX = snapToGrid ? snapVal(point.x) : point.x;
+    var nextY = snapToGrid ? snapVal(point.y) : point.y;
+    var dx = nextX - oldX, dy = nextY - oldY;
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return;
+    segment.values[drag.xIndex] = nextX;
+    segment.values[drag.yIndex] = nextY;
+    if (drag.point === 'endpoint') {
+      if (segment.cmd === 'C') shiftPathControl(segment, [2, 3], dx, dy);
+      else if (segment.cmd === 'S' || segment.cmd === 'Q') shiftPathControl(segment, [0, 1], dx, dy);
+      var nextSegment = pathEditing.segments[drag.segmentIndex + 1];
+      if (nextSegment && (nextSegment.cmd === 'C' || nextSegment.cmd === 'Q')) shiftPathControl(nextSegment, [0, 1], dx, dy);
+    }
+    drag.moved = true;
+    detachParametricPath(pathEditing.node);
+    pathEditing.node.setAttribute('d', serializePathData(pathEditing.segments));
+    syncCode(); updateSelection(); syncGeometryFields();
+  }
+
+  function endPathNodeDrag(e) {
+    if (!pathNodeDragging) return;
+    var changed = pathNodeDragging.moved;
+    pathNodeDragging = null;
+    try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (changed) {
+      snapshot();
+      updateProps();
+      updateLayers();
+    } else {
+      renderPathNodes();
+      syncPathNodeButtons();
+    }
+  }
+
+  function deleteSelectedPathNode() {
+    if (!pathEditing || pathEditing.selectedIndex === null) return false;
+    var index = pathEditing.selectedIndex;
+    var segment = pathEditing.segments[index];
+    var endpointCount = pathEditing.segments.filter(pathSegmentEndpoint).length;
+    if (!segment || segment.cmd === 'M' || endpointCount <= 2) return false;
+    pathEditing.segments.splice(index, 1);
+    pathEditing.selectedIndex = null;
+    detachParametricPath(pathEditing.node);
+    pathEditing.node.setAttribute('d', serializePathData(pathEditing.segments));
+    syncCode(); updateSelection(); syncGeometryFields(); updateProps(); updateLayers(); snapshot();
+    showToast(t('ed_path_node_deleted', 'Path node deleted'));
+    return true;
   }
 
 
@@ -476,6 +780,15 @@
       var pts = p.getAttribute('data-points') || '5';
       html += '<div class="prop-row"><label>Points</label><input class="range" type="range" id="propStarPts" min="3" max="12" value="' + pts + '"><span class="prop-value" id="propStarPtsVal">' + pts + '</span></div>';
     }
+    if ((type === 'path' || type === 'star') && selected.length === 1) {
+      var editingNodes = !!pathEditing && pathEditing.node === p;
+      html += '<div class="prop-section prop-section--path">';
+      html += '<div class="prop-section__head"><span>' + t('ed_path_nodes', 'Path nodes') + '</span></div>';
+      html += '<div class="prop-actions"><button type="button" class="btn btn--sm" id="propEditNodes">' + (editingNodes ? t('ed_finish_path_nodes', 'Finish editing') : t('ed_edit_path_nodes', 'Edit nodes')) + '</button>';
+      if (editingNodes) html += '<button type="button" class="btn btn--sm" id="propDeleteNode" disabled>' + t('ed_delete_path_node', 'Delete node') + '</button>';
+      html += '</div><p class="prop-hint">' + t('ed_path_node_hint', 'Drag anchors and curve controls. Arc endpoints can be moved.') + '</p>';
+      html += '<p class="prop-hint prop-hint--mobile">' + t('ed_path_mobile_hint', 'Complex paths are easier to refine on a desktop.') + '</p></div>';
+    }
     if (type === 'text') {
       var ts = p.textContent || '';
       var fs = p.getAttribute('font-size') || '16';
@@ -586,6 +899,21 @@
     bindGeometryInput('propY', 'y');
     bindGeometryInput('propWidth', 'width');
     bindGeometryInput('propHeight', 'height');
+
+    var propEditNodes = document.getElementById('propEditNodes');
+    if (propEditNodes) propEditNodes.addEventListener('click', function () {
+      if (pathEditing && pathEditing.node === p) {
+        clearPathEditing();
+        updateSelection();
+        updateProps();
+      } else if (startPathEditing(p)) {
+        updateProps();
+        updateSelection();
+      }
+    });
+    var propDeleteNode = document.getElementById('propDeleteNode');
+    if (propDeleteNode) propDeleteNode.addEventListener('click', deleteSelectedPathNode);
+    syncPathNodeButtons();
 
     var propFill = document.getElementById('propFill');
     if (propFill) { propFill.addEventListener('input', function () { applyToSelected(function (n) { n.setAttribute('fill', propFill.value); }); }); propFill.addEventListener('change', function () { snapAll(function (n) { n.setAttribute('fill', propFill.value); }); }); }
@@ -889,6 +1217,8 @@
 
   // ---- Drawing ----
   stage.addEventListener('pointerdown', function (e) {
+    var pathHandle = e.target.closest('.editor__path-node');
+    if (pathHandle) { startPathNodeDrag(e, pathHandle); return; }
     if (e.target.closest('.editor__handle') || e.target === rotateHandle) {
       if (e.target === rotateHandle) startRotate(e); else startResize(e);
       return;
@@ -928,6 +1258,7 @@
   }
 
   stage.addEventListener('pointermove', function (e) {
+    if (pathNodeDragging) { updatePathNodeDrag(e); return; }
     if (panning) { updatePan(e); return; }
     if (drawing) { updateDraw(e); return; }
     if (dragging) { updateDrag(e); return; }
@@ -988,6 +1319,7 @@
   }
 
   stage.addEventListener('pointerup', function (e) {
+    if (pathNodeDragging) { endPathNodeDrag(e); return; }
     if (panning) { endPan(e); return; }
     if (drawing) { endDraw(e); return; }
     if (dragging) { endDrag(e); return; }
@@ -998,11 +1330,12 @@
   stage.addEventListener('pointercancel', function (e) {
     if (drawing && drawing.node) drawing.node.remove();
     if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; }
+    if (pathNodeDragging) endPathNodeDrag(e);
     drawing = null; dragging = null; resizing = null; rotating = null; panning = null; penPoints = [];
     polygonPoints = [];
   });
 
-  stage.addEventListener('pointerleave', function (e) { if (!e.buttons) { if (drawing) endDraw(e); if (dragging) endDrag(e); if (resizing) endResize(e); if (rotating) endRotate(e); if (panning) endPan(e); } });
+  stage.addEventListener('pointerleave', function (e) { if (!e.buttons) { if (pathNodeDragging) endPathNodeDrag(e); if (drawing) endDraw(e); if (dragging) endDrag(e); if (resizing) endResize(e); if (rotating) endRotate(e); if (panning) endPan(e); } });
 
   function endDraw(e) { var n = drawing.node; drawing = null; penPoints = []; if (n) { selectSingle(n); snapshot(); } }
 
@@ -1698,19 +2031,24 @@
       if (e.key === 'y') { e.preventDefault(); redo(); return; }
       if (e.key === 'd' && selected.length) { e.preventDefault(); document.getElementById('duplicateBtn').click(); return; }
       if (e.key === 'g' && selected.length) { e.preventDefault(); if (e.shiftKey) document.getElementById('ungroupBtn').click(); else document.getElementById('groupBtn').click(); return; }
-      if (e.key === 'a') { e.preventDefault(); selected = userElements().filter(function (node) { return !isLocked(node) && !isHidden(node); }); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
+      if (e.key === 'a') { e.preventDefault(); clearPathEditing(); selected = userElements().filter(function (node) { return !isLocked(node) && !isHidden(node); }); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
       if (e.key === 'c') { e.preventDefault(); copySelected(false); return; }
       if (e.key === 'x') { e.preventDefault(); copySelected(true); return; }
       if (e.key === 'v') { e.preventDefault(); pasteClipboard(); return; }
     }
-    if ((e.key === 'Delete' || e.key === 'Backspace') && selected.length) { e.preventDefault(); document.getElementById('deleteBtn').click(); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selected.length) {
+      e.preventDefault();
+      if (pathEditing) deleteSelectedPathNode();
+      else document.getElementById('deleteBtn').click();
+    }
     if (e.key === 'Escape') {
+      if (pathEditing) { clearPathEditing(); updateSelection(); updateProps(); return; }
       if (drawing && drawing.node) { drawing.node.remove(); drawing = null; penPoints = []; return; }
       if (polygonPoints.length) { polygonPoints = []; if (polygonPreview) { polygonPreview.remove(); polygonPreview = null; } return; }
       deselect();
     }
     // Arrow nudge
-    if (selected.length && !spaceDown) {
+    if (selected.length && !spaceDown && !pathEditing) {
       var step = e.shiftKey ? 10 : 1;
       if (e.key === 'ArrowLeft') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x - step, bb.y); }); updateSelection(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x + step, bb.y); }); updateSelection(); }
