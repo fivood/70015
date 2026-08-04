@@ -412,6 +412,68 @@
   gap: var(--space-sm);
 }
 
+.prop-section {
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.prop-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.prop-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.prop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.prop-grid label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.prop-grid input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.prop-grid input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* Property row in sidebar */
 .prop-row {
   display: flex;
@@ -443,7 +505,8 @@
 }
 
 .prop-row input[type="text"],
-.prop-row input[type="number"] {
+.prop-row input[type="number"],
+.prop-row select {
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
@@ -456,7 +519,8 @@
 }
 
 .prop-row input[type="text"]:focus,
-.prop-row input[type="number"]:focus {
+.prop-row input[type="number"]:focus,
+.prop-row select:focus {
   outline: none;
   border-color: var(--primary);
 }

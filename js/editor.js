@@ -40,6 +40,7 @@
   var uidCounter = 0;
   var clipboard = [];
   var codeDirty = false;
+  var geometryRatioLocked = true;
 
   // Document bounds and viewport (zoom/pan via viewBox)
   var DOC = { x: 0, y: 0, w: 800, h: 600 };
@@ -68,12 +69,20 @@
   }
 
   function escapeAttr(s) { return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function optionMarkup(value, label, current) {
+    return '<option value="' + escapeAttr(String(value)) + '"' + (String(value) === String(current) ? ' selected' : '') + '>' + escapeAttr(String(label)) + '</option>';
+  }
   function normalizeHex(c) {
     if (!c) return '#000000';
     if (c[0] === '#') { if (c.length === 7) return c; if (c.length === 4) return '#' + c[1]+c[1]+c[2]+c[2]+c[3]+c[3]; return '#000000'; }
     var m = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (m) return '#' + [1,2,3].map(function(i){ return ('0'+parseInt(m[i],10).toString(16)).slice(-2); }).join('');
     return '#000000';
+  }
+
+  function formatNumber(value) {
+    var rounded = Math.round(Number(value) * 1000) / 1000;
+    return String(Object.is(rounded, -0) ? 0 : rounded);
   }
 
   function matrixOf(node) {
@@ -384,7 +393,10 @@
   }
 
   // ---- Properties panel ----
-  function getElementType(node) { return node.tagName.toLowerCase(); }
+  function getElementType(node) {
+    var tag = node.tagName.toLowerCase();
+    return tag === 'path' && node.hasAttribute('data-points') ? 'star' : tag;
+  }
 
   function updateProps() {
     props.innerHTML = '';
@@ -399,6 +411,18 @@
     var opacity = parseFloat(p.getAttribute('opacity') || '1');
     var rotation = rotationOf(p);
     var html = '';
+
+    if (selected.length === 1) {
+      var geometry = getParentBounds(p);
+      html += '<div class="prop-section">';
+      html += '<div class="prop-section__head"><span>' + t('ed_geometry', 'Geometry') + '</span><label class="prop-lock"><input type="checkbox" id="propLockRatio"' + (geometryRatioLocked ? ' checked' : '') + '> ' + t('ed_lock_ratio', 'Lock ratio') + '</label></div>';
+      html += '<div class="prop-grid">';
+      html += '<label><span>X</span><input class="prop-number" type="number" step="0.1" id="propX" value="' + formatNumber(geometry.x) + '"></label>';
+      html += '<label><span>Y</span><input class="prop-number" type="number" step="0.1" id="propY" value="' + formatNumber(geometry.y) + '"></label>';
+      html += '<label><span>' + t('ed_width_short', 'W') + '</span><input class="prop-number" type="number" min="0.001" step="0.1" id="propWidth" value="' + formatNumber(geometry.width) + '"' + (geometry.width <= 0 ? ' disabled' : '') + '></label>';
+      html += '<label><span>' + t('ed_height_short', 'H') + '</span><input class="prop-number" type="number" min="0.001" step="0.1" id="propHeight" value="' + formatNumber(geometry.height) + '"' + (geometry.height <= 0 ? ' disabled' : '') + '></label>';
+      html += '</div></div>';
+    }
 
     // Fill
     html += '<div class="prop-row prop-row--swatches"><label>Fill</label>';
@@ -435,6 +459,12 @@
     html += '</div>';
 
     html += '<div class="prop-row"><label>Width</label><input class="range" type="range" id="propStrokeWidth" min="0" max="40" value="' + sw + '"><span class="prop-value" id="propStrokeWidthVal">' + sw + '</span></div>';
+    var lineCap = p.getAttribute('stroke-linecap') || 'butt';
+    var lineJoin = p.getAttribute('stroke-linejoin') || 'miter';
+    var dashArray = p.getAttribute('stroke-dasharray') || '';
+    html += '<div class="prop-row"><label>' + t('ed_line_cap', 'Line cap') + '</label><select id="propLineCap">' + optionMarkup('butt', t('ed_cap_butt', 'Butt'), lineCap) + optionMarkup('round', t('ed_cap_round', 'Round'), lineCap) + optionMarkup('square', t('ed_cap_square', 'Square'), lineCap) + '</select></div>';
+    html += '<div class="prop-row"><label>' + t('ed_line_join', 'Line join') + '</label><select id="propLineJoin">' + optionMarkup('miter', t('ed_join_miter', 'Miter'), lineJoin) + optionMarkup('round', t('ed_join_round', 'Round'), lineJoin) + optionMarkup('bevel', t('ed_join_bevel', 'Bevel'), lineJoin) + '</select></div>';
+    html += '<div class="prop-row"><label>' + t('ed_dash', 'Dash') + '</label><input type="text" id="propDash" value="' + escapeAttr(dashArray) + '" placeholder="' + t('ed_solid', 'Solid') + '"></div>';
     html += '<div class="prop-row"><label>Opacity</label><input class="range" type="range" id="propOpacity" min="0" max="100" value="' + Math.round(opacity * 100) + '"><span class="prop-value" id="propOpacityVal">' + Math.round(opacity * 100) + '</span></div>';
     html += '<div class="prop-row"><label>Rotation</label><input class="range" type="range" id="propRotation" min="-180" max="180" value="' + Math.round(rotation) + '"><span class="prop-value" id="propRotationVal">' + Math.round(rotation) + '</span></div>';
 
@@ -449,12 +479,33 @@
     if (type === 'text') {
       var ts = p.textContent || '';
       var fs = p.getAttribute('font-size') || '16';
+      var fontFamily = p.getAttribute('font-family') || 'Inter, sans-serif';
+      var fontWeight = p.getAttribute('font-weight') || '400';
+      var fontStyle = p.getAttribute('font-style') || 'normal';
+      var textAnchor = p.getAttribute('text-anchor') || 'start';
+      var letterSpacingValue = parseFloat(p.getAttribute('letter-spacing') || '0');
+      var letterSpacing = isFinite(letterSpacingValue) ? formatNumber(letterSpacingValue) : '0';
       html += '<div class="prop-row"><label>Text</label><input type="text" id="propText" value="' + escapeAttr(ts) + '"></div>';
-      html += '<div class="prop-row"><label>Font</label><input class="range" type="range" id="propFontSize" min="8" max="96" value="' + fs + '"><span class="prop-value" id="propFontSizeVal">' + fs + '</span></div>';
+      html += '<div class="prop-row"><label>' + t('ed_font_family', 'Font') + '</label><input type="text" id="propFontFamily" list="fontFamilyOptions" value="' + escapeAttr(fontFamily) + '"><datalist id="fontFamilyOptions"><option value="Inter, sans-serif"><option value="Arial, sans-serif"><option value="Georgia, serif"><option value="Times New Roman, serif"><option value="Courier New, monospace"><option value="system-ui, sans-serif"></datalist></div>';
+      html += '<div class="prop-row"><label>' + t('ed_font_size', 'Size') + '</label><input class="range" type="range" id="propFontSize" min="8" max="300" value="' + fs + '"><span class="prop-value" id="propFontSizeVal">' + fs + '</span></div>';
+      html += '<div class="prop-row"><label>' + t('ed_font_weight', 'Weight') + '</label><select id="propFontWeight">' + optionMarkup('300', '300', fontWeight) + optionMarkup('400', '400', fontWeight) + optionMarkup('500', '500', fontWeight) + optionMarkup('600', '600', fontWeight) + optionMarkup('700', '700', fontWeight) + optionMarkup('800', '800', fontWeight) + optionMarkup('900', '900', fontWeight) + optionMarkup('bold', t('ed_weight_bold', 'Bold'), fontWeight) + '</select></div>';
+      html += '<div class="prop-row"><label>' + t('ed_font_style', 'Style') + '</label><select id="propFontStyle">' + optionMarkup('normal', t('ed_style_normal', 'Normal'), fontStyle) + optionMarkup('italic', t('ed_style_italic', 'Italic'), fontStyle) + '</select></div>';
+      html += '<div class="prop-row"><label>' + t('ed_text_align', 'Align') + '</label><select id="propTextAnchor">' + optionMarkup('start', t('ed_align_start', 'Start'), textAnchor) + optionMarkup('middle', t('ed_align_middle', 'Center'), textAnchor) + optionMarkup('end', t('ed_align_end', 'End'), textAnchor) + '</select></div>';
+      html += '<div class="prop-row"><label>' + t('ed_letter_spacing', 'Spacing') + '</label><input class="prop-number" type="number" step="0.1" id="propLetterSpacing" value="' + escapeAttr(letterSpacing) + '"></div>';
     }
 
     props.innerHTML = html;
     bindPropEvents();
+  }
+
+  function syncGeometryFields() {
+    var node = selected.length === 1 ? primary() : null;
+    if (!node) return;
+    var bounds = getParentBounds(node);
+    [['propX', bounds.x], ['propY', bounds.y], ['propWidth', bounds.width], ['propHeight', bounds.height]].forEach(function (entry) {
+      var input = document.getElementById(entry[0]);
+      if (input && document.activeElement !== input) input.value = formatNumber(entry[1]);
+    });
   }
 
   function bindPropEvents() {
@@ -471,6 +522,71 @@
       snapshot();
     }
 
+    function bindFieldCommit(input, callback) {
+      if (!input) return;
+      var originalValue = input.value;
+      var committing = false;
+      function commit() {
+        if (committing || input.value === originalValue) return;
+        originalValue = input.value;
+        committing = true;
+        callback();
+        committing = false;
+      }
+      input.addEventListener('change', commit);
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); commit(); } });
+    }
+
+    var ratioLock = document.getElementById('propLockRatio');
+    if (ratioLock) ratioLock.addEventListener('change', function () { geometryRatioLocked = ratioLock.checked; });
+
+    function bindGeometryInput(id, field) {
+      var input = document.getElementById(id);
+      if (!input) return;
+      var committed = false;
+      var originalValue = input.value;
+      function commitGeometry() {
+        if (committed || input.value === originalValue) return;
+        committed = true;
+        var node = primary();
+        var value = Number(input.value);
+        if (!node || !isFinite(value) || ((field === 'width' || field === 'height') && value <= 0)) {
+          showToast(t('ed_invalid_geometry', 'Enter a valid geometry value.'));
+          updateProps();
+          return;
+        }
+        var bounds = getParentBounds(node);
+        var changed = true;
+        if (field === 'x') moveElement(node, value, bounds.y);
+        else if (field === 'y') moveElement(node, bounds.x, value);
+        else {
+          var next = { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+          if (field === 'width') {
+            next.width = value;
+            if (geometryRatioLocked && bounds.width > 0) next.height = value * bounds.height / bounds.width;
+          } else {
+            next.height = value;
+            if (geometryRatioLocked && bounds.height > 0) next.width = value * bounds.width / bounds.height;
+          }
+          changed = setElementBounds(node, next);
+        }
+        if (!changed) {
+          showToast(t('ed_geometry_zero_size', 'This element cannot be resized on an empty axis.'));
+          updateProps();
+          return;
+        }
+        updateSelection(); updateLayers(); syncToolbar(); snapshot(); updateProps();
+      }
+      input.addEventListener('change', commitGeometry);
+      input.addEventListener('blur', commitGeometry);
+      input.addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); commitGeometry(); } });
+    }
+    bindGeometryInput('propX', 'x');
+    bindGeometryInput('propY', 'y');
+    bindGeometryInput('propWidth', 'width');
+    bindGeometryInput('propHeight', 'height');
+
     var propFill = document.getElementById('propFill');
     if (propFill) { propFill.addEventListener('input', function () { applyToSelected(function (n) { n.setAttribute('fill', propFill.value); }); }); propFill.addEventListener('change', function () { snapAll(function (n) { n.setAttribute('fill', propFill.value); }); }); }
 
@@ -479,6 +595,24 @@
 
     var propSW = document.getElementById('propStrokeWidth');
     if (propSW) { propSW.addEventListener('input', function () { document.getElementById('propStrokeWidthVal').textContent = propSW.value; applyToSelected(function (n) { n.setAttribute('stroke-width', propSW.value); }); }); propSW.addEventListener('change', function () { snapAll(function () {}); }); }
+
+    var propLineCap = document.getElementById('propLineCap');
+    if (propLineCap) propLineCap.addEventListener('change', function () { snapAll(function (n) { n.setAttribute('stroke-linecap', propLineCap.value); }); });
+
+    var propLineJoin = document.getElementById('propLineJoin');
+    if (propLineJoin) propLineJoin.addEventListener('change', function () { snapAll(function (n) { n.setAttribute('stroke-linejoin', propLineJoin.value); }); });
+
+    var propDash = document.getElementById('propDash');
+    bindFieldCommit(propDash, function () {
+      var value = propDash.value.trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
+      var values = value ? value.split(' ').map(Number) : [];
+      if (value && (!values.length || values.some(function (part) { return !isFinite(part) || part < 0; }))) {
+        showToast(t('ed_invalid_dash', 'Use non-negative numbers such as 8 4.'));
+        updateProps();
+        return;
+      }
+      snapAll(function (n) { if (value) n.setAttribute('stroke-dasharray', value); else n.removeAttribute('stroke-dasharray'); });
+    });
 
     var propOp = document.getElementById('propOpacity');
     if (propOp) { propOp.addEventListener('input', function () { document.getElementById('propOpacityVal').textContent = propOp.value; applyToSelected(function (n) { n.setAttribute('opacity', (propOp.value / 100).toFixed(2)); }); }); propOp.addEventListener('change', function () { snapAll(function () {}); }); }
@@ -497,7 +631,7 @@
           var cy = state.bounds.y + state.bounds.height / 2;
           setNodeMatrix(state.node, rotateAtMatrix(targetAngle - state.angle, cx, cy).multiply(state.matrix));
         });
-        syncToolbar(); updateLayers(); syncCode(); updateSelection();
+        syncToolbar(); updateLayers(); syncCode(); updateSelection(); syncGeometryFields();
       });
       propRot.addEventListener('change', function () { snapAll(function () {}); });
     }
@@ -511,16 +645,35 @@
         document.getElementById('propStarPtsVal').textContent = propStarPts.value;
         p.setAttribute('data-points', propStarPts.value);
         rebuildStar(p, parseInt(propStarPts.value, 10));
-        syncCode(); updateSelection();
+        syncCode(); updateSelection(); syncGeometryFields();
       });
       propStarPts.addEventListener('change', function () { snapshot(); });
     }
 
     var propText = document.getElementById('propText');
-    if (propText) { propText.addEventListener('input', function () { p.textContent = propText.value; syncCode(); }); propText.addEventListener('change', function () { snapshot(); }); }
+    if (propText) { propText.addEventListener('input', function () { p.textContent = propText.value; syncCode(); updateSelection(); syncGeometryFields(); }); propText.addEventListener('change', function () { snapshot(); }); }
+
+    var propFontFamily = document.getElementById('propFontFamily');
+    bindFieldCommit(propFontFamily, function () { var value = propFontFamily.value.trim(); if (value) { p.setAttribute('font-family', value); updateSelection(); syncGeometryFields(); snapshot(); } });
 
     var propFS = document.getElementById('propFontSize');
-    if (propFS) { propFS.addEventListener('input', function () { document.getElementById('propFontSizeVal').textContent = propFS.value; p.setAttribute('font-size', propFS.value); syncCode(); }); propFS.addEventListener('change', function () { snapshot(); }); }
+    if (propFS) { propFS.addEventListener('input', function () { document.getElementById('propFontSizeVal').textContent = propFS.value; p.setAttribute('font-size', propFS.value); syncCode(); updateSelection(); syncGeometryFields(); }); propFS.addEventListener('change', function () { snapshot(); }); }
+
+    var propFontWeight = document.getElementById('propFontWeight');
+    if (propFontWeight) propFontWeight.addEventListener('change', function () { p.setAttribute('font-weight', propFontWeight.value); updateSelection(); syncGeometryFields(); snapshot(); });
+
+    var propFontStyle = document.getElementById('propFontStyle');
+    if (propFontStyle) propFontStyle.addEventListener('change', function () { p.setAttribute('font-style', propFontStyle.value); updateSelection(); syncGeometryFields(); snapshot(); });
+
+    var propTextAnchor = document.getElementById('propTextAnchor');
+    if (propTextAnchor) propTextAnchor.addEventListener('change', function () { p.setAttribute('text-anchor', propTextAnchor.value); updateSelection(); syncGeometryFields(); snapshot(); });
+
+    var propLetterSpacing = document.getElementById('propLetterSpacing');
+    bindFieldCommit(propLetterSpacing, function () {
+      var value = Number(propLetterSpacing.value);
+      if (!isFinite(value)) { showToast(t('ed_invalid_spacing', 'Enter a valid letter spacing.')); updateProps(); return; }
+      p.setAttribute('letter-spacing', formatNumber(value)); updateSelection(); syncGeometryFields(); snapshot();
+    });
 
     // Gradient editors
     var pg1 = document.getElementById('propGrad1');
@@ -957,6 +1110,23 @@
   function moveElement(node, x, y) {
     var bounds = getParentBounds(node);
     translateNode(node, x - bounds.x, y - bounds.y);
+  }
+
+  function setElementBounds(node, nextBounds) {
+    var matrix = matrixOf(node);
+    var bounds = getParentBounds(node, matrix);
+    var width = nextBounds.width === undefined ? bounds.width : nextBounds.width;
+    var height = nextBounds.height === undefined ? bounds.height : nextBounds.height;
+    var x = nextBounds.x === undefined ? bounds.x : nextBounds.x;
+    var y = nextBounds.y === undefined ? bounds.y : nextBounds.y;
+    if (width < 0 || height < 0) return false;
+    if (bounds.width <= 0 && Math.abs(width - bounds.width) > 0.000001) return false;
+    if (bounds.height <= 0 && Math.abs(height - bounds.height) > 0.000001) return false;
+    var sx = bounds.width > 0 ? width / bounds.width : 1;
+    var sy = bounds.height > 0 ? height / bounds.height : 1;
+    var resizeMatrix = new DOMMatrix().translate(x, y).scale(sx, sy).translate(-bounds.x, -bounds.y);
+    setNodeMatrix(node, resizeMatrix.multiply(matrix));
+    return true;
   }
 
   // ---- Resize ----
