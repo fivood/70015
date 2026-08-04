@@ -71,7 +71,7 @@
     </nav>
 
     <main class="main main--editor">
-      <div class="mobile-notice" role="note" data-i18n="mobile_editor_notice">The SVG editor works on touch screens, but its dense toolbar and canvas are easier to use on a larger screen.</div>
+      <div class="mobile-notice" role="note" data-i18n="mobile_editor_notice">On mobile, swipe the toolbar horizontally. Touch editing works, but precise path work is easier on a larger screen.</div>
       <section class="editor card">
         <div class="editor__toolbar">
           <div class="editor__tools" id="tools" role="group" aria-label="Tools" data-i18n-aria-label="ed_tools">
@@ -159,6 +159,10 @@
             <button class="btn btn--secondary btn--sm" id="importBtn" type="button" data-i18n="ed_import">Import</button>
             <input type="file" id="importInput" accept="image/svg+xml,.svg" hidden>
             <button class="btn btn--secondary btn--sm" id="clearBtn" type="button" data-i18n="conv_clear">Clear</button>
+            <select class="btn btn--secondary btn--sm" id="exportArea" title="Export area" data-i18n-title="ed_export_area" aria-label="Export area" data-i18n-aria-label="ed_export_area">
+              <option value="canvas" data-i18n="ed_export_canvas">Canvas</option>
+              <option value="content" data-i18n="ed_export_content">Content</option>
+            </select>
             <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button" data-i18n="ed_svg">SVG</button>
             <select class="btn btn--primary btn--sm" id="pngScale" title="PNG export scale" data-i18n-title="ed_png_scale" aria-label="PNG scale" data-i18n-aria-label="ed_png_scale">
               <option value="1">1&times;</option>
@@ -187,6 +191,40 @@
           </div>
 
           <aside class="editor__sidebar">
+            <div class="editor__panel editor__panel--canvas">
+              <div class="editor__panel-head">
+                <span class="editor__panel-title" data-i18n="ed_canvas">Canvas</span>
+                <span class="editor__panel-sub" id="canvasSizeLabel">800 × 600</span>
+              </div>
+              <div class="editor__canvas-controls">
+                <label class="editor__field">
+                  <span data-i18n="ed_canvas_preset">Preset</span>
+                  <select id="canvasPreset">
+                    <option value="custom" data-i18n="ed_canvas_custom">Custom</option>
+                    <option value="800x600">800 × 600</option>
+                    <option value="1200x1200">1200 × 1200</option>
+                    <option value="1920x1080">1920 × 1080</option>
+                    <option value="1080x1920">1080 × 1920</option>
+                    <option value="794x1123">A4 · 794 × 1123</option>
+                  </select>
+                </label>
+                <div class="editor__canvas-size">
+                  <label class="editor__field">
+                    <span data-i18n="ed_canvas_width">Width</span>
+                    <input id="canvasWidth" type="number" min="1" max="100000" step="1" value="800" inputmode="numeric">
+                  </label>
+                  <span class="editor__canvas-times" aria-hidden="true">×</span>
+                  <label class="editor__field">
+                    <span data-i18n="ed_canvas_height">Height</span>
+                    <input id="canvasHeight" type="number" min="1" max="100000" step="1" value="600" inputmode="numeric">
+                  </label>
+                </div>
+                <div class="editor__panel-actions">
+                  <button class="btn btn--primary btn--sm" id="applyCanvasBtn" type="button" data-i18n="ed_apply_size">Apply size</button>
+                  <button class="btn btn--secondary btn--sm" id="fitCanvasBtn" type="button" data-i18n="ed_fit_canvas">Fit canvas</button>
+                </div>
+              </div>
+            </div>
             <div class="editor__panel">
               <div class="editor__panel-head">
                 <span class="editor__panel-title" data-i18n="ed_props">Properties</span>

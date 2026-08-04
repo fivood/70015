@@ -41,7 +41,8 @@
   var clipboard = [];
   var codeDirty = false;
 
-  // Viewport (zoom/pan via viewBox)
+  // Document bounds and viewport (zoom/pan via viewBox)
+  var DOC = { x: 0, y: 0, w: 800, h: 600 };
   var VB = { x: 0, y: 0, w: 800, h: 600 };
   var GRID = 20;
   var showGrid = false;
@@ -149,10 +150,33 @@
   // ---- Viewport ----
   function applyViewBox() {
     artboard.setAttribute('viewBox', VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h);
-    var zoom = 800 / VB.w;
+    var zoom = DOC.w / VB.w;
     document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
     updateSelection();
     updateGrid();
+  }
+
+  function documentViewBox() {
+    return DOC.x + ' ' + DOC.y + ' ' + DOC.w + ' ' + DOC.h;
+  }
+
+  function fitDocument() {
+    VB = { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
+    applyViewBox();
+  }
+
+  function syncCanvasControls() {
+    var widthInput = document.getElementById('canvasWidth');
+    var heightInput = document.getElementById('canvasHeight');
+    var preset = document.getElementById('canvasPreset');
+    var label = document.getElementById('canvasSizeLabel');
+    if (widthInput) widthInput.value = Math.round(DOC.w * 1000) / 1000;
+    if (heightInput) heightInput.value = Math.round(DOC.h * 1000) / 1000;
+    if (label) label.textContent = (Math.round(DOC.w * 1000) / 1000) + ' × ' + (Math.round(DOC.h * 1000) / 1000);
+    if (preset) {
+      var value = DOC.w + 'x' + DOC.h;
+      preset.value = Array.from(preset.options).some(function (option) { return option.value === value; }) ? value : 'custom';
+    }
   }
 
   function getMouse(e) {
@@ -195,14 +219,21 @@
     var rect = artboard.querySelector('#gridRect');
     if (!rect) {
       rect = el('rect', { id: 'gridRect', width: '100%', height: '100%', fill: 'url(#gridPattern)', opacity: '0', 'pointer-events': 'none' });
-      artboard.appendChild(rect);
     }
+    var firstUserNode = Array.from(artboard.children).find(function (node) { return node.tagName !== 'defs' && node !== rect; });
+    if (firstUserNode) artboard.insertBefore(rect, firstUserNode); else artboard.appendChild(rect);
     updateGrid();
   }
 
   function updateGrid() {
     var gr = artboard.querySelector('#gridRect');
-    if (gr) gr.setAttribute('opacity', showGrid ? '1' : '0');
+    if (gr) {
+      gr.setAttribute('x', DOC.x);
+      gr.setAttribute('y', DOC.y);
+      gr.setAttribute('width', DOC.w);
+      gr.setAttribute('height', DOC.h);
+      gr.setAttribute('opacity', showGrid ? '1' : '0');
+    }
   }
 
   // ---- History ----
@@ -217,7 +248,8 @@
   function currentHistoryState() {
     return {
       markup: cleanArtboardClone().innerHTML,
-      viewBox: artboard.getAttribute('viewBox') || '0 0 800 600',
+      viewBox: documentViewBox(),
+      document: { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h },
       viewport: { x: VB.x, y: VB.y, w: VB.w, h: VB.h }
     };
   }
@@ -242,11 +274,13 @@
     if (historyIdx < 0 || historyIdx >= history.length) return;
     var state = history[historyIdx];
     artboard.innerHTML = state.markup;
-    VB = state.viewport ? { x: state.viewport.x, y: state.viewport.y, w: state.viewport.w, h: state.viewport.h } : { x: 0, y: 0, w: 800, h: 600 };
-    artboard.setAttribute('viewBox', state.viewBox || (VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h));
+    var restoredViewBox = String(state.viewBox || '0 0 800 600').split(/[\s,]+/).map(Number);
+    DOC = state.document ? { x: state.document.x, y: state.document.y, w: state.document.w, h: state.document.h } : { x: restoredViewBox[0] || 0, y: restoredViewBox[1] || 0, w: restoredViewBox[2] || 800, h: restoredViewBox[3] || 600 };
+    VB = state.viewport ? { x: state.viewport.x, y: state.viewport.y, w: state.viewport.w, h: state.viewport.h } : { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
     initGrid();
     selected = [];
     applyViewBox();
+    syncCanvasControls();
     updateProps();
     updateLayers();
     syncCode();
@@ -263,9 +297,16 @@
   // ---- Selection ----
   function primary() { return selected.length > 0 ? selected[selected.length - 1] : null; }
 
-  function selectSingle(node) { selected = node ? [node] : []; updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons(); }
+  function isLocked(node) { return !!node && node.getAttribute('data-locked') === 'true'; }
+  function isHidden(node) { return !!node && node.getAttribute('data-hidden') === 'true'; }
+  function userElements() {
+    return Array.from(artboard.children).filter(function (node) { return node.tagName !== 'defs' && node.id !== 'gridRect'; });
+  }
+
+  function selectSingle(node) { selected = node && !isLocked(node) && !isHidden(node) ? [node] : []; updateSelection(); updateProps(); updateLayers(); syncToolbar(); updateActionButtons(); }
 
   function toggleSelect(node) {
+    if (isLocked(node) || isHidden(node)) return;
     var idx = selected.indexOf(node);
     if (idx >= 0) selected.splice(idx, 1);
     else selected.push(node);
@@ -560,17 +601,100 @@
     if (!list) return;
     var countEl = panel.querySelector('#layerCount');
     list.innerHTML = '';
-    var nodes = Array.from(artboard.children).reverse().filter(function (n) { return n.id !== 'gridRect' && n.tagName !== 'defs'; });
+    var nodes = userElements().reverse();
     if (countEl) countEl.textContent = nodes.length === 1 ? tpl('ed_element_count', '{count} element', { count: nodes.length }) : tpl('ed_elements_count', '{count} elements', { count: nodes.length });
     if (nodes.length === 0) { list.innerHTML = '<p style="font-size:12px;color:var(--text-dim);padding:8px 0;">' + t('ed_no_elements', 'No elements yet') + '</p>'; return; }
+
+    function layerButton(label, glyph, disabled, handler) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'layer-item__button';
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.textContent = glyph;
+      button.disabled = !!disabled;
+      button.addEventListener('click', function (event) {
+        event.stopPropagation();
+        if (!button.disabled) handler();
+      });
+      return button;
+    }
+
+    function finishLayerChange(message) {
+      updateSelection();
+      updateProps();
+      updateLayers();
+      updateActionButtons();
+      snapshot();
+      if (message) showToast(message);
+    }
+
+    function moveLayer(node, towardFront) {
+      var ordered = userElements();
+      var index = ordered.indexOf(node);
+      if (towardFront && index < ordered.length - 1) artboard.insertBefore(ordered[index + 1], node);
+      else if (!towardFront && index > 0) artboard.insertBefore(node, ordered[index - 1]);
+      finishLayerChange();
+    }
+
     nodes.forEach(function (node, i) {
       var type = getElementType(node);
       var fill = node.getAttribute('fill') || 'none';
+      var hidden = isHidden(node), locked = isLocked(node);
+      var defaultName = type + ' ' + (nodes.length - i);
+      var name = node.getAttribute('data-name') || defaultName;
       var item = document.createElement('div');
-      item.className = 'layer-item' + (selected.indexOf(node) >= 0 ? ' is-active' : '');
+      item.className = 'layer-item' + (selected.indexOf(node) >= 0 ? ' is-active' : '') + (hidden ? ' is-hidden' : '') + (locked ? ' is-locked' : '');
       var sw = fill !== 'none' && fill.indexOf('url') < 0 ? fill : fill.indexOf('url') >= 0 ? 'transparent' : 'transparent';
-      item.innerHTML = '<span class="layer-item__swatch" style="background:' + sw + '"></span><span class="layer-item__label">' + type + ' ' + (i + 1) + '</span><span class="layer-item__type">' + type + '</span>';
+      item.appendChild(layerButton(hidden ? t('ed_layer_show', 'Show layer') : t('ed_layer_hide', 'Hide layer'), hidden ? '○' : '◉', false, function () {
+        if (hidden) node.removeAttribute('data-hidden'); else node.setAttribute('data-hidden', 'true');
+        if (!hidden) selected = selected.filter(function (selectedNode) { return selectedNode !== node; });
+        finishLayerChange(hidden ? t('ed_layer_shown', 'Layer shown') : t('ed_layer_hidden', 'Layer hidden'));
+      }));
+      item.appendChild(layerButton(locked ? t('ed_layer_unlock', 'Unlock layer') : t('ed_layer_lock', 'Lock layer'), locked ? '◆' : '◇', false, function () {
+        if (locked) node.removeAttribute('data-locked'); else node.setAttribute('data-locked', 'true');
+        if (!locked) selected = selected.filter(function (selectedNode) { return selectedNode !== node; });
+        finishLayerChange(locked ? t('ed_layer_unlocked', 'Layer unlocked') : t('ed_layer_locked', 'Layer locked'));
+      }));
+      var swatch = document.createElement('span');
+      swatch.className = 'layer-item__swatch';
+      swatch.style.background = sw;
+      item.appendChild(swatch);
+      var label = document.createElement('span');
+      label.className = 'layer-item__label';
+      label.textContent = name;
+      label.title = name + ' · ' + type;
+      item.appendChild(label);
+      item.appendChild(layerButton(t('ed_layer_rename', 'Rename layer'), '✎', false, function () {
+        var input = document.createElement('input');
+        input.className = 'layer-item__name-input';
+        input.value = node.getAttribute('data-name') || defaultName;
+        label.replaceWith(input);
+        input.focus(); input.select();
+        var done = false;
+        function finish(save) {
+          if (done) return;
+          done = true;
+          if (save) {
+            var nextName = input.value.trim().slice(0, 80);
+            if (nextName && nextName !== defaultName) node.setAttribute('data-name', nextName);
+            else node.removeAttribute('data-name');
+            finishLayerChange(t('ed_layer_renamed', 'Layer renamed'));
+          } else updateLayers();
+        }
+        input.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+          else if (event.key === 'Escape') { event.preventDefault(); finish(false); }
+        });
+        input.addEventListener('blur', function () { finish(true); });
+      }));
+      item.appendChild(layerButton(t('ed_layer_up', 'Move layer forward'), '↑', i === 0, function () { moveLayer(node, true); }));
+      item.appendChild(layerButton(t('ed_layer_down', 'Move layer backward'), '↓', i === nodes.length - 1, function () { moveLayer(node, false); }));
       item.addEventListener('click', function (e) {
+        if (locked || hidden) {
+          showToast(locked ? t('ed_layer_locked_hint', 'Unlock this layer to edit it.') : t('ed_layer_hidden_hint', 'Show this layer to edit it.'));
+          return;
+        }
         if (e.shiftKey) toggleSelect(node); else selectSingle(node);
       });
       list.appendChild(item);
@@ -589,6 +713,9 @@
     var clone = cleanArtboardClone();
     clone.removeAttribute('id');
     clone.setAttribute('xmlns', SVG_NS);
+    clone.setAttribute('viewBox', documentViewBox());
+    clone.setAttribute('width', DOC.w);
+    clone.setAttribute('height', DOC.h);
     codeView.value = new XMLSerializer().serializeToString(clone).replace(/></g, '>\n<');
     codeDirty = false;
     codeView.removeAttribute('aria-invalid');
@@ -617,6 +744,7 @@
     if (tool === 'select') {
       var node = e.target.closest('[data-id]');
       if (node && node !== artboard && node.id !== 'gridRect') {
+        if (isLocked(node) || isHidden(node)) return;
         if (e.shiftKey) toggleSelect(node); else { if (selected.indexOf(node) < 0) selectSingle(node); }
         startDrag(e);
       } else { deselect(); }
@@ -910,7 +1038,7 @@
     e.preventDefault();
     var p = getMouse(e), delta = e.deltaY > 0 ? 1.1 : 0.9;
     var newW = VB.w * delta, newH = VB.h * delta;
-    if (newW < 50 || newW > 5000) return;
+    if (newW < DOC.w / 100 || newW > DOC.w * 100 || newH < DOC.h / 100 || newH > DOC.h * 100) return;
     VB.x = p.x - (p.x - VB.x) * delta;
     VB.y = p.y - (p.y - VB.y) * delta;
     VB.w = newW; VB.h = newH;
@@ -926,7 +1054,33 @@
   function zoomBy(factor) { var cx = VB.x + VB.w / 2, cy = VB.y + VB.h / 2; VB.w *= factor; VB.h *= factor; VB.x = cx - VB.w / 2; VB.y = cy - VB.h / 2; applyViewBox(); }
   document.getElementById('zoomInBtn').addEventListener('click', function () { zoomBy(0.8); });
   document.getElementById('zoomOutBtn').addEventListener('click', function () { zoomBy(1.25); });
-  document.getElementById('fitBtn').addEventListener('click', function () { VB = { x: 0, y: 0, w: 800, h: 600 }; applyViewBox(); });
+  document.getElementById('fitBtn').addEventListener('click', fitDocument);
+
+  function applyCanvasSize(width, height) {
+    width = Number(width);
+    height = Number(height);
+    if (!isFinite(width) || !isFinite(height) || width < 1 || height < 1 || width > 100000 || height > 100000) {
+      showToast(t('ed_invalid_canvas_size', 'Enter a canvas size from 1 to 100000.'));
+      syncCanvasControls();
+      return;
+    }
+    DOC.w = width;
+    DOC.h = height;
+    fitDocument();
+    syncCanvasControls();
+    snapshot();
+    showToast(tpl('ed_canvas_resized', 'Canvas resized to {width} × {height}', { width: width, height: height }));
+  }
+
+  document.getElementById('canvasPreset').addEventListener('change', function () {
+    if (this.value === 'custom') return;
+    var size = this.value.split('x').map(Number);
+    applyCanvasSize(size[0], size[1]);
+  });
+  document.getElementById('applyCanvasBtn').addEventListener('click', function () {
+    applyCanvasSize(document.getElementById('canvasWidth').value, document.getElementById('canvasHeight').value);
+  });
+  document.getElementById('fitCanvasBtn').addEventListener('click', fitDocument);
 
   // Grid / Snap
   document.getElementById('gridBtn').addEventListener('click', function () { showGrid = !showGrid; this.classList.toggle('is-toggled', showGrid); updateGrid(); });
@@ -943,8 +1097,19 @@
   // ---- Actions ----
   document.getElementById('deleteBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { n.remove(); }); deselect(); snapshot(); showToast(t('toast_deleted', 'Deleted')); });
   document.getElementById('duplicateBtn').addEventListener('click', function () { if (!selected.length) return; var clones = cloneNodesWithReferences(selected); clones.forEach(function (c) { offsetElement(c, 20, 20); artboard.appendChild(c); }); selectSingle(clones[0]); for (var i = 1; i < clones.length; i++) selected.push(clones[i]); updateSelection(); updateLayers(); updateActionButtons(); syncToolbar(); snapshot(); showToast(t('toast_duplicated', 'Duplicated')); });
-  document.getElementById('frontBtn').addEventListener('click', function () { if (!selected.length) return; selected.forEach(function (n) { artboard.appendChild(n); }); snapshot(); updateLayers(); });
-  document.getElementById('backBtn').addEventListener('click', function () { if (!selected.length) return; var first = artboard.firstChild; selected.forEach(function (n) { if (first) artboard.insertBefore(n, first); else artboard.appendChild(n); }); snapshot(); updateLayers(); });
+  document.getElementById('frontBtn').addEventListener('click', function () {
+    if (!selected.length) return;
+    var ordered = userElements().filter(function (node) { return selected.indexOf(node) >= 0; });
+    ordered.forEach(function (node) { artboard.appendChild(node); });
+    snapshot(); updateLayers();
+  });
+  document.getElementById('backBtn').addEventListener('click', function () {
+    if (!selected.length) return;
+    var ordered = userElements().filter(function (node) { return selected.indexOf(node) >= 0; });
+    var firstUnselected = userElements().find(function (node) { return selected.indexOf(node) < 0; });
+    if (firstUnselected) ordered.forEach(function (node) { artboard.insertBefore(node, firstUnselected); });
+    snapshot(); updateLayers();
+  });
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('redoBtn').addEventListener('click', redo);
 
@@ -1034,8 +1199,8 @@
         var svg = tmp.querySelector('svg'); if (!svg) { showToast(t('ed_no_svg_found', 'No SVG found')); return; }
         sanitizeSvg(svg);
         var importedViewBox = sourceViewBox(svg);
-        artboard.setAttribute('viewBox', importedViewBox.join(' '));
-        VB = { x: importedViewBox[0], y: importedViewBox[1], w: importedViewBox[2], h: importedViewBox[3] };
+        DOC = { x: importedViewBox[0], y: importedViewBox[1], w: importedViewBox[2], h: importedViewBox[3] };
+        VB = { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
         artboard.innerHTML = '';
         initGrid();
         var children = Array.from(svg.children);
@@ -1051,7 +1216,7 @@
           imported.setAttribute('data-id', uid());
           artboard.appendChild(imported);
         });
-        deselect(); applyViewBox(); snapshot();
+        deselect(); applyViewBox(); syncCanvasControls(); snapshot();
         showToast(tpl('ed_imported_elements', 'Imported {count} elements', { count: children.length }));
       } catch (err) { showToast(t('ed_import_fail', 'Import failed')); }
     };
@@ -1071,7 +1236,7 @@
 
   function getExportBounds() {
     var nodes = Array.from(artboard.children).filter(function (n) {
-      return n.tagName !== 'defs' && n.id !== 'gridRect' && n.id !== 'gridPattern';
+      return n.tagName !== 'defs' && n.id !== 'gridRect' && n.id !== 'gridPattern' && n.getAttribute('data-hidden') !== 'true';
     });
     if (!nodes.length) return null;
 
@@ -1112,28 +1277,37 @@
   }
 
   function makeExportClone() {
-    var clone = artboard.cloneNode(true);
-    var gr = clone.querySelector('#gridRect'); if (gr) gr.remove();
-    var gp = clone.querySelector('#gridPattern'); if (gp) gp.remove();
-    var bounds = getExportBounds();
+    var clone = cleanArtboardClone();
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[data-hidden="true"]').forEach(function (node) { node.remove(); });
+    clone.querySelectorAll('[data-id], [data-name], [data-locked], [data-hidden]').forEach(function (node) {
+      node.removeAttribute('data-id');
+      node.removeAttribute('data-name');
+      node.removeAttribute('data-locked');
+      node.removeAttribute('data-hidden');
+    });
+    var mode = document.getElementById('exportArea').value;
+    var bounds = mode === 'content' ? getExportBounds() : { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
+    if (!bounds || bounds.w <= 0 || bounds.h <= 0) return null;
     clone.setAttribute('xmlns', SVG_NS);
-    if (bounds && bounds.w > 0 && bounds.h > 0) {
-      clone.setAttribute('viewBox', bounds.x + ' ' + bounds.y + ' ' + bounds.w + ' ' + bounds.h);
-      clone.setAttribute('width', bounds.w);
-      clone.setAttribute('height', bounds.h);
-    }
+    clone.setAttribute('viewBox', bounds.x + ' ' + bounds.y + ' ' + bounds.w + ' ' + bounds.h);
+    clone.setAttribute('width', bounds.w);
+    clone.setAttribute('height', bounds.h);
     return { clone: clone, bounds: bounds };
   }
 
   document.getElementById('exportSvgBtn').addEventListener('click', function () {
     var output = makeExportClone();
+    if (!output) { showToast(t('ed_nothing_export', 'Nothing visible to export')); return; }
     var clone = output.clone;
     var source = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone).replace(/></g, '>\n<');
     downloadBlob(new Blob([source], { type: 'image/svg+xml' }), '70015-editor-' + Date.now() + '.svg');
+    showToast(t('toast_exported', 'Exported'));
   });
 
   document.getElementById('exportPngBtn').addEventListener('click', function () {
     var output = makeExportClone();
+    if (!output) { showToast(t('ed_nothing_export', 'Nothing visible to export')); return; }
     var clone = output.clone;
     var source = new XMLSerializer().serializeToString(clone);
     var url = URL.createObjectURL(new Blob([source], { type: 'image/svg+xml' }));
@@ -1141,11 +1315,21 @@
     var scale = parseInt(document.getElementById('pngScale').value, 10) || 1;
     var vb = (clone.getAttribute('viewBox') || '0 0 800 600').split(/\s+/).map(parseFloat);
     var vw = vb[2] || 800, vh = vb[3] || 600;
+    var outputWidth = Math.round(vw * scale), outputHeight = Math.round(vh * scale);
+    if (outputWidth > 16384 || outputHeight > 16384 || outputWidth * outputHeight > 67108864) {
+      URL.revokeObjectURL(url);
+      showToast(t('ed_export_too_large', 'PNG dimensions are too large for this browser. Reduce the canvas or export scale.'));
+      return;
+    }
     img.onload = function () {
       var cv = document.createElement('canvas');
-      cv.width = Math.round(vw * scale); cv.height = Math.round(vh * scale);
+      cv.width = outputWidth; cv.height = outputHeight;
       var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cv.width, cv.height);
-      cv.toBlob(function (b) { downloadBlob(b, '70015-editor-' + Date.now() + '.png'); URL.revokeObjectURL(url); }, 'image/png');
+      cv.toBlob(function (b) {
+        downloadBlob(b, '70015-editor-' + Date.now() + '.png');
+        URL.revokeObjectURL(url);
+        if (b) showToast(t('toast_exported', 'Exported'));
+      }, 'image/png');
     };
     img.onerror = function () { URL.revokeObjectURL(url); showToast(t('ed_png_export_fail', 'PNG export failed')); };
     img.src = url;
@@ -1198,12 +1382,12 @@
           artboard.appendChild(imported);
         }
       });
-      VB = { x: viewBox[0], y: viewBox[1], w: viewBox[2], h: viewBox[3] };
-      artboard.setAttribute('viewBox', viewBox.join(' '));
+      DOC = { x: viewBox[0], y: viewBox[1], w: viewBox[2], h: viewBox[3] };
+      VB = { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
       initGrid();
       codeDirty = false;
       codeView.removeAttribute('aria-invalid');
-      deselect(); applyViewBox(); snapshot(); showToast(t('toast_applied', 'Source applied'));
+      deselect(); applyViewBox(); syncCanvasControls(); snapshot(); showToast(t('toast_applied', 'Source applied'));
     } catch (err) {
       codeView.setAttribute('aria-invalid', 'true');
       showToast(t('toast_invalid', 'Invalid SVG'));
@@ -1344,7 +1528,7 @@
       if (e.key === 'y') { e.preventDefault(); redo(); return; }
       if (e.key === 'd' && selected.length) { e.preventDefault(); document.getElementById('duplicateBtn').click(); return; }
       if (e.key === 'g' && selected.length) { e.preventDefault(); if (e.shiftKey) document.getElementById('ungroupBtn').click(); else document.getElementById('groupBtn').click(); return; }
-      if (e.key === 'a') { e.preventDefault(); selected = Array.from(artboard.children).filter(function(n){return n.tagName!=='defs'&&n.id!=='gridRect';}); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
+      if (e.key === 'a') { e.preventDefault(); selected = userElements().filter(function (node) { return !isLocked(node) && !isHidden(node); }); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
       if (e.key === 'c') { e.preventDefault(); copySelected(false); return; }
       if (e.key === 'x') { e.preventDefault(); copySelected(true); return; }
       if (e.key === 'v') { e.preventDefault(); pasteClipboard(); return; }
@@ -1393,6 +1577,7 @@
   // ---- Init ----
   initGrid();
   applyViewBox();
+  syncCanvasControls();
 
   var initRect = el('rect', { x: 250, y: 200, width: 300, height: 200, rx: 12, fill: '#7dd3fc', stroke: '#203848', 'stroke-width': 3, 'data-id': uid() });
   artboard.appendChild(initRect);
