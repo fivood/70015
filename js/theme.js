@@ -11,7 +11,7 @@
     } catch (e) {}
     updateIcon(theme);
     var tc = document.querySelector('meta[name="theme-color"]');
-    if (tc) tc.setAttribute('content', theme === 'dark' ? '#1d1c1e' : '#203848');
+    if (tc) tc.setAttribute('content', theme === 'dark' ? '#111827' : '#f3f4f6');
   }
 
   function updateIcon(theme) {
