@@ -37,6 +37,7 @@
   var historyIdx = -1;
   var maxHistory = 50;
   var maxHistoryBytes = 8 * 1024 * 1024;
+  var historyBytes = 0;
   var uidCounter = 0;
   var clipboard = [];
   var codeDirty = false;
@@ -283,7 +284,10 @@
     var renderH = VB.h / scale;
     var offsetX = (rect.width - renderW) / 2;
     var offsetY = (rect.height - renderH) / 2;
-    return { x: Math.round((e.clientX - rect.left - offsetX) * scale + VB.x), y: Math.round((e.clientY - rect.top - offsetY) * scale + VB.y) };
+    return {
+      x: Math.round(((e.clientX - rect.left - offsetX) * scale + VB.x) * 1000) / 1000,
+      y: Math.round(((e.clientY - rect.top - offsetY) * scale + VB.y) * 1000) / 1000
+    };
   }
 
   function svgToScreen(x, y) {
@@ -350,17 +354,18 @@
   }
 
   function snapshot() {
-    history = history.slice(0, historyIdx + 1);
-    history.push(currentHistoryState());
-    if (history.length > maxHistory) history.shift();
-    historyIdx = history.length - 1;
-    var historyBytes = history.reduce(function (sum, item) { return sum + JSON.stringify(item).length * 2; }, 0);
+    while (history.length > historyIdx + 1) historyBytes -= history.pop().bytes;
+    var state = currentHistoryState();
+    state.bytes = JSON.stringify(state).length * 2;
+    history.push(state);
+    historyBytes += state.bytes;
+    if (history.length > maxHistory) { historyBytes -= history[0].bytes; history.shift(); }
     while (history.length > 1 && historyBytes > maxHistoryBytes) {
-      historyBytes -= JSON.stringify(history[0]).length * 2;
+      historyBytes -= history[0].bytes;
       history.shift();
       historyIdx--;
     }
-    if (historyIdx < 0) historyIdx = 0;
+    historyIdx = history.length - 1;
     updateHistoryButtons();
     syncCode();
   }
@@ -749,7 +754,13 @@
           html += '<div class="prop-row"><label>Grad 1</label><input type="color" id="propGrad1" value="' + normalizeHex(s1) + '"></div>';
           html += '<div class="prop-row"><label>Grad 2</label><input type="color" id="propGrad2" value="' + normalizeHex(s2) + '"></div>';
           if (grad.tagName === 'linearGradient') {
-            html += '<div class="prop-row"><label>Angle</label><input class="range" type="range" id="propGradAngle" min="0" max="360" value="90"><span class="prop-value" id="propGradAngleVal">90</span></div>';
+            var gx1 = parseFloat(grad.getAttribute('x1')) || 0;
+            var gy1 = parseFloat(grad.getAttribute('y1')) || 0;
+            var gx2 = parseFloat(grad.getAttribute('x2')) || 100;
+            var gy2 = parseFloat(grad.getAttribute('y2')) || 0;
+            var gradAngle = Math.round(Math.atan2(gy2 - gy1, gx2 - gx1) * 180 / Math.PI);
+            if (gradAngle < 0) gradAngle += 360;
+            html += '<div class="prop-row"><label>Angle</label><input class="range" type="range" id="propGradAngle" min="0" max="360" value="' + gradAngle + '"><span class="prop-value" id="propGradAngleVal">' + gradAngle + '</span></div>';
           }
         }
       }
@@ -1158,7 +1169,9 @@
           done = true;
           if (save) {
             var nextName = input.value.trim().slice(0, 80);
-            if (nextName && nextName !== defaultName) node.setAttribute('data-name', nextName);
+            var storedName = nextName && nextName !== defaultName ? nextName : null;
+            if (storedName === node.getAttribute('data-name')) { updateLayers(); return; }
+            if (storedName) node.setAttribute('data-name', storedName);
             else node.removeAttribute('data-name');
             finishLayerChange(t('ed_layer_renamed', 'Layer renamed'));
           } else updateLayers();
@@ -1337,7 +1350,7 @@
 
   stage.addEventListener('pointerleave', function (e) { if (!e.buttons) { if (pathNodeDragging) endPathNodeDrag(e); if (drawing) endDraw(e); if (dragging) endDrag(e); if (resizing) endResize(e); if (rotating) endRotate(e); if (panning) endPan(e); } });
 
-  function endDraw(e) { var n = drawing.node; drawing = null; penPoints = []; if (n) { selectSingle(n); snapshot(); } }
+  function endDraw(e) { var n = drawing.node; drawing = null; penPoints = []; if (n) { if (n.tagName === 'path' && !n.getAttribute('d')) { n.remove(); return; } selectSingle(n); snapshot(); } }
 
   // ---- Star ----
   function rebuildStar(node, points) {
@@ -1435,10 +1448,11 @@
       }
       translateNode(state.node, dx, dy, state.matrix);
     });
+    dragging.moved = true;
     updateSelection();
   }
 
-  function endDrag(e) { dragging = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} snapshot(); }
+  function endDrag(e) { var moved = dragging && dragging.moved; dragging = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} if (moved) snapshot(); }
 
   function moveElement(node, x, y) {
     var bounds = getParentBounds(node);
@@ -1457,8 +1471,13 @@
     if (bounds.height <= 0 && Math.abs(height - bounds.height) > 0.000001) return false;
     var sx = bounds.width > 0 ? width / bounds.width : 1;
     var sy = bounds.height > 0 ? height / bounds.height : 1;
-    var resizeMatrix = new DOMMatrix().translate(x, y).scale(sx, sy).translate(-bounds.x, -bounds.y);
-    setNodeMatrix(node, resizeMatrix.multiply(matrix));
+    // Scale in the element's local space so rotated elements don't shear,
+    // then reposition to the requested x/y.
+    var bb = node.getBBox();
+    var localScale = new DOMMatrix().translate(bb.x, bb.y).scale(sx, sy).translate(-bb.x, -bb.y);
+    setNodeMatrix(node, matrix.multiply(localScale));
+    var scaledBounds = getParentBounds(node);
+    translateNode(node, x - scaledBounds.x, y - scaledBounds.y);
     return true;
   }
 
@@ -1475,10 +1494,10 @@
     var node = resizing.node, p = pointerInParent(e, node);
     if (snapToGrid) { p.x = snapVal(p.x); p.y = snapVal(p.y); }
     var dx = p.x - resizing.sx, dy = p.y - resizing.sy, dir = resizing.dir;
-    var nx = resizing.bx, ny = resizing.by, nw = resizing.bw, nh = resizing.bh;
-    if (dir.indexOf('w') >= 0) { nx = resizing.bx + dx; nw = resizing.bw - dx; }
+    var nw = resizing.bw, nh = resizing.bh;
+    if (dir.indexOf('w') >= 0) nw = resizing.bw - dx;
     if (dir.indexOf('e') >= 0) nw = resizing.bw + dx;
-    if (dir.indexOf('n') >= 0) { ny = resizing.by + dy; nh = resizing.bh - dy; }
+    if (dir.indexOf('n') >= 0) nh = resizing.bh - dy;
     if (dir.indexOf('s') >= 0) nh = resizing.bh + dy;
     if (e.shiftKey && resizing.bw > 0 && resizing.bh > 0) {
       var ratio = resizing.bw / resizing.bh;
@@ -1487,19 +1506,23 @@
       else {
         if (nw / nh > ratio) { nh = nw / ratio; } else { nw = nh * ratio; }
       }
-      if (dir.indexOf('w') >= 0) nx = resizing.bx + resizing.bw - nw;
-      if (dir.indexOf('n') >= 0) ny = resizing.by + resizing.bh - nh;
     }
-    if (nw < 2) { nw = 2; if (dir.indexOf('w') >= 0) nx = resizing.bx + resizing.bw - nw; }
-    if (nh < 2) { nh = 2; if (dir.indexOf('n') >= 0) ny = resizing.by + resizing.bh - nh; }
+    if (nw < 2) nw = 2;
+    if (nh < 2) nh = 2;
     var sx = resizing.bw ? nw / resizing.bw : 1;
     var sy = resizing.bh ? nh / resizing.bh : 1;
-    var resizeMatrix = new DOMMatrix().translate(nx, ny).scale(sx, sy).translate(-resizing.bx, -resizing.by);
-    setNodeMatrix(node, resizeMatrix.multiply(resizing.matrix));
+    // Scale in the element's local space anchored at the opposite corner
+    // so rotated elements resize without shearing.
+    var bb = node.getBBox();
+    var ax = dir.indexOf('w') >= 0 ? bb.x + bb.width : bb.x;
+    var ay = dir.indexOf('n') >= 0 ? bb.y + bb.height : bb.y;
+    var localScale = new DOMMatrix().translate(ax, ay).scale(sx, sy).translate(-ax, -ay);
+    setNodeMatrix(node, resizing.matrix.multiply(localScale));
+    resizing.moved = true;
     updateSelection();
   }
 
-  function endResize(e) { resizing = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} snapshot(); updateProps(); }
+  function endResize(e) { var moved = resizing && resizing.moved; resizing = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} if (moved) { snapshot(); updateProps(); } }
 
   // ---- Rotation ----
   function startRotate(e) {
@@ -1521,10 +1544,11 @@
     targetAngle = Math.round(targetAngle);
     if (e.shiftKey) targetAngle = Math.round(targetAngle / 15) * 15;
     setNodeMatrix(node, rotateAtMatrix(targetAngle - rotating.initialAngle, rotating.cx, rotating.cy).multiply(rotating.matrix));
+    rotating.moved = true;
     updateSelection();
   }
 
-  function endRotate(e) { rotating = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} snapshot(); updateProps(); }
+  function endRotate(e) { var moved = rotating && rotating.moved; rotating = null; try { stage.releasePointerCapture(e.pointerId); } catch (_) {} if (moved) { snapshot(); updateProps(); } }
 
   // ---- Pan / Zoom ----
   function startPan(e) { var p = getMouse(e); panning = { sx: e.clientX, sy: e.clientY, vx: VB.x, vy: VB.y }; stage.setPointerCapture(e.pointerId); e.preventDefault(); }
@@ -1783,11 +1807,15 @@
     var clone = cleanArtboardClone();
     clone.removeAttribute('id');
     clone.querySelectorAll('[data-hidden="true"]').forEach(function (node) { node.remove(); });
-    clone.querySelectorAll('[data-id], [data-name], [data-locked], [data-hidden]').forEach(function (node) {
+    clone.querySelectorAll('[data-id], [data-name], [data-locked], [data-hidden], [data-points], [data-cx], [data-cy], [data-r]').forEach(function (node) {
       node.removeAttribute('data-id');
       node.removeAttribute('data-name');
       node.removeAttribute('data-locked');
       node.removeAttribute('data-hidden');
+      node.removeAttribute('data-points');
+      node.removeAttribute('data-cx');
+      node.removeAttribute('data-cy');
+      node.removeAttribute('data-r');
     });
     var mode = document.getElementById('exportArea').value;
     var bounds = mode === 'content' ? getExportBounds() : { x: DOC.x, y: DOC.y, w: DOC.w, h: DOC.h };
@@ -1881,6 +1909,7 @@
           });
         } else {
           var imported = deepImport(child);
+          if (!imported) return;
           if (!imported.getAttribute('data-id')) imported.setAttribute('data-id', uid());
           artboard.appendChild(imported);
         }
@@ -2056,14 +2085,16 @@
       else if (e.key === 'ArrowDown') { e.preventDefault(); selected.forEach(function(n){ var bb=getParentBounds(n); moveElement(n, bb.x, bb.y + step); }); updateSelection(); }
     }
     // Tool shortcuts
-    if (e.key === '1') setTool('select');
-    if (e.key === '2') setTool('rect');
-    if (e.key === '3') setTool('ellipse');
-    if (e.key === '4') setTool('line');
-    if (e.key === '5') setTool('text');
-    if (e.key === '6') setTool('pen');
-    if (e.key === '7') setTool('polygon');
-    if (e.key === '8') setTool('star');
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === '1') setTool('select');
+      if (e.key === '2') setTool('rect');
+      if (e.key === '3') setTool('ellipse');
+      if (e.key === '4') setTool('line');
+      if (e.key === '5') setTool('text');
+      if (e.key === '6') setTool('pen');
+      if (e.key === '7') setTool('polygon');
+      if (e.key === '8') setTool('star');
+    }
   });
 
   document.addEventListener('keyup', function (e) {
@@ -2087,14 +2118,10 @@
   applyViewBox();
   syncCanvasControls();
 
-  var initRect = el('rect', { x: 250, y: 200, width: 300, height: 200, rx: 12, fill: '#7dd3fc', stroke: '#203848', 'stroke-width': 3, 'data-id': uid() });
-  artboard.appendChild(initRect);
-  var initText = el('text', { x: 300, y: 310, 'font-size': 28, fill: '#203848', stroke: 'none', 'font-family': 'Inter, sans-serif', 'data-id': uid() });
-  initText.textContent = t('ed_hello_svg', 'Hello SVG');
-  artboard.appendChild(initText);
-
   snapshot();
-  selectSingle(initRect);
   updateLayers();
   window.addEventListener('resize', updateSelection);
+  // Sidebar growth / i18n reflow can resize the stage without a window resize;
+  // the viewBox re-centers content in that case, so refresh the selection box.
+  if (typeof ResizeObserver === 'function') new ResizeObserver(updateSelection).observe(stage);
 })();

@@ -243,6 +243,10 @@
   display: none;
 }
 
+#artboard [data-locked="true"] {
+  pointer-events: none;
+}
+
 /* Checkerboard background for stage to show transparency */
 .editor__stage::before {
   content: "";
