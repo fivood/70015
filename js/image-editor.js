@@ -302,6 +302,8 @@
   }
   canvas.addEventListener('pointerup', endCrop);
   canvas.addEventListener('pointercancel', endCrop);
+  // The canvas resizes with the viewport; keep the crop box aligned with it.
+  window.addEventListener('resize', updateCropBox);
 
   cornerRadius.addEventListener('input', () => { state.radius = Number(cornerRadius.value); cornerRadiusValue.textContent = cornerRadius.value; render(); });
   backgroundColor.addEventListener('input', () => { state.background = backgroundColor.value; render(); });
