@@ -90,12 +90,12 @@
     uploadHint.textContent = originalHint;
   });
 
-  dropZone.addEventListener('drop', (e) => {
+  dropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
     dropZone.classList.remove('is-dragover');
     uploadTitle.textContent = originalTitle;
     uploadHint.textContent = originalHint;
-    handleFiles(e.dataTransfer.files);
+    handleFiles(await collectDropFiles(e.dataTransfer));
   });
 
   fileInput.addEventListener('change', (e) => {
@@ -151,8 +151,37 @@
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
+  // Walk dropped entries recursively so whole folders can be dropped.
+  // Falls back to the plain file list when the entry API is unavailable.
+  async function collectDropFiles(dataTransfer) {
+    const items = dataTransfer.items;
+    if (!items || typeof items[0] === 'undefined' || !items[0].webkitGetAsEntry) {
+      return Array.from(dataTransfer.files || []);
+    }
+    const files = [];
+    const readEntry = (entry) => new Promise((resolve) => {
+      if (!entry) { resolve(); return; }
+      if (entry.isFile) {
+        entry.file((file) => { files.push(file); resolve(); }, () => resolve());
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const readBatch = () => {
+          reader.readEntries((entries) => {
+            if (!entries.length) { resolve(); return; }
+            Promise.all(Array.from(entries).map(readEntry)).then(readBatch);
+          }, () => resolve());
+        };
+        readBatch();
+      } else {
+        resolve();
+      }
+    });
+    await Promise.all(Array.from(items).map((item) => readEntry(item.webkitGetAsEntry())));
+    return files.length ? files : Array.from(dataTransfer.files || []);
+  }
+
   function handleFiles(fileListObj) {
-    const accepted = Array.from(fileListObj).filter((file) => {
+    const accepted = Array.from(fileListObj || []).filter((file) => {
       if (!file.type.startsWith('image/')) return false;
       if (file.size > MAX_FILE_SIZE) {
         showToast(tpl('conv_too_large', '{name} is too large (max 50 MB)', { name: file.name }));
