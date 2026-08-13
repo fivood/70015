@@ -1,0 +1,19 @@
+{
+  "ext_name": { "message": "70015 Long Screenshot" },
+  "ext_desc": { "message": "Capture full-page or region long screenshots with auto-scroll and smart stitching." },
+  "capture_full": { "message": "Capture full page" },
+  "select_region": { "message": "Select region" },
+  "capturing": { "message": "Capturing…" },
+  "capture_step": { "message": "Step $STEP$ / $TOTAL$", "placeholders": { "STEP": { "content": "$1" }, "TOTAL": { "content": "$2" } } },
+  "stitching": { "message": "Stitching…" },
+  "done": { "message": "Done" },
+  "failed": { "message": "Capture failed" },
+  "cannot_capture": { "message": "Cannot capture this page." },
+  "scroll_hint": { "message": "Draw a region to capture, or use full-page mode." },
+  "download_png": { "message": "Download PNG" },
+  "copy_image": { "message": "Copy" },
+  "result_title": { "message": "Long Screenshot — 70015" },
+  "result_info": { "message": "$W$ × $H$ px · $COUNT$ segments", "placeholders": { "W": { "content": "$1" }, "H": { "content": "$2" }, "COUNT": { "content": "$3" } } },
+  "copied": { "message": "Copied to clipboard" },
+  "copy_fail": { "message": "Copy failed" }
+}

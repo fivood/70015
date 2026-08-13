@@ -1,0 +1,100 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #1a1a2e;
+  background: #fff;
+  min-width: 240px;
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #1e1e2e; color: #e2e8f0; }
+  .popup__btn { background: #2a2a3e; color: #e2e8f0; border-color: #3a3a4e; }
+  .popup__btn:hover { background: #3a3a4e; }
+  .popup__btn--primary { background: #317fa8; color: #fff; border-color: #317fa8; }
+  .popup__btn--primary:hover { background: #3d95c4; }
+  .popup__header { border-color: #3a3a4e; }
+}
+
+.popup {
+  padding: 12px;
+}
+
+.popup__header {
+  display: flex;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.popup__logo {
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.popup__actions {
+  display: grid;
+  gap: 6px;
+}
+
+.popup__btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.popup__btn:hover {
+  background: #e5e7eb;
+}
+
+.popup__btn--primary {
+  background: #317fa8;
+  color: #fff;
+  border-color: #317fa8;
+}
+
+.popup__btn--primary:hover {
+  background: #3d95c4;
+}
+
+.popup__btn svg {
+  flex-shrink: 0;
+}
+
+.popup__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #317fa8;
+  font-weight: 600;
+}
+
+.popup__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #317fa8;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: popupSpin 0.8s linear infinite;
+}
+
+@keyframes popupSpin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,39 @@
+.zimg-ext-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  cursor: crosshair;
+  background: transparent;
+}
+.zimg-ext-sel {
+  position: fixed;
+  border: 2px solid #317fa8;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 2147483647;
+}
+.zimg-ext-sel-label {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  background: #317fa8;
+  color: #fff;
+  font: 700 11px/1.4 monospace;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.zimg-ext-hint {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font: 500 14px/1.4 system-ui, sans-serif;
+  padding: 8px 20px;
+  border-radius: 8px;
+  z-index: 2147483647;
+  pointer-events: none;
+}

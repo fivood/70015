@@ -53,6 +53,37 @@
   let currentPage = 1;
   let currentRender = null;
 
+  // Scroll recording state (Method A)
+  let lockedRegion = null;
+  let isRecording = false;
+  let recState = 'IDLE';
+  let sampleTimer = null;
+  let debounceTimer = null;
+  let prevStripData = null;
+  let lastCaptureData = null;
+  let autoStitchCanvas = null;
+  let autoSegmentCount = 0;
+  let scrollingStartTime = 0;
+
+  const SAMPLE_MS = 200;
+  const CHANGE_THRESH = 25.0;
+  const STABLE_THRESH = 2.0;
+  const DEBOUNCE_MS = 300;
+  const MAX_SCROLL_WAIT = 5000;
+  const OVERLAP_SEARCH = 200;
+  const MATCH_ROWS = 16;
+  const SAMPLE_STEP = 4;
+  const NCC_THRESH = 0.92;
+
+  const scrollControls = document.getElementById('scrollControls');
+  const recordScrollBtn = document.getElementById('recordScrollBtn');
+  const stopRecordBtn = document.getElementById('stopRecordBtn');
+  const unlockRegionBtn = document.getElementById('unlockRegionBtn');
+  const recStatus = document.getElementById('recStatus');
+  const recStatusText = document.getElementById('recStatusText');
+  const recCount = document.getElementById('recCount');
+  const lockBadge = document.getElementById('lockBadge');
+
   if (pdfReady) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC;
   }
@@ -193,12 +224,17 @@
   }
 
   function stopCapture() {
+    if (isRecording) stopRecording();
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
       stream = null;
     }
     video.srcObject = null;
     video.hidden = true;
+    lockedRegion = null;
+    lockBadge.hidden = true;
+    scrollControls.hidden = true;
+    sel.classList.remove('is-locked');
     if (activeMode === 'screen') {
       hideStage();
       startWrap.hidden = false;
@@ -380,11 +416,18 @@
 
   function onDown(e) {
     if (!activeSourceReady() || dragStart) return;
+    if (isRecording) return;
     e.preventDefault();
     const p = pointerPos(e);
-    dragStart = { x: p.x, y: p.y };
-    dragRect = { x: p.x, y: p.y, w: 0, h: 0 };
+    if (lockedRegion && activeMode === 'screen') {
+      dragStart = { x: lockedRegion.x, y: p.y };
+      dragRect = { x: lockedRegion.x, y: p.y, w: lockedRegion.w, h: 0 };
+    } else {
+      dragStart = { x: p.x, y: p.y };
+      dragRect = { x: p.x, y: p.y, w: 0, h: 0 };
+    }
     sel.hidden = false;
+    if (!lockedRegion) sel.classList.remove('is-locked');
     updateSelection();
   }
 
@@ -392,10 +435,17 @@
     if (!dragStart) return;
     e.preventDefault();
     const p = pointerPos(e);
-    dragRect.x = Math.min(dragStart.x, p.x);
-    dragRect.y = Math.min(dragStart.y, p.y);
-    dragRect.w = Math.abs(p.x - dragStart.x);
-    dragRect.h = Math.abs(p.y - dragStart.y);
+    if (lockedRegion && activeMode === 'screen') {
+      dragRect.x = lockedRegion.x;
+      dragRect.w = lockedRegion.w;
+      dragRect.y = Math.min(dragStart.y, p.y);
+      dragRect.h = Math.abs(p.y - dragStart.y);
+    } else {
+      dragRect.x = Math.min(dragStart.x, p.x);
+      dragRect.y = Math.min(dragStart.y, p.y);
+      dragRect.w = Math.abs(p.x - dragStart.x);
+      dragRect.h = Math.abs(p.y - dragStart.y);
+    }
     updateSelection();
   }
 
@@ -408,6 +458,12 @@
       return;
     }
     captureRegion(rect);
+    if (!lockedRegion && activeMode === 'screen' && stream) {
+      lockRegion(rect);
+    } else if (lockedRegion) {
+      lockedRegion.y = rect.y;
+      lockedRegion.h = rect.h;
+    }
   }
 
   function updateSelection() {
@@ -580,6 +636,328 @@
     }
   }
 
+  // ---------- Scroll recording (Method A) ----------
+
+  function lockRegion(rect) {
+    const scale = getScale();
+    lockedRegion = {
+      x: rect.x, y: rect.y, w: rect.w, h: rect.h,
+      nx: Math.round(rect.x * scale.sx),
+      nw: Math.max(1, Math.round(rect.w * scale.sx))
+    };
+    lockBadge.hidden = false;
+    scrollControls.hidden = false;
+    sel.classList.add('is-locked');
+    sel.hidden = false;
+    sel.style.left = rect.x + 'px';
+    sel.style.top = rect.y + 'px';
+    sel.style.width = rect.w + 'px';
+    sel.style.height = rect.h + 'px';
+    selLabel.textContent = lockedRegion.nw + ' × ' + Math.max(1, Math.round(rect.h * scale.sy));
+    hint.textContent = t('snp_lock_hint', 'Region locked. Click "Record scroll", then scroll the shared page.');
+  }
+
+  function unlockRegion() {
+    lockedRegion = null;
+    lockBadge.hidden = true;
+    scrollControls.hidden = true;
+    sel.classList.remove('is-locked');
+    sel.hidden = true;
+    if (isRecording) stopRecording();
+    hint.textContent = t('snp_drag_hint', 'Drag on the preview to select a region. Release to capture.');
+    showToast(t('snp_region_unlocked', 'Region unlocked.'));
+  }
+
+  function startRecording() {
+    if (!stream || activeMode !== 'screen') {
+      showToast(t('snp_need_screen', 'Screen capture must be active to record scrolling.'));
+      return;
+    }
+    if (!lockedRegion) {
+      showToast(t('snp_no_region', 'Select a region first by dragging on the preview.'));
+      return;
+    }
+    isRecording = true;
+    recState = 'WATCHING';
+    autoStitchCanvas = null;
+    autoSegmentCount = 0;
+    lastCaptureData = null;
+    prevStripData = null;
+
+    recordScrollBtn.hidden = true;
+    unlockRegionBtn.hidden = true;
+    stopRecordBtn.hidden = false;
+    recStatus.hidden = false;
+    recStatusText.textContent = t('snp_watching', 'Waiting for scroll…');
+    recCount.textContent = '';
+
+    captureCurrentRegion();
+
+    sampleTimer = setInterval(sampleFrame, SAMPLE_MS);
+    hint.textContent = t('snp_recording_hint', 'Scroll the shared page slowly. Segments are captured automatically.');
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    recState = 'IDLE';
+    if (sampleTimer) { clearInterval(sampleTimer); sampleTimer = null; }
+    if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+    prevStripData = null;
+
+    recordScrollBtn.hidden = false;
+    unlockRegionBtn.hidden = false;
+    stopRecordBtn.hidden = true;
+    recStatus.hidden = true;
+
+    if (autoSegmentCount > 0 && autoStitchCanvas) {
+      autoStitchCanvas.toBlob(function (blob) {
+        if (!blob) return;
+        if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+        lastBlob = blob;
+        lastBlobUrl = URL.createObjectURL(blob);
+        resultImg.src = lastBlobUrl;
+        resultSize.textContent = autoStitchCanvas.width + ' × ' + autoStitchCanvas.height + ' px';
+        resultPanel.hidden = false;
+        captureActions.hidden = false;
+      }, 'image/png');
+    }
+    showToast(tpl('snp_rec_stopped', 'Recording stopped. {count} segments captured.', { count: autoSegmentCount }));
+    hint.textContent = t('snp_lock_hint', 'Region locked. Click "Record scroll", then scroll the shared page.');
+  }
+
+  function captureCurrentRegion() {
+    if (!stream || !video.videoWidth) return;
+    const scale = getScale();
+    const sx = lockedRegion.nx;
+    const sy = Math.round(lockedRegion.y * scale.sy);
+    const sw = lockedRegion.nw;
+    const sh = Math.max(1, Math.round(lockedRegion.h * scale.sy));
+    if (sw * sh > MAX_OUTPUT_PIXELS) return;
+
+    workCanvas.width = sw;
+    workCanvas.height = sh;
+    const ctx = workCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const newData = ctx.getImageData(0, 0, sw, sh);
+    appendToAutoStitch(newData, sw, sh);
+  }
+
+  function appendToAutoStitch(newData, w, h) {
+    let overlapRows = 0;
+    if (lastCaptureData && autoStitchCanvas) {
+      overlapRows = findOverlapRows(lastCaptureData, newData, w);
+    }
+    const appendH = h - overlapRows;
+    if (appendH <= 0) return;
+
+    if (!autoStitchCanvas) {
+      autoStitchCanvas = document.createElement('canvas');
+      autoStitchCanvas.width = w;
+      autoStitchCanvas.height = h;
+      const sctx = autoStitchCanvas.getContext('2d');
+      sctx.putImageData(newData, 0, 0);
+    } else {
+      const oldH = autoStitchCanvas.height;
+      const newH = oldH + appendH;
+      if (w * newH > MAX_OUTPUT_PIXELS) {
+        stopRecording();
+        showToast(t('snp_stitch_too_large', 'Stitched image reached max size. Recording stopped.'));
+        return;
+      }
+      const tmp = document.createElement('canvas');
+      tmp.width = w;
+      tmp.height = newH;
+      const tctx = tmp.getContext('2d');
+      tctx.drawImage(autoStitchCanvas, 0, 0);
+      const appendCanvas = document.createElement('canvas');
+      appendCanvas.width = w;
+      appendCanvas.height = appendH;
+      const actx = appendCanvas.getContext('2d');
+      actx.putImageData(newData, 0, -overlapRows);
+      tctx.drawImage(appendCanvas, 0, oldH);
+      autoStitchCanvas.width = w;
+      autoStitchCanvas.height = newH;
+      autoStitchCanvas.getContext('2d').drawImage(tmp, 0, 0);
+    }
+
+    lastCaptureData = newData;
+    autoSegmentCount++;
+    recCount.textContent = tpl('snp_rec_segments', '{count} segments', { count: autoSegmentCount });
+    if (overlapRows > 0) {
+      showToast(tpl('snp_overlap_removed', '{rows}px overlap removed', { rows: overlapRows }));
+    }
+  }
+
+  // --- Frame comparison (MSE on center strip) ---
+
+  function sampleFrame() {
+    if (!isRecording || !stream || !video.videoWidth) return;
+    const scale = getScale();
+    const regNx = lockedRegion.nx;
+    const regNw = lockedRegion.nw;
+    const stripW = Math.max(4, Math.floor(regNw * 0.1));
+    const stripX = regNx + Math.floor((regNw - stripW) / 2);
+    const natH = video.videoHeight;
+
+    workCanvas.width = stripW;
+    workCanvas.height = natH;
+    const ctx = workCanvas.getContext('2d');
+    ctx.drawImage(video, stripX, 0, stripW, natH, 0, 0, stripW, natH);
+    const currStrip = ctx.getImageData(0, 0, stripW, natH);
+
+    if (!prevStripData) {
+      prevStripData = currStrip;
+      return;
+    }
+
+    const mse = computeMSE(prevStripData.data, currStrip.data);
+    prevStripData = currStrip;
+
+    switch (recState) {
+      case 'WATCHING':
+        if (mse > CHANGE_THRESH) {
+          recState = 'SCROLLING';
+          scrollingStartTime = Date.now();
+          recStatusText.textContent = t('snp_scrolling', 'Scrolling…');
+        }
+        break;
+      case 'SCROLLING':
+        if (mse < STABLE_THRESH) {
+          recState = 'DEBOUNCING';
+          debounceTimer = setTimeout(function () {
+            if (recState === 'DEBOUNCING') {
+              recState = 'CAPTURE';
+              recStatusText.textContent = t('snp_auto_capturing', 'Capturing…');
+              captureCurrentRegion();
+              recState = 'WATCHING';
+              recStatusText.textContent = t('snp_watching', 'Waiting for scroll…');
+            }
+          }, DEBOUNCE_MS);
+        } else if (Date.now() - scrollingStartTime > MAX_SCROLL_WAIT) {
+          recState = 'CAPTURE';
+          recStatusText.textContent = t('snp_auto_capturing', 'Capturing…');
+          captureCurrentRegion();
+          recState = 'WATCHING';
+          scrollingStartTime = 0;
+          recStatusText.textContent = t('snp_watching', 'Waiting for scroll…');
+        }
+        break;
+      case 'DEBOUNCING':
+        if (mse > CHANGE_THRESH) {
+          if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+          recState = 'SCROLLING';
+          recStatusText.textContent = t('snp_scrolling', 'Scrolling…');
+        }
+        break;
+    }
+  }
+
+  function computeMSE(a, b) {
+    const len = Math.min(a.length, b.length);
+    let sum = 0, count = 0;
+    for (let i = 0; i < len; i += 4) {
+      const dr = a[i] - b[i];
+      const dg = a[i + 1] - b[i + 1];
+      const db = a[i + 2] - b[i + 2];
+      sum += dr * dr + dg * dg + db * db;
+      count += 3;
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  // --- Overlap detection (NCC) ---
+
+  function findOverlapRows(prevData, newData, width) {
+    const prevH = prevData.height;
+    const newH = newData.height;
+    const searchRows = Math.min(OVERLAP_SEARCH, Math.floor(prevH * 0.4), newH - MATCH_ROWS);
+    if (searchRows < MATCH_ROWS) return 0;
+
+    const tplY = prevH - MATCH_ROWS;
+    const tplGray = toGrayStrip(prevData.data, width, tplY, MATCH_ROWS);
+    const tplStats = computeStats(tplGray);
+
+    if (tplStats.std < 1.0) {
+      return findOverlapMSE(prevData, newData, width, searchRows);
+    }
+
+    let bestNCC = -1, bestOffset = -1;
+    for (let off = 0; off <= searchRows - MATCH_ROWS; off++) {
+      const candGray = toGrayStrip(newData.data, width, off, MATCH_ROWS);
+      const candStats = computeStats(candGray);
+      if (candStats.std < 0.5) continue;
+
+      let num = 0;
+      for (let i = 0; i < tplGray.length; i += SAMPLE_STEP) {
+        num += (tplGray[i] - tplStats.mean) * (candGray[i] - candStats.mean);
+      }
+      const samples = Math.ceil(tplGray.length / SAMPLE_STEP);
+      const ncc = num / (tplStats.std * candStats.std * samples);
+
+      if (ncc > bestNCC) {
+        bestNCC = ncc;
+        bestOffset = off;
+      }
+    }
+
+    if (bestNCC >= NCC_THRESH && bestOffset >= 0) {
+      return bestOffset + MATCH_ROWS;
+    }
+    return 0;
+  }
+
+  function findOverlapMSE(prevData, newData, width, searchRows) {
+    const prevH = prevData.height;
+    const tplY = prevH - MATCH_ROWS;
+    const tplGray = toGrayStrip(prevData.data, width, tplY, MATCH_ROWS);
+
+    let bestMSE = Infinity, bestOffset = -1;
+    for (let off = 0; off <= searchRows - MATCH_ROWS; off++) {
+      const candGray = toGrayStrip(newData.data, width, off, MATCH_ROWS);
+      let sum = 0;
+      for (let i = 0; i < tplGray.length; i += SAMPLE_STEP) {
+        const d = tplGray[i] - candGray[i];
+        sum += d * d;
+      }
+      const mse = sum / Math.ceil(tplGray.length / SAMPLE_STEP);
+      if (mse < bestMSE) {
+        bestMSE = mse;
+        bestOffset = off;
+      }
+    }
+    if (bestMSE < 5.0 && bestOffset >= 0) {
+      return bestOffset + MATCH_ROWS;
+    }
+    return 0;
+  }
+
+  function toGrayStrip(data, width, startRow, rows) {
+    const out = new Float32Array(width * rows);
+    for (let r = 0; r < rows; r++) {
+      const rowOff = (startRow + r) * width * 4;
+      for (let c = 0; c < width; c++) {
+        const i = rowOff + c * 4;
+        out[r * width + c] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      }
+    }
+    return out;
+  }
+
+  function computeStats(arr) {
+    let sum = 0;
+    for (let i = 0; i < arr.length; i += SAMPLE_STEP) sum += arr[i];
+    const n = Math.ceil(arr.length / SAMPLE_STEP);
+    const mean = sum / n;
+    let vsum = 0;
+    for (let i = 0; i < arr.length; i += SAMPLE_STEP) {
+      const d = arr[i] - mean;
+      vsum += d * d;
+    }
+    return { mean: mean, std: Math.sqrt(vsum / n) };
+  }
+
   // ---------- Events ----------
 
   stage.addEventListener('mousedown', onDown);
@@ -613,6 +991,9 @@
   document.getElementById('addToStitchBtn').addEventListener('click', addToStitch);
   document.getElementById('stitchDownloadBtn').addEventListener('click', downloadStitch);
   document.getElementById('stitchClearBtn').addEventListener('click', clearStitch);
+  recordScrollBtn.addEventListener('click', startRecording);
+  stopRecordBtn.addEventListener('click', stopRecording);
+  unlockRegionBtn.addEventListener('click', unlockRegion);
 
   pdfInput.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
@@ -635,6 +1016,7 @@
   });
 
   window.addEventListener('beforeunload', () => {
+    if (isRecording) stopRecording();
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
   });

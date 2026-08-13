@@ -148,11 +148,26 @@
           <div class="snapshot__sel" id="sel" hidden>
             <span class="snapshot__sel-label" id="selLabel"></span>
           </div>
+          <div class="snapshot__lock-badge" id="lockBadge" hidden>
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M8 1a4 4 0 0 0-4 4v2H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm2.5 6H5.5V5a2.5 2.5 0 0 1 5 0z"/></svg>
+            <span data-i18n="snp_region_locked">Region locked</span>
+          </div>
         </div>
 
         <div class="settings__row snapshot__controls" id="stageControls" hidden>
           <button class="btn btn--secondary btn--sm" id="fullBtn" type="button" data-i18n="snp_full">Capture full frame</button>
           <button class="btn btn--secondary btn--sm" id="stopBtn" type="button" data-i18n="snp_stop">Stop sharing</button>
+        </div>
+
+        <div class="settings__row snapshot__controls snapshot__scroll-controls" id="scrollControls" hidden>
+          <button class="btn btn--primary btn--sm" id="recordScrollBtn" type="button" data-i18n="snp_record_scroll">Record scroll</button>
+          <button class="btn btn--secondary btn--sm" id="unlockRegionBtn" type="button" data-i18n="snp_unlock_region" hidden>Unlock</button>
+          <button class="btn btn--secondary btn--sm snapshot__stop-rec" id="stopRecordBtn" type="button" data-i18n="snp_stop_record" hidden>Stop recording</button>
+          <span class="snapshot__rec-status" id="recStatus" hidden>
+            <span class="snapshot__rec-dot" aria-hidden="true"></span>
+            <span id="recStatusText"></span>
+            <span class="snapshot__rec-count" id="recCount"></span>
+          </span>
         </div>
 
         <div class="settings__row snapshot__controls" id="pdfControls" hidden>
