@@ -10,13 +10,13 @@
   var SIN_30 = Math.sin(Math.PI / 6);
   var ISO_30_ANGLES = [-150, -90, -30, 30, 90, 150];
   var GAME_21_ANGLES = [-153.435, -90, -26.565, 26.565, 90, 153.435];
-  var PLAN_2D_ANGLES = [-180, -90, 0, 90, 180];
 
   // 状态
   var viewMode = 'iso'; // 'iso' | 'plan'
   var gridMode = 'true_iso_30'; // 'true_iso_30' | 'game_iso_2_1'
   var showGrid = true;
   var snapToGrid = true;
+  var snapStep = 0.25; // 吸附精度：默认 0.25格 (支持薄墙、细家具与地砖)
   var currentTool = 'box'; // 'select' | 'box' | 'plane' | 'brush' | 'line' | 'rect_2d' | 'eraser' | 'eyedropper'
   var currentPlane = 'top'; // 'top' | 'left' | 'right'
   var currentColor = '#317fa8';
@@ -54,9 +54,15 @@
   var canvas, ctx, container, statusText;
   var toolBtns, viewModeBtns, planeBtns;
   var undoBtn, redoBtn, extrudeBtn, sampleBtn, exportBtn, clearBtn;
-  var gridBtn, snapBtn;
+  var gridBtn, snapBtn, snapStepSelect;
   var fillColorInput, strokeColorInput, hasOutlineInput;
   var shadeTopBox, shadeLeftBox, shadeRightBox;
+
+  // i18n 辅助
+  function tr(key) {
+    if (typeof window.t === 'function') return window.t(key);
+    return key;
+  }
 
   // ==================== 核心数学函数 ====================
 
@@ -95,7 +101,7 @@
   }
 
   function snapToGridPoint(sx, sy, gMode, tSize, gz, step) {
-    step = step || 1.0;
+    step = step || snapStep;
     var g = screenToGrid(sx, sy, gMode, tSize, gz);
     var snappedGx = Math.round(g.gx / step) * step;
     var snappedGy = Math.round(g.gy / step) * step;
@@ -134,12 +140,12 @@
     };
   }
 
-  function snapRayToGridStep(startX, startY, projX, projY, tSize) {
+  function snapRayToGridStep(startX, startY, projX, projY, tSize, step) {
     var dx = projX - startX;
     var dy = projY - startY;
     var length = Math.hypot(dx, dy);
     if (length < 3) return { x: projX, y: projY };
-    var unit = tSize || tileSize;
+    var unit = (tSize || tileSize) * (step || snapStep);
     var snapped = Math.round(length / unit) * unit;
     var scale = snapped / length;
     return { x: startX + dx * scale, y: startY + dy * scale };
@@ -214,7 +220,7 @@
   // ==================== 顶点与图形辅助 ====================
 
   function getBoxVertices(box, gMode, tSize) {
-    var gx = box.gx, gy = box.gy, gz = box.gz, gw = box.gw, gd = box.gd, gh = box.gh;
+    var gx = box.gx, gy = box.gy, gz = box.gz || 0, gw = box.gw, gd = box.gd, gh = box.gh;
     return [
       gridToScreen(gx, gy, gz, gMode, tSize),
       gridToScreen(gx + gw, gy, gz, gMode, tSize),
@@ -228,7 +234,7 @@
   }
 
   function getPlaneVertices(plane, gMode, tSize) {
-    var gx = plane.gx, gy = plane.gy, gz = plane.gz, gw = plane.gw, gd = plane.gd;
+    var gx = plane.gx, gy = plane.gy, gz = plane.gz || 0, gw = plane.gw, gd = plane.gd;
     if (plane.planeType === 'top') {
       return [
         gridToScreen(gx, gy, gz, gMode, tSize),
@@ -284,10 +290,11 @@
   function getEffectivePoint(world) {
     if (!snapToGrid) return world;
     if (viewMode === 'iso') {
-      var sn = snapToGridPoint(world.x, world.y, gridMode, tileSize, 0, 1.0);
+      var sn = snapToGridPoint(world.x, world.y, gridMode, tileSize, 0, snapStep);
       return sn.screen;
     } else {
-      return { x: Math.round(world.x / 32) * 32, y: Math.round(world.y / 32) * 32 };
+      var step2D = 32 * snapStep;
+      return { x: Math.round(world.x / step2D) * step2D, y: Math.round(world.y / step2D) * step2D };
     }
   }
 
@@ -301,47 +308,63 @@
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
 
-    // 网格
+    // 网格与底板
     if (showGrid) {
       if (viewMode === 'iso') drawIsoGrid();
       else drawPlanGrid();
     }
 
-    // 深度排序
-    var sorted = shapes.slice().sort(function (a, b) {
-      var dA = (a.type === 'box' || a.type === 'plane') ? (a.gx + a.gy) + (a.gz || 0) * 0.5 : 0;
-      var dB = (b.type === 'box' || b.type === 'plane') ? (b.gx + b.gy) + (b.gz || 0) * 0.5 : 0;
-      return dA - dB;
-    });
+    if (viewMode === 'iso') {
+      // 3D 等距模式：深度排序
+      var sorted = shapes.slice().sort(function (a, b) {
+        var dA = (a.type === 'box' || a.type === 'plane') ? (a.gx + a.gy) + (a.gz || 0) * 0.5 : 0;
+        var dB = (b.type === 'box' || b.type === 'plane') ? (b.gx + b.gy) + (b.gz || 0) * 0.5 : 0;
+        return dA - dB;
+      });
 
-    for (var i = 0; i < sorted.length; i++) {
-      var s = sorted[i];
-      if (s.type === 'box') drawBox(s);
-      else if (s.type === 'plane') drawPlane(s);
-      else if (s.type === 'brush_stroke') drawBrushStroke(s);
-      else if (s.type === 'line') drawLine(s);
-      else if (s.type === 'rect_2d') drawRect2D(s);
-    }
+      for (var i = 0; i < sorted.length; i++) {
+        var s = sorted[i];
+        if (s.type === 'box') drawBox(s);
+        else if (s.type === 'plane') drawPlane(s);
+        else if (s.type === 'brush_stroke') drawBrushStroke(s);
+        else if (s.type === 'line') drawLine(s);
+        else if (s.type === 'rect_2d') drawRect2DAsIso(s);
+      }
 
-    // 实时 3D 盒子高度拉伸
-    if (boxExtrudeStage === 'pulling_height' && boxBase) {
-      var shades = compute3Shades(currentColor);
-      var tempBox = {
-        type: 'box',
-        gx: boxBase.gx,
-        gy: boxBase.gy,
-        gz: boxBase.gz,
-        gw: boxBase.gw,
-        gd: boxBase.gd,
-        gh: boxHeight,
-        topColor: shades.topColor,
-        leftColor: shades.leftColor,
-        rightColor: shades.rightColor,
-        hasOutline: true,
-        outlineColor: outlineColor
-      };
-      drawBox(tempBox);
-      drawHeightIndicator(tempBox);
+      // 实时 3D 盒子高度拉伸
+      if (boxExtrudeStage === 'pulling_height' && boxBase) {
+        var shades = compute3Shades(currentColor);
+        var tempBox = {
+          type: 'box',
+          gx: boxBase.gx,
+          gy: boxBase.gy,
+          gz: boxBase.gz,
+          gw: boxBase.gw,
+          gd: boxBase.gd,
+          gh: boxHeight,
+          topColor: shades.topColor,
+          leftColor: shades.leftColor,
+          rightColor: shades.rightColor,
+          hasOutline: true,
+          outlineColor: outlineColor
+        };
+        drawBox(tempBox);
+        drawHeightIndicator(tempBox);
+      }
+    } else {
+      // 2D 平面模式：将所有 3D 盒子、平面与 2D 图元渲染为标准的 2D 俯视平面图
+      for (var j = 0; j < shapes.length; j++) {
+        var shape = shapes[j];
+        if (shape.type === 'box') {
+          drawBoxIn2DPlan(shape);
+        } else if (shape.type === 'plane') {
+          drawPlaneIn2DPlan(shape);
+        } else if (shape.type === 'rect_2d') {
+          drawRect2D(shape);
+        } else if (shape.type === 'line') {
+          drawLine(shape);
+        }
+      }
     }
 
     // 拖拽预览
@@ -351,7 +374,7 @@
 
     // 磁吸或 3D 表面贴面光标
     if (!isPanning && !isSpacePressed && hoverPoint) {
-      if (currentTool === 'brush') {
+      if (currentTool === 'brush' && viewMode === 'iso') {
         drawSurfaceBrushCursor(hoverPoint, hoverHitFace);
       } else if (snapToGrid) {
         drawSnapCursor(hoverPoint);
@@ -362,25 +385,104 @@
     updateStatusBar();
   }
 
+  // ==================== 2D 平面图与 3D 等距投影转换 ====================
+
+  /**
+   * 将 3D 盒子在 2D 平面视图中渲染为俯视平面图 (带厚度、墙体/家具辨识)
+   */
+  function drawBoxIn2DPlan(b) {
+    var rx = b.gx * 32;
+    var ry = b.gy * 32;
+    var rw = b.gw * 32;
+    var rh = b.gd * 32;
+    var isWall = (b.gh >= 2.0); // 高度大于 2.0 判定为墙体
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rx, ry, rw, rh);
+    ctx.fillStyle = isWall ? (b.leftColor || b.baseColor || '#64748b') : (b.topColor || b.baseColor || '#317fa8');
+    ctx.fill();
+
+    ctx.lineWidth = isWall ? 2 : 1;
+    ctx.strokeStyle = isWall ? '#111827' : (b.outlineColor || '#374151');
+    ctx.stroke();
+
+    // 如果是墙体，加上精细剖切斜线
+    if (isWall && (rw > 12 && rh > 12)) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(rx, ry); ctx.lineTo(rx + rw, ry + rh);
+      ctx.stroke();
+    }
+
+    // 标注尺寸信息
+    if (rw > 36 && rh > 24) {
+      ctx.font = '9px monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText(b.gw.toFixed(1) + '×' + b.gd.toFixed(1), rx + 4, ry + 14);
+    }
+    ctx.restore();
+  }
+
+  function drawPlaneIn2DPlan(p) {
+    if (p.planeType === 'top') {
+      var rx = p.gx * 32;
+      var ry = p.gy * 32;
+      var rw = p.gw * 32;
+      var rh = p.gd * 32;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rx, ry, rw, rh);
+      ctx.fillStyle = p.color || 'rgba(49, 127, 168, 0.3)';
+      ctx.fill();
+      ctx.strokeStyle = p.outlineColor || '#374151';
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawRect2DAsIso(r) {
+    var gx = r.x / 32;
+    var gy = r.y / 32;
+    var gw = r.width / 32;
+    var gd = r.height / 32;
+    var sh = compute3Shades(r.fillColor || currentColor);
+    var temp = {
+      gx: gx, gy: gy, gz: 0, gw: gw, gd: gd, gh: r.extrudeHeight || 0.25,
+      topColor: sh.topColor, leftColor: sh.leftColor, rightColor: sh.rightColor,
+      hasOutline: true, outlineColor: r.outlineColor || outlineColor
+    };
+    drawBox(temp);
+  }
+
+  // ==================== 基础绘制函数 ====================
+
   function drawIsoGrid() {
     ctx.save();
     ctx.strokeStyle = 'var(--border)';
     ctx.lineWidth = 0.5 / zoom;
-    var range = 25;
-    for (var gx = -range; gx <= range; gx++) {
+    var range = 35;
+    for (var gx = -range; gx <= range; gx += (snapStep >= 0.5 ? 1 : 0.5)) {
+      var isMajor = Math.abs(gx % 5) < 0.01;
       var p1 = gridToScreen(gx, -range, 0);
       var p2 = gridToScreen(gx, range, 0);
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = isMajor ? 'var(--text-muted)' : 'var(--border)';
+      ctx.lineWidth = (isMajor ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
-    for (var gy = -range; gy <= range; gy++) {
+    for (var gy = -range; gy <= range; gy += (snapStep >= 0.5 ? 1 : 0.5)) {
+      var isMajor2 = Math.abs(gy % 5) < 0.01;
       var q1 = gridToScreen(-range, gy, 0);
       var q2 = gridToScreen(range, gy, 0);
       ctx.beginPath();
       ctx.moveTo(q1.x, q1.y);
       ctx.lineTo(q2.x, q2.y);
+      ctx.strokeStyle = isMajor2 ? 'var(--text-muted)' : 'var(--border)';
+      ctx.lineWidth = (isMajor2 ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
 
@@ -422,16 +524,23 @@
     ctx.strokeStyle = 'var(--border)';
     ctx.lineWidth = 0.5 / zoom;
     var range = 40 * 32;
-    for (var x = -range; x <= range; x += 32) {
+    var step = 32 * snapStep;
+    for (var x = -range; x <= range; x += step) {
+      var isMajor = Math.abs((x / 32) % 5) < 0.01;
       ctx.beginPath();
       ctx.moveTo(x, -range);
       ctx.lineTo(x, range);
+      ctx.strokeStyle = isMajor ? 'var(--text-muted)' : 'var(--border)';
+      ctx.lineWidth = (isMajor ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
-    for (var y = -range; y <= range; y += 32) {
+    for (var y = -range; y <= range; y += step) {
+      var isMajor2 = Math.abs((y / 32) % 5) < 0.01;
       ctx.beginPath();
       ctx.moveTo(-range, y);
       ctx.lineTo(range, y);
+      ctx.strokeStyle = isMajor2 ? 'var(--text-muted)' : 'var(--border)';
+      ctx.lineWidth = (isMajor2 ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
     ctx.restore();
@@ -540,10 +649,10 @@
 
     var labelX = v[6].x + 12 / zoom;
     var labelY = (v[2].y + v[6].y) / 2;
-    var tag = 'H: ' + b.gh.toFixed(1) + ' (Click)';
+    var tag = 'H: ' + b.gh.toFixed(2) + ' (Click)';
     ctx.font = 'bold ' + Math.max(9, Math.round(10.5 / zoom)) + 'px monospace';
     ctx.fillStyle = 'var(--surface)';
-    ctx.fillRect(labelX - 2 / zoom, labelY - 8 / zoom, 100 / zoom, 16 / zoom);
+    ctx.fillRect(labelX - 2 / zoom, labelY - 8 / zoom, 110 / zoom, 16 / zoom);
     ctx.fillStyle = 'var(--text)';
     ctx.fillText(tag, labelX, labelY + 4 / zoom);
     ctx.restore();
@@ -600,7 +709,7 @@
       if (currentTool === 'box') {
         var gStart = screenToGrid(startMouse.x, startMouse.y);
         var gCurr = screenToGrid(currentMouse.x, currentMouse.y);
-        var step = snapToGrid ? 1.0 : 0.5;
+        var step = snapToGrid ? snapStep : 0.1;
         var gx = Math.min(Math.round(gStart.gx / step) * step, Math.round(gCurr.gx / step) * step);
         var gy = Math.min(Math.round(gStart.gy / step) * step, Math.round(gCurr.gy / step) * step);
         var gw = Math.max(step, Math.abs(Math.round((gCurr.gx - gStart.gx) / step) * step) || step);
@@ -624,7 +733,7 @@
       } else if (currentTool === 'plane') {
         var gS = screenToGrid(startMouse.x, startMouse.y);
         var gC = screenToGrid(currentMouse.x, currentMouse.y);
-        var stp = snapToGrid ? 1.0 : 0.5;
+        var stp = snapToGrid ? snapStep : 0.1;
         var gpx = Math.min(Math.round(gS.gx / stp) * stp, Math.round(gC.gx / stp) * stp);
         var gpy = Math.min(Math.round(gS.gy / stp) * stp, Math.round(gC.gy / stp) * stp);
         var gpw = Math.max(stp, Math.abs(Math.round((gC.gx - gS.gx) / stp) * stp) || stp);
@@ -720,10 +829,11 @@
 
   function updateStatusBar() {
     if (!statusText) return;
-    statusText.textContent = (viewMode === 'iso' ? '3D Iso' : '2D Plan') +
-      ' | Tool: ' + currentTool + (currentTool === 'plane' || currentTool === 'brush' ? ' (' + currentPlane + ')' : '') +
+    var modeStr = viewMode === 'iso' ? tr('iso_view_3d') : tr('iso_view_2d');
+    statusText.textContent = modeStr +
+      ' | ' + tr('iso_precision') + ': ' + snapStep +
       ' | Zoom: ' + Math.round(zoom * 100) + '%' +
-      ' | Objects: ' + shapes.length;
+      ' | ' + shapes.length + ' ' + (shapes.length === 1 ? 'object' : 'objects');
   }
 
   // ==================== 事件监听 ====================
@@ -756,7 +866,7 @@
         gz: boxBase.gz,
         gw: boxBase.gw,
         gd: boxBase.gd,
-        gh: Math.max(0.2, boxHeight),
+        gh: Math.max(snapStep, boxHeight),
         baseColor: currentColor,
         topColor: sh.topColor,
         leftColor: sh.leftColor,
@@ -833,8 +943,8 @@
       var baseCenterScreen = gridToScreen(boxBase.gx + boxBase.gw / 2, boxBase.gy + boxBase.gd / 2, boxBase.gz);
       var deltaY = baseCenterScreen.y - rawWorld.y;
       var calcH = deltaY / (tileSize * (gridMode === 'true_iso_30' ? 1.0 : 0.5));
-      if (snapToGrid) calcH = Math.round(calcH * 2) / 2;
-      boxHeight = Math.max(0.2, calcH);
+      if (snapToGrid) calcH = Math.round(calcH / snapStep) * snapStep;
+      boxHeight = Math.max(snapStep, calcH);
       render();
       return;
     }
@@ -860,7 +970,7 @@
       if (currentTool === 'box' && boxExtrudeStage === 'drawing_base') {
         var gS = screenToGrid(startMouse.x, startMouse.y);
         var gC = screenToGrid(currentMouse.x, currentMouse.y);
-        var st = snapToGrid ? 1.0 : 0.5;
+        var st = snapToGrid ? snapStep : 0.1;
         var gx = Math.min(Math.round(gS.gx / st) * st, Math.round(gC.gx / st) * st);
         var gy = Math.min(Math.round(gS.gy / st) * st, Math.round(gC.gy / st) * st);
         var gw = Math.max(st, Math.abs(Math.round((gC.gx - gS.gx) / st) * st) || st);
@@ -876,7 +986,7 @@
       if (currentTool === 'plane') {
         var gS2 = screenToGrid(startMouse.x, startMouse.y);
         var gC2 = screenToGrid(currentMouse.x, currentMouse.y);
-        var st2 = snapToGrid ? 1.0 : 0.5;
+        var st2 = snapToGrid ? snapStep : 0.1;
         var px = Math.min(Math.round(gS2.gx / st2) * st2, Math.round(gC2.gx / st2) * st2);
         var py = Math.min(Math.round(gS2.gy / st2) * st2, Math.round(gC2.gy / st2) * st2);
         var pw = Math.max(st2, Math.abs(Math.round((gC2.gx - gS2.gx) / st2) * st2) || st2);
@@ -911,7 +1021,7 @@
 
       if (currentTool === 'line') {
         var snapped = snapToIsometricAxis(startMouse.x, startMouse.y, currentMouse.x, currentMouse.y, gridMode);
-        var endP = snapToGrid ? snapRayToGridStep(startMouse.x, startMouse.y, snapped.point.x, snapped.point.y) : snapped.point;
+        var endP = snapToGrid ? snapRayToGridStep(startMouse.x, startMouse.y, snapped.point.x, snapped.point.y, tileSize, snapStep) : snapped.point;
         if (dist > 3) {
           var newLine = {
             type: 'line',
@@ -925,20 +1035,25 @@
         return;
       }
     } else {
-      if (currentTool === 'rect_2d') {
-        var rx = Math.min(startMouse.x, currentMouse.x);
-        var ry = Math.min(startMouse.y, currentMouse.y);
-        var rw = Math.max(16, Math.abs(currentMouse.x - startMouse.x));
-        var rh = Math.max(16, Math.abs(currentMouse.y - startMouse.y));
-        var newRect = {
-          type: 'rect_2d',
-          x: rx, y: ry, width: rw, height: rh,
-          extrudeHeight: 3.0,
-          fillColor: currentColor,
-          outlineColor: outlineColor
-        };
-        pushState(shapes.concat([newRect]));
-      }
+      // 2D 平面模式：直接创建 3D 兼容的矩形
+      var rx = Math.min(startMouse.x, currentMouse.x);
+      var ry = Math.min(startMouse.y, currentMouse.y);
+      var rw = Math.max(16, Math.abs(currentMouse.x - startMouse.x));
+      var rh = Math.max(16, Math.abs(currentMouse.y - startMouse.y));
+
+      var gx2 = rx / 32;
+      var gy2 = ry / 32;
+      var gw2 = rw / 32;
+      var gd2 = rh / 32;
+      var sh2 = compute3Shades(currentColor);
+
+      var newBoxFromPlan = {
+        type: 'box',
+        gx: gx2, gy: gy2, gz: 0, gw: gw2, gd: gd2, gh: 2.5,
+        baseColor: currentColor, topColor: sh2.topColor, leftColor: sh2.leftColor, rightColor: sh2.rightColor,
+        hasOutline: hasOutline, outlineColor: outlineColor
+      };
+      pushState(shapes.concat([newBoxFromPlan]));
     }
   }
 
@@ -948,7 +1063,7 @@
     var mouseX = e.clientX - rect.left;
     var mouseY = e.clientY - rect.top;
     var zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-    var newZoom = Math.max(0.15, Math.min(4.0, zoom * zoomFactor));
+    var newZoom = Math.max(0.12, Math.min(4.5, zoom * zoomFactor));
     pan.x = mouseX - (mouseX - pan.x) * (newZoom / zoom);
     pan.y = mouseY - (mouseY - pan.y) * (newZoom / zoom);
     zoom = newZoom;
@@ -964,63 +1079,19 @@
     var shChair = compute3Shades('#53c9df');
 
     var sampleShapes = [
-      // 地板
+      // 地板 (7x7, 高 0.25)
       { type: 'box', gx: 0, gy: 0, gz: 0, gw: 7, gd: 7, gh: 0.25, baseColor: '#e5e7eb', topColor: shFloor.topColor, leftColor: shFloor.leftColor, rightColor: shFloor.rightColor, hasOutline: true, outlineColor: '#1f2937' },
-      // 后左墙
-      { type: 'box', gx: 0, gy: 0, gz: 0.25, gw: 0.3, gd: 7, gh: 3.2, baseColor: '#94a3b8', topColor: shWallL.topColor, leftColor: shWallL.leftColor, rightColor: shWallL.rightColor, hasOutline: true, outlineColor: '#1f2937' },
-      // 后右墙
-      { type: 'box', gx: 0.3, gy: 0, gz: 0.25, gw: 6.7, gd: 0.3, gh: 3.2, baseColor: '#64748b', topColor: shWallR.topColor, leftColor: shWallR.leftColor, rightColor: shWallR.rightColor, hasOutline: true, outlineColor: '#1f2937' },
-      // 书桌
-      { type: 'box', gx: 1.0, gy: 1.0, gz: 0.25, gw: 3.0, gd: 1.6, gh: 1.2, baseColor: '#317fa8', topColor: shDesk.topColor, leftColor: shDesk.leftColor, rightColor: shDesk.rightColor, hasOutline: true, outlineColor: '#1f2937' },
-      // 显示器
-      { type: 'box', gx: 1.6, gy: 1.2, gz: 1.45, gw: 1.4, gd: 0.2, gh: 0.9, baseColor: '#111827', topColor: shScreen.topColor, leftColor: shScreen.leftColor, rightColor: shScreen.rightColor, hasOutline: true, outlineColor: '#1f2937' },
-      // 椅子
-      { type: 'box', gx: 2.0, gy: 3.2, gz: 0.25, gw: 1.2, gd: 1.2, gh: 0.8, baseColor: '#53c9df', topColor: shChair.topColor, leftColor: shChair.leftColor, rightColor: shChair.rightColor, hasOutline: true, outlineColor: '#1f2937' }
+      // 后左薄墙 (厚度 0.25)
+      { type: 'box', gx: 0, gy: 0, gz: 0.25, gw: 0.25, gd: 7, gh: 3.2, baseColor: '#94a3b8', topColor: shWallL.topColor, leftColor: shWallL.leftColor, rightColor: shWallL.rightColor, hasOutline: true, outlineColor: '#1f2937' },
+      // 后右薄墙 (厚度 0.25)
+      { type: 'box', gx: 0.25, gy: 0, gz: 0.25, gw: 6.75, gd: 0.25, gh: 3.2, baseColor: '#64748b', topColor: shWallR.topColor, leftColor: shWallR.leftColor, rightColor: shWallR.rightColor, hasOutline: true, outlineColor: '#1f2937' },
+      // 书桌 (长 3.0, 宽 1.5, 高 1.25)
+      { type: 'box', gx: 1.0, gy: 1.0, gz: 0.25, gw: 3.0, gd: 1.5, gh: 1.25, baseColor: '#317fa8', topColor: shDesk.topColor, leftColor: shDesk.leftColor, rightColor: shDesk.rightColor, hasOutline: true, outlineColor: '#1f2937' },
+      // 电脑屏幕 (厚度 0.25, 高 0.9)
+      { type: 'box', gx: 1.75, gy: 1.25, gz: 1.5, gw: 1.5, gd: 0.25, gh: 0.9, baseColor: '#111827', topColor: shScreen.topColor, leftColor: shScreen.leftColor, rightColor: shScreen.rightColor, hasOutline: true, outlineColor: '#1f2937' },
+      // 办公椅 (长 1.25, 宽 1.25, 高 0.8)
+      { type: 'box', gx: 2.0, gy: 3.25, gz: 0.25, gw: 1.25, gd: 1.25, gh: 0.8, baseColor: '#53c9df', topColor: shChair.topColor, leftColor: shChair.leftColor, rightColor: shChair.rightColor, hasOutline: true, outlineColor: '#1f2937' }
     ];
-
-    viewMode = 'iso';
-    pushState(sampleShapes);
-    pan = { x: canvas.width / 2, y: canvas.height / 2 };
-    zoom = 1.0;
-    render();
-  }
-
-  function extrude2DPlan() {
-    var rects = shapes.filter(function (s) { return s.type === 'rect_2d'; });
-    if (rects.length === 0) {
-      alert('请先在 2D 平面模式下画好房间或色块矩形 (R)！');
-      return;
-    }
-
-    var newIso = [];
-    rects.forEach(function (r) {
-      var gx = Math.round(r.x / 32);
-      var gy = Math.round(r.y / 32);
-      var gw = Math.max(1, Math.round(r.width / 32));
-      var gd = Math.max(1, Math.round(r.height / 32));
-      var gh = 2.5;
-      var sh = compute3Shades(r.fillColor || currentColor);
-
-      // 切片房间：地板 + 左立墙 + 右立墙
-      newIso.push({
-        type: 'box',
-        gx: gx, gy: gy, gz: 0, gw: gw, gd: gd, gh: 0.2,
-        baseColor: r.fillColor, topColor: sh.topColor, leftColor: sh.leftColor, rightColor: sh.rightColor,
-        hasOutline: true, outlineColor: outlineColor
-      });
-      newIso.push({
-        type: 'box',
-        gx: gx, gy: gy, gz: 0.2, gw: 0.3, gd: gd, gh: gh,
-        baseColor: sh.leftColor, topColor: sh.topColor, leftColor: sh.leftColor, rightColor: sh.rightColor,
-        hasOutline: true, outlineColor: outlineColor
-      });
-      newIso.push({
-        type: 'box',
-        gx: gx + 0.3, gy: gy, gz: 0.2, gw: gw - 0.3, gd: 0.3, gh: gh,
-        baseColor: sh.rightColor, topColor: sh.topColor, leftColor: sh.leftColor, rightColor: sh.rightColor,
-        hasOutline: true, outlineColor: outlineColor
-      });
-    });
 
     viewMode = 'iso';
     if (viewModeBtns) {
@@ -1028,7 +1099,25 @@
         b.classList.toggle('is-active', b.dataset.view === 'iso');
       });
     }
-    pushState(shapes.filter(function (s) { return s.type !== 'rect_2d'; }).concat(newIso));
+    pushState(sampleShapes);
+    pan = { x: canvas.width / 2, y: canvas.height / 2 };
+    zoom = 1.0;
+    render();
+  }
+
+  function extrude2DPlan() {
+    var boxes = shapes.filter(function (s) { return s.type === 'box'; });
+    if (boxes.length === 0) {
+      alert(tr('iso_sample'));
+      return;
+    }
+    viewMode = 'iso';
+    if (viewModeBtns) {
+      viewModeBtns.forEach(function (b) {
+        b.classList.toggle('is-active', b.dataset.view === 'iso');
+      });
+    }
+    render();
   }
 
   function exportImage(format) {
@@ -1128,12 +1217,6 @@
       btn.addEventListener('click', function () {
         viewMode = btn.dataset.view;
         viewModeBtns.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
-        if (viewMode === 'plan') {
-          currentTool = 'rect_2d';
-        } else {
-          currentTool = 'box';
-        }
-        toolBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tool === currentTool); });
         render();
       });
     });
@@ -1147,6 +1230,15 @@
         render();
       });
     });
+
+    // 吸附精度选择器
+    snapStepSelect = document.getElementById('snapStepSelect');
+    if (snapStepSelect) {
+      snapStepSelect.addEventListener('change', function (e) {
+        snapStep = parseFloat(e.target.value) || 0.25;
+        render();
+      });
+    }
 
     // 拾色器
     fillColorInput = document.getElementById('fillColor');
@@ -1238,7 +1330,7 @@
     clearBtn = document.getElementById('clearBtn');
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
-        if (confirm('确认清空画布吗？')) {
+        if (confirm(tr('iso_confirm_clear'))) {
           pushState([]);
         }
       });
@@ -1246,7 +1338,7 @@
 
     // 快捷键
     window.addEventListener('keydown', function (e) {
-      if (e.target.tagName === 'INPUT') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
       if (e.code === 'Space') isSpacePressed = true;
       if (e.key === 'Alt') isAltPressed = true;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -1271,6 +1363,11 @@
       if (e.code === 'Space') isSpacePressed = false;
       if (e.key === 'Alt') isAltPressed = false;
     });
+
+    // 监听语言切换
+    window.onLangChange = function () {
+      updateStatusBar();
+    };
 
     updateShadeBoxes();
     updateUndoRedoBtns();
