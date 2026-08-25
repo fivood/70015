@@ -17,6 +17,7 @@ A small set of browser-based image tools. Everything runs locally; no files are 
 - **[QR Code](https://70015.net/qr)** — turn a link or text into a QR. Adjustable size, margin, colors. Export PNG or SVG.
 - **[SVG Tools](https://70015.net/svg)** — optimize SVG markup, remove editor metadata, minify, and convert SVG to PNG.
 - **[SVG Editor](https://70015.net/editor)** — draw shapes, text, and freehand paths. Zoom/pan, grid, multi-select, alignment, gradients, rotation, flip. Undo/redo, import, export SVG or PNG.
+- **[Isometric Studio](https://70015.net/isometric)** — 2.5D isometric room modeling, 3D box extrusion, plane drawing, 3D surface texture brush, and 2D floorplan extrusion. No upload.
 
 ## Why
 
