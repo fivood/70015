@@ -805,7 +805,13 @@ body {
 
 .actions__btns {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
+}
+
+/* Slot filled by ImageExport.mountActions; its buttons flow in the parent row. */
+.export-actions {
+  display: contents;
 }
 
 /* Buttons */

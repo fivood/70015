@@ -10,16 +10,15 @@
   --shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1a1a2e;
-    --surface: #242438;
-    --text: #e2e8f0;
-    --text-muted: #94a3b8;
-    --primary: #60a5fa;
-    --border: rgba(255,255,255,0.08);
-    --shadow: 0 4px 20px rgba(0,0,0,0.3);
-  }
+/* Follows the tool pages' theme toggle (js/theme-head.js sets data-theme). */
+:root[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --surface: #242438;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --primary: #60a5fa;
+  --border: rgba(255,255,255,0.08);
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 body {
@@ -103,9 +102,25 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
-.result__btn {
+.result__actions[hidden],
+.result__preview[hidden],
+.result__status[hidden] { display: none; }
+
+.result__actions .btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Print only the screenshot, scaled to the paper width. */
+@media print {
+  body { background: #fff; }
+  .result { max-width: none; padding: 0; }
+  .result__header, .result__actions, .result__status { display: none !important; }
+  .result__preview { border: 0; box-shadow: none; padding: 0; max-height: none; overflow: visible; }
+  .result__preview canvas { width: 100%; max-width: 100%; }
+}
+
+.result__actions .btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -120,16 +135,16 @@ body {
   transition: background 0.15s;
 }
 
-.result__btn:hover {
+.result__actions .btn:hover {
   opacity: 0.85;
 }
 
-.result__btn--primary {
+.result__actions .btn--primary {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
 }
 
-.result__btn svg {
+.result__actions .btn svg {
   flex-shrink: 0;
 }

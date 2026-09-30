@@ -169,6 +169,7 @@
           <div class="actions__btns">
             <button class="btn btn--secondary btn--sm" id="cropResetBtn" type="button" data-i18n="sz_reset_crop">Reset crop</button>
             <button class="btn btn--secondary btn--sm" id="cropReplaceBtn" type="button" data-i18n="ann_replace">Replace image</button>
+            <button class="btn btn--secondary btn--sm" id="cropAnnotateBtn" type="button" data-i18n="exp_annotate">Annotate</button>
             <button class="btn btn--primary btn--sm" id="cropExportBtn" type="button" data-i18n="sz_download">Download</button>
           </div>
         </div>
@@ -239,6 +240,7 @@
             <div class="segmented sz-output-selector" id="stitchFormatSelector">
               <button class="segmented__btn is-active" data-value="png" type="button" data-i18n="ed_png">PNG</button>
               <button class="segmented__btn" data-value="jpeg" type="button" data-i18n="sz_jpeg">JPEG</button>
+              <button class="segmented__btn" data-value="pdf" type="button">PDF</button>
             </div>
           </div>
         </div>
@@ -251,6 +253,7 @@
           </div>
           <div class="actions__btns">
             <button class="btn btn--secondary btn--sm" id="stitchClearBtn" type="button" data-i18n="conv_clear">Clear</button>
+            <button class="btn btn--secondary btn--sm" id="stitchAnnotateBtn" type="button" data-i18n="exp_annotate">Annotate</button>
             <button class="btn btn--primary btn--sm" id="stitchExportBtn" type="button" data-i18n="sz_download">Download</button>
           </div>
         </div>
@@ -324,6 +327,7 @@
           </div>
           <div class="actions__btns">
             <button class="btn btn--secondary btn--sm" id="scaleReplaceBtn" type="button" data-i18n="ann_replace">Replace image</button>
+            <button class="btn btn--secondary btn--sm" id="scaleAnnotateBtn" type="button" data-i18n="exp_annotate">Annotate</button>
             <button class="btn btn--primary btn--sm" id="scaleExportBtn" type="button" data-i18n="sz_download">Download</button>
           </div>
         </div>
@@ -341,6 +345,8 @@
   <script src="js/theme.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/export.js"></script>
   <script src="js/resize.js"></script>
 </body>
 </html>

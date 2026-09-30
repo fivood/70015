@@ -1,20 +1,8 @@
 {
-  "ext_name": { "message": "70015 长截图" },
-  "ext_desc": { "message": "自动滚动并智能拼接，截取整页或指定区域的长截图。" },
-  "capture_full": { "message": "截取整页" },
-  "select_region": { "message": "选择区域" },
-  "capturing": { "message": "截取中…" },
-  "capture_step": { "message": "第 $STEP$ / $TOTAL$ 步", "placeholders": { "STEP": { "content": "$1" }, "TOTAL": { "content": "$2" } } },
-  "stitching": { "message": "正在拼接…" },
-  "done": { "message": "完成" },
-  "failed": { "message": "截取失败" },
-  "cannot_capture": { "message": "无法截取此页面。" },
-  "scroll_hint": { "message": "拖拽选择截取区域，或使用整页模式。" },
-  "download_png": { "message": "下载 PNG" },
-  "copy_image": { "message": "复制" },
-  "result_title": { "message": "长截图 — 70015" },
-  "result_info": { "message": "$W$ × $H$ px · $COUNT$ 段", "placeholders": { "W": { "content": "$1" }, "H": { "content": "$2" }, "COUNT": { "content": "$3" } } },
-  "copied": { "message": "已复制到剪贴板" },
-  "copy_fail": { "message": "复制失败" },
-  "truncated": { "message": "页面过长，底部已截断" }
+  "ext_name": {"message":"70015 图片工具箱"},
+  "ext_desc": {"message":"整页、可见区域、可滚动选区截图，外加 13 个本地图片工具。所有处理都在本地完成，不上传。"},
+  "cmd_visible": {"message":"截取可见区域"},
+  "cmd_full": {"message":"截取整个页面"},
+  "cmd_selection": {"message":"截取选定区域"},
+  "scroll_hint": {"message":"拖拽选择区域；滚动鼠标滚轮或拖到边缘可继续延伸。按 Esc 取消。"}
 }

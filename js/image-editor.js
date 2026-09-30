@@ -327,8 +327,8 @@
     exportFormatSelector.querySelectorAll('[data-value]').forEach((item) => item.classList.toggle('is-active', item === button));
   });
 
-  downloadEditedBtn.addEventListener('click', () => {
-    if (!state.source) return;
+  function buildEditedCanvas(forceOpaque) {
+    if (!state.source) return null;
     let base = renderBase();
     // Crop first so corners and watermark land on the exported frame, not the uncropped image.
     if (state.crop && state.crop.w >= 2 && state.crop.h >= 2) {
@@ -338,21 +338,27 @@
       cropped.getContext('2d').drawImage(base, state.crop.x, state.crop.y, state.crop.w, state.crop.h, 0, 0, cropped.width, cropped.height);
       base = cropped;
     }
-    const output = renderStyled(base, state.format === 'jpeg');
+    const output = renderStyled(base, forceOpaque);
     if (output.width * output.height > MAX_OUTPUT_PIXELS) {
       showToast(t('image_editor_output_large', 'The image is too large to export safely.'));
-      return;
+      return null;
     }
+    return output;
+  }
+
+  downloadEditedBtn.addEventListener('click', () => {
+    const output = buildEditedCanvas(state.format === 'jpeg');
+    if (!output) return;
     const mime = state.format === 'jpeg' ? 'image/jpeg' : state.format === 'webp' ? 'image/webp' : 'image/png';
     output.toBlob((blob) => {
       if (!blob) { showToast(t('image_editor_export_failed', 'Could not export edited image.')); return; }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = state.file.name.replace(/\.[^/.]+$/, '') + '-edited.' + (state.format === 'jpeg' ? 'jpg' : state.format);
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      ImageExport.download(blob, state.file.name.replace(/\.[^/.]+$/, '') + '-edited.' + (state.format === 'jpeg' ? 'jpg' : state.format));
     }, mime, state.format === 'png' ? undefined : 0.9);
+  });
+
+  document.getElementById('annotateEditedBtn').addEventListener('click', () => {
+    const output = buildEditedCanvas(false);
+    if (output) ImageExport.sendToAnnotate(output);
   });
 
   input.addEventListener('change', (event) => { loadFile(event.target.files[0]); input.value = ''; });

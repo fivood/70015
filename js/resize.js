@@ -384,28 +384,29 @@
     cImg = null; cropSettings.hidden = true; cropStageWrap.hidden = true; cropActions.hidden = true;
   });
 
-  cropExportBtn.addEventListener('click', function () {
-    if (!cImg) return;
+  function buildCropCanvas() {
+    if (!cImg) return null;
     var sx = crop.x / cScale, sy = crop.y / cScale, sw = crop.w / cScale, sh = crop.h / cScale;
     var tw = parseInt(cropWInput.value, 10) || Math.round(sw);
     var th = parseInt(cropHInput.value, 10) || Math.round(sh);
     tw = clamp(tw, 1, 16384); th = clamp(th, 1, 16384);
-    if (tw * th > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return; }
+    if (tw * th > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return null; }
     var c = document.createElement('canvas');
     c.width = tw; c.height = th;
     var cx = c.getContext('2d');
-    if (cropFormat === 'jpeg') { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, tw, th); }
     cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
     try {
       cx.drawImage(cImg, sx, sy, sw, sh, 0, 0, tw, th);
-    } catch (err) { showToast(t('sz_export_fail')); return; }
-    var mime = cropFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
-    var q = cropFormat === 'jpeg' ? (parseInt(cropQuality.value, 10) / 100) : 1;
-    c.toBlob(function (blob) {
-      if (!blob) { showToast(t('sz_export_fail')); return; }
-      downloadBlob(blob, 'crop-' + Date.now() + (cropFormat === 'jpeg' ? '.jpg' : '.png'));
-      showToast(t('toast_exported'));
-    }, mime, q);
+    } catch (err) { showToast(t('sz_export_fail')); return null; }
+    return c;
+  }
+
+  cropExportBtn.addEventListener('click', function () {
+    exportCanvas(buildCropCanvas(), cropFormat, parseInt(cropQuality.value, 10) / 100, 'crop');
+  });
+  document.getElementById('cropAnnotateBtn').addEventListener('click', function () {
+    var c = buildCropCanvas();
+    if (c) ImageExport.sendToAnnotate(c);
   });
 
   // ============================================================
@@ -603,10 +604,10 @@
     }
   }
 
-  stitchExportBtn.addEventListener('click', function () {
-    if (stitchFiles.length < 2) { showToast(t('sz_stitch_need_two')); return; }
+  function buildStitchCanvas() {
+    if (stitchFiles.length < 2) { showToast(t('sz_stitch_need_two')); return null; }
     var layout = computeStitchLayout();
-    if (!layout.w || !layout.h || layout.w * layout.h > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return; }
+    if (!layout.w || !layout.h || layout.w * layout.h > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return null; }
     var c = document.createElement('canvas');
     try {
       c.width = layout.w; c.height = layout.h;
@@ -646,20 +647,16 @@
           cx.drawImage(f.img, cellX + ox, cellY + oy, dw, dh);
         }
       }
-    } catch (err) { showToast(t('sz_export_fail')); return; }
-    var mime = stitchFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
-    if (stitchFormat === 'jpeg' && stitchBg === 'transparent') {
-      // jpeg has no alpha — fill white
-      var tmp = document.createElement('canvas'); tmp.width = layout.w; tmp.height = layout.h;
-      var tx = tmp.getContext('2d'); tx.fillStyle = '#ffffff'; tx.fillRect(0, 0, layout.w, layout.h);
-      tx.drawImage(c, 0, 0);
-      c = tmp;
-    }
-    c.toBlob(function (blob) {
-      if (!blob) { showToast(t('sz_export_fail')); return; }
-      downloadBlob(blob, 'stitch-' + Date.now() + (stitchFormat === 'jpeg' ? '.jpg' : '.png'));
-      showToast(t('toast_exported'));
-    }, mime, stitchFormat === 'jpeg' ? 0.92 : 1);
+    } catch (err) { showToast(t('sz_export_fail')); return null; }
+    return c;
+  }
+
+  stitchExportBtn.addEventListener('click', function () {
+    exportCanvas(buildStitchCanvas(), stitchFormat, 0.92, 'stitch');
+  });
+  document.getElementById('stitchAnnotateBtn').addEventListener('click', function () {
+    var c = buildStitchCanvas();
+    if (c) ImageExport.sendToAnnotate(c);
   });
 
   function alignOffset(align, container, item) {
@@ -766,36 +763,37 @@
     scaleInfo.textContent = t('sz_target_info').replace('{w}', tw).replace('{h}', th);
   }
 
-  scaleExportBtn.addEventListener('click', function () {
-    if (!sImg) return;
+  function buildScaleCanvas() {
+    if (!sImg) return null;
     var tw = clamp(parseInt(scaleWInput.value, 10) || sNatW, 1, 16384);
     var th = clamp(parseInt(scaleHInput.value, 10) || sNatH, 1, 16384);
-    if (tw * th > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return; }
+    if (tw * th > MAX_OUTPUT_PIXELS) { showToast(t('sz_export_fail')); return null; }
     var c = document.createElement('canvas');
     c.width = tw; c.height = th;
     var cx = c.getContext('2d');
-    if (scaleFormat === 'jpeg') { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, tw, th); }
     cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
     try { cx.drawImage(sImg, 0, 0, tw, th); }
-    catch (err) { showToast(t('sz_export_fail')); return; }
-    var mime = scaleFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
-    var q = scaleFormat === 'jpeg' ? (parseInt(scaleQuality.value, 10) / 100) : 1;
-    c.toBlob(function (blob) {
-      if (!blob) { showToast(t('sz_export_fail')); return; }
-      downloadBlob(blob, 'resize-' + Date.now() + (scaleFormat === 'jpeg' ? '.jpg' : '.png'));
-      showToast(t('toast_exported'));
-    }, mime, q);
+    catch (err) { showToast(t('sz_export_fail')); return null; }
+    return c;
+  }
+
+  scaleExportBtn.addEventListener('click', function () {
+    exportCanvas(buildScaleCanvas(), scaleFormat, parseInt(scaleQuality.value, 10) / 100, 'resize');
+  });
+  document.getElementById('scaleAnnotateBtn').addEventListener('click', function () {
+    var c = buildScaleCanvas();
+    if (c) ImageExport.sendToAnnotate(c);
   });
 
   // ---------- Shared helpers ----------
-  function downloadBlob(blob, name) {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  // format: 'png' | 'jpeg' | 'pdf'. Encoding and naming live in js/export.js.
+  function exportCanvas(c, format, quality, name) {
+    if (!c) return;
+    var done = format === 'pdf'
+      ? window.canvasToPdf(c).then(function (b) { ImageExport.download(b, ImageExport.fileName(name, 'pdf')); })
+      : ImageExport.toBlob(c, format === 'jpeg' ? 'image/jpeg' : 'image/png', format === 'jpeg' ? quality : undefined)
+        .then(function (b) { ImageExport.download(b, ImageExport.fileName(name, format === 'jpeg' ? 'jpg' : 'png')); });
+    done.then(function () { showToast(t('toast_exported')); }, function () { showToast(t('sz_export_fail')); });
   }
 
   function escapeHtml(s) {

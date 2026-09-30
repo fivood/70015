@@ -32,12 +32,10 @@
   const resultImg = document.getElementById('resultImg');
   const resultSize = document.getElementById('resultSize');
   const resultNote = document.getElementById('resultNote');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const copyBtn = document.getElementById('copyBtn');
   const toast = document.getElementById('toast');
   const workCanvas = document.getElementById('workCanvas');
 
-  const PDF_WORKER_SRC = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const PDF_WORKER_SRC = 'vendor/pdf.worker.min.js';
   const pdfReady = typeof window.pdfjsLib === 'object' && window.pdfjsLib;
   const MAX_PDF_FILE_SIZE = 100 * 1024 * 1024;
   const MAX_OUTPUT_PIXELS = 64 * 1024 * 1024;
@@ -540,14 +538,6 @@
     }, 'image/png');
   }
 
-  function download() {
-    if (!lastBlobUrl) return;
-    const a = document.createElement('a');
-    a.href = lastBlobUrl;
-    a.download = 'snapshot-' + Date.now() + '.png';
-    a.click();
-  }
-
   // ---------- Multi-capture stitch ----------
 
   var stitchCanvas = null;
@@ -599,20 +589,6 @@
     img.src = sourceUrl;
   }
 
-  function downloadStitch() {
-    if (!stitchCanvas || stitchCount === 0) { showToast(t('snp_nothing_stitched', 'Nothing stitched yet')); return; }
-    stitchCanvas.toBlob(function (blob) {
-      if (!blob) { showToast(t('ann_export_fail', 'Export failed')); return; }
-      var a = document.createElement('a');
-      var url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = 'stitched-' + Date.now() + '.png';
-      a.click();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      showToast(tpl('snp_downloaded_segments', 'Downloaded {count} segments', { count: stitchCount }));
-    }, 'image/png');
-  }
-
   function clearStitch() {
     stitchCanvas = null;
     stitchCount = 0;
@@ -621,21 +597,11 @@
     showToast(t('snp_stitch_cleared', 'Stitch cleared'));
   }
 
-  async function copyToClipboard() {
-    if (!lastBlob) return;
-    try {
-      const pngSupported = window.ClipboardItem &&
-        (typeof ClipboardItem.supports !== 'function' || ClipboardItem.supports('image/png'));
-      if (navigator.clipboard && pngSupported) {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': lastBlob })]);
-        showToast(t('b64_copied_clipboard', 'Copied to clipboard'));
-      } else {
-        showToast(t('snp_clipboard_unsupported', 'Clipboard images not supported here'));
-      }
-    } catch (e) {
-      showToast(t('toast_copy_fail', 'Copy failed'));
-    }
-  }
+  // Shared PNG/JPG/PDF/copy/print/annotate buttons (js/export.js).
+  ImageExport.mountActions(document.getElementById('captureExport'),
+    function () { return lastBlob ? ImageExport.blobToCanvas(lastBlob) : null; }, { name: 'snapshot' });
+  ImageExport.mountActions(document.getElementById('stitchExport'),
+    function () { return stitchCount ? stitchCanvas : null; }, { name: 'stitched' });
 
   // ---------- Scroll recording (Method A) ----------
 
@@ -986,10 +952,7 @@
   pdfClearBtn.addEventListener('click', clearPdf);
   prevPageBtn.addEventListener('click', () => gotoPage(-1));
   nextPageBtn.addEventListener('click', () => gotoPage(1));
-  downloadBtn.addEventListener('click', download);
-  copyBtn.addEventListener('click', copyToClipboard);
   document.getElementById('addToStitchBtn').addEventListener('click', addToStitch);
-  document.getElementById('stitchDownloadBtn').addEventListener('click', downloadStitch);
   document.getElementById('stitchClearBtn').addEventListener('click', clearStitch);
   recordScrollBtn.addEventListener('click', startRecording);
   stopRecordBtn.addEventListener('click', stopRecording);

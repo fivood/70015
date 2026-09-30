@@ -179,9 +179,8 @@
         <div class="snapshot__capture-actions" id="captureActions" hidden>
           <span class="snapshot__capture-size" id="resultSize">&mdash;</span>
           <div class="actions__btns">
-            <button class="btn btn--secondary btn--sm" id="copyBtn" type="button" data-i18n="b64_copy">Copy</button>
+            <span class="export-actions" id="captureExport"></span>
             <button class="btn btn--secondary btn--sm" id="addToStitchBtn" type="button" title="Append this capture to a vertical stitch canvas" data-i18n-title="snp_add_stitch_title" data-i18n="snp_add_stitch">Add to stitch</button>
-            <button class="btn btn--primary btn--sm" id="downloadBtn" type="button" data-i18n="qr_png">Download PNG</button>
           </div>
         </div>
       </section>
@@ -202,7 +201,7 @@
         <div class="settings__group">
           <span class="settings__label"><span data-i18n="snp_stitched_label">Stitched image</span> &mdash; <span id="stitchCount">0</span> <span data-i18n="snp_segments_word">segments</span></span>
           <div class="actions__btns">
-            <button class="btn btn--primary btn--sm" id="stitchDownloadBtn" type="button" data-i18n="snp_dl_stitch">Download stitched PNG</button>
+            <span class="export-actions" id="stitchExport"></span>
             <button class="btn btn--secondary btn--sm" id="stitchClearBtn" type="button" data-i18n="snp_clear_stitch">Clear stitch</button>
           </div>
           <p class="settings__note" id="stitchHint" data-i18n="snp_stitch_hint">Capture a region, click "+ Stitch", scroll down in the shared tab, capture again. Segments are appended top to bottom.</p>
@@ -217,11 +216,13 @@
 
   <canvas id="workCanvas" hidden></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
+  <script src="vendor/pdf.min.js"></script>
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/export.js"></script>
   <script src="js/snapshot.js"></script>
 </body>
 </html>

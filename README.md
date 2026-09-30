@@ -37,6 +37,29 @@ cd 70015
 npx serve .
 ```
 
+## Browser extension (Chrome, Edge, Firefox)
+
+The extension bundles every tool page plus visible / full-page / scrolling-selection screenshots.
+Tool pages are shared with the site; `extension/` holds only the extension-specific parts.
+
+```bash
+node extension/build.js         # builds dist/extension (Chrome, Edge) and dist/firefox
+node extension/build.js --zip   # also writes store-ready zips into dist/
+```
+
+| Browser | Load for testing | Store upload |
+| --- | --- | --- |
+| Chrome | `chrome://extensions` → Developer mode → **Load unpacked** → `dist/extension` | `dist/70015-chromium-<version>.zip` |
+| Edge | `edge://extensions` → Developer mode → **Load unpacked** → `dist/extension` | same zip as Chrome |
+| Firefox 140+ | `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → `dist/firefox/manifest.json` | `dist/70015-firefox-<version>.zip` |
+
+Rebuild and reload the extension after every change. The source `extension/` folder has no
+`manifest.json` on purpose (only `manifest.src.json`), so it can't be loaded by mistake; the build
+writes a per-browser manifest (Firefox gets an event-page background and a gecko id).
+Check the Firefox build with `npx web-ext lint --source-dir dist/firefox`.
+
+Third-party libraries are self-hosted in `vendor/` (see `vendor/README.md`), since extensions can't load remote scripts.
+
 ## License
 
 MIT © fivood

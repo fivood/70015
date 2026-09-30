@@ -18,7 +18,6 @@
   const redoBtn = document.getElementById('redoBtn');
   const clearBtn = document.getElementById('clearBtn');
   const replaceBtn = document.getElementById('replaceBtn');
-  const exportBtn = document.getElementById('exportBtn');
   const textInput = document.getElementById('textInput');
   const annotateHint = document.getElementById('annotateHint');
   const toast = document.getElementById('toast');
@@ -94,6 +93,14 @@
     for (const it of items) {
       if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { loadImageFile(f); e.preventDefault(); return; } }
     }
+  });
+
+  // Opened via "Annotate" from another tool or the extension (js/export.js).
+  ImageExport.receiveAnnotateHandoff(blob => {
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => { URL.revokeObjectURL(url); setupImage(image); };
+    image.src = url; // skips the upload size cap: long screenshots are big by design
   });
 
   // ---------- Tools & props ----------
@@ -354,31 +361,22 @@
 
   // ---------- Export ----------
 
-  exportBtn.addEventListener('click', () => {
-    if (!img) return;
-    try {
-      if (naturalW * naturalH > MAX_EXPORT_PIXELS) {
-        showToast((typeof window.t === 'function') ? window.t('ann_export_fail') : 'Image is too large to export at full resolution');
-        return;
-      }
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = naturalW;
-      exportCanvas.height = naturalH;
-      const exportCtx = exportCanvas.getContext('2d');
-      exportCtx.drawImage(img, 0, 0, naturalW, naturalH);
-      const exportScale = 1 / cScale;
-      for (const s of shapes) drawShape(s, exportCtx, exportScale);
-      exportCanvas.toBlob(blob => {
-        if (!blob) { showToast((typeof window.t === 'function') ? window.t('ann_export_fail') : 'Export failed'); return; }
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = 'annotated-' + Date.now() + '.png';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }, 'image/png');
-    } catch (e) {
-      showToast((typeof window.t === 'function') ? window.t('ann_export_blocked') : 'Image is protected \u2014 export blocked');
+  // Full-resolution image with annotations, for the shared export buttons.
+  function buildExportCanvas() {
+    if (!img) return null;
+    if (naturalW * naturalH > MAX_EXPORT_PIXELS) {
+      showToast((typeof window.t === 'function') ? window.t('ann_export_fail') : 'Image is too large to export at full resolution');
+      return null;
     }
-  });
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = naturalW;
+    exportCanvas.height = naturalH;
+    const exportCtx = exportCanvas.getContext('2d');
+    exportCtx.drawImage(img, 0, 0, naturalW, naturalH);
+    const exportScale = 1 / cScale;
+    for (const s of shapes) drawShape(s, exportCtx, exportScale);
+    return exportCanvas;
+  }
+
+  ImageExport.mountActions(document.getElementById('exportActions'), buildExportCanvas, { name: 'annotated', skip: ['annotate'] });
 })();

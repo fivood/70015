@@ -3,33 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="popup.css">
+  <script src="../js/i18n-head.js"></script>
+  <script src="../js/theme-head.js"></script>
 </head>
 <body>
   <div class="popup">
     <div class="popup__header">
+      <img class="popup__mark" src="../logo.svg" alt="" width="20" height="20">
       <span class="popup__logo">70015</span>
     </div>
     <div class="popup__actions">
-      <button class="popup__btn popup__btn--primary" id="fullPageBtn">
+      <button class="popup__btn popup__btn--primary" data-mode="full" data-command="capture-full" type="button">
         <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <rect x="2" y="2" width="16" height="16" rx="2"/>
           <path d="M2 8h16M2 14h16"/>
         </svg>
-        <span data-i18n="capture_full">Capture full page</span>
+        <span data-i18n="ext_capture_full">Capture entire page</span>
+        <kbd class="popup__kbd"></kbd>
       </button>
-      <button class="popup__btn" id="regionBtn">
+      <button class="popup__btn" data-mode="visible" data-command="capture-visible" type="button">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="2" y="4" width="16" height="12" rx="2"/>
+        </svg>
+        <span data-i18n="ext_capture_visible">Capture visible area</span>
+        <kbd class="popup__kbd"></kbd>
+      </button>
+      <button class="popup__btn" data-mode="selection" data-command="capture-selection" type="button">
         <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <rect x="4" y="4" width="12" height="12" rx="1" stroke-dasharray="3 2"/>
           <path d="M2 2h4M14 2h4M2 18h4M14 18h4"/>
         </svg>
-        <span data-i18n="select_region">Select region</span>
+        <span data-i18n="ext_select_region">Capture selection</span>
+        <kbd class="popup__kbd"></kbd>
       </button>
     </div>
     <div class="popup__status" id="status" hidden>
       <span class="popup__spinner"></span>
       <span id="statusText"></span>
     </div>
+    <p class="popup__section" data-i18n="ext_tools">Tools</p>
+    <div class="popup__tools" id="toolGrid"></div>
   </div>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/menu-data.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

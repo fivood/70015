@@ -2,9 +2,10 @@
   "manifest_version": 3,
   "name": "__MSG_ext_name__",
   "description": "__MSG_ext_desc__",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "default_locale": "en",
-  "permissions": ["activeTab", "scripting", "storage", "unlimitedStorage"],
+  "homepage_url": "https://70015.net",
+  "permissions": ["activeTab", "scripting", "unlimitedStorage"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -20,5 +21,10 @@
   },
   "background": {
     "service_worker": "background/background.js"
+  },
+  "commands": {
+    "capture-visible": { "suggested_key": { "default": "Alt+Shift+V" }, "description": "__MSG_cmd_visible__" },
+    "capture-full": { "suggested_key": { "default": "Alt+Shift+F" }, "description": "__MSG_cmd_full__" },
+    "capture-selection": { "suggested_key": { "default": "Alt+Shift+S" }, "description": "__MSG_cmd_selection__" }
   }
 }
