@@ -25,6 +25,11 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages project create 70015 --production-branch=master
 
+      # Cloudflare lets browsers cache JS/CSS for hours while HTML revalidates every time,
+      # so a deploy could pair new HTML with stale scripts. Version the URLs per commit.
+      - name: Cache-bust local scripts and styles
+        run: sed -i -E 's#((src|href)="(js|css|vendor)/[^"?]+)"#\1?v='"${GITHUB_SHA::8}"'"#g' *.html
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
