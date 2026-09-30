@@ -1,7 +1,9 @@
 // Assemble the browser extension: the site's tool pages + extension files.
 //   dist/extension/  Chrome and Edge (Chromium)
 //   dist/firefox/    Firefox
-// Usage: node extension/build.js [--zip]   (--zip also writes store-ready zips into dist/)
+// Usage: node extension/build.js [--zip]
+//   --zip writes the Chromium zip into downloads/ (the site deploys it and links it
+//   from /install) and the Firefox zip into dist/ for local testing.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -54,7 +56,9 @@ function build(target) {
   for (const file of pages) {
     const html = fs.readFileSync(path.join(root, file), 'utf8')
       .replace(linkRe, (m, name) => 'href="' + (name === './' ? 'index' : name) + '.html"')
-      .replace(/\s*<link rel="manifest"[^>]*>/, ''); // PWA manifest is meaningless inside an extension
+      .replace(/\s*<link rel="manifest"[^>]*>/, '') // PWA manifest is meaningless inside an extension
+      // The download page states the version the zip was built from.
+      .replace(/\{\{VERSION\}\}/g, manifest.version);
     fs.writeFileSync(path.join(out, file), html);
   }
   console.log('Built dist/' + target + ' (v' + manifest.version + ', ' + pages.length + ' pages)');
@@ -99,6 +103,12 @@ function zipDir(dir, zipPath) {
 for (const target of Object.keys(TARGETS)) {
   const out = build(target);
   if (process.argv.includes('--zip')) {
-    zipDir(out, path.join(root, 'dist', '70015-' + (target === 'extension' ? 'chromium' : target) + '-' + source.version + '.zip'));
+    // The Chromium build is what the site offers, so it gets a stable, version-free
+    // name under downloads/: the /install page can link it directly.
+    const dest = target === 'extension'
+      ? path.join(root, 'downloads', '70015-chromium.zip')
+      : path.join(root, 'dist', '70015-firefox-' + source.version + '.zip');
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    zipDir(out, dest);
   }
 }

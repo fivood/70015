@@ -49,7 +49,7 @@ node extension/build.js --zip   # also writes store-ready zips into dist/
 
 | Browser | Load for testing | Store upload |
 | --- | --- | --- |
-| Chrome | `chrome://extensions` → Developer mode → **Load unpacked** → `dist/extension` | `dist/70015-chromium-<version>.zip` |
+| Chrome / Edge | `chrome://extensions` → Developer mode → **Load unpacked** → the extracted folder | `downloads/70015-chromium.zip`, offered at <https://70015.net/install> |
 | Edge | `edge://extensions` → Developer mode → **Load unpacked** → `dist/extension` | same zip as Chrome |
 | Firefox 140+ | `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → `dist/firefox/manifest.json` | `dist/70015-firefox-<version>.zip` |
 

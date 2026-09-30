@@ -46,7 +46,9 @@
   });
 
   // Tool grid: every page except Home, opened in a new tab.
-  window.MENU_ITEMS.filter(function (it) { return it.href !== './'; }).forEach(function (it) {
+  // 'install' is the site's download page; inside the extension it is redundant.
+  var SKIP = { './': 1, install: 1 };
+  window.MENU_ITEMS.filter(function (it) { return !SKIP[it.href]; }).forEach(function (it) {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'popup__tool';

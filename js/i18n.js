@@ -690,6 +690,7 @@
       'm_isometric': 'Isometric Studio',
       'm_metadata': 'Image Metadata',
       'm_image_editor': 'Quick Image Editor',
+      'm_install': 'Browser Extension',
       // Isometric Studio
       'iso_title': 'Isometric Studio \u2014 70015',
       'iso_desc': '2.5D Isometric room modeling, floorplan extrusion, 3-tone shading, and AI reference creation.',
@@ -755,7 +756,45 @@
       'toast_invalid': 'Invalid SVG',
       'toast_grouped': 'Grouped',
       'toast_ungrouped': 'Ungrouped',
-      'toast_duplicated': 'Duplicated'
+      'toast_duplicated': 'Duplicated',
+
+      // Install page
+      'ins_title': 'Browser Extension \u2014 70015',
+      'ins_desc': 'Install the 70015 image tools as a Chrome or Edge extension. Full-page, visible-area, and scrolling-selection screenshots, plus every tool page, all offline.',
+      'ins_h1': 'Browser Extension',
+      'ins_lede': 'The whole toolbox, plus three screenshot modes that work on any page.',
+      'ins_download': 'Download for Chrome / Edge',
+      'ins_meta': 'ZIP archive \u00b7 v{version} \u00b7 {size} KB \u00b7 nothing is uploaded',
+      'ins_unsupported': 'This download is for Chrome 102+ and Edge 102+. Firefox needs a signed build, which is not published yet.',
+      'ins_why': 'Free and open source. No account, no telemetry, no network requests.',
+
+      'ins_steps_title': 'Install in 4 steps',
+      'ins_s1_t': 'Download the archive',
+      'ins_s1_d': 'Click the button above to save the ZIP file.',
+      'ins_s2_t': 'Unzip it',
+      'ins_s2_d': 'Right-click the file and choose Extract All, or use any archiver. The extracted folder contains manifest.json.',
+      'ins_s2_w': 'Do not delete or move that folder afterwards \u2014 the browser loads the extension from it directly.',
+      'ins_s3_t': 'Open the extensions page',
+      'ins_s3_d': 'Paste the address below into the address bar and press Enter.',
+      'ins_s4_t': 'Load the folder',
+      'ins_s4_d': 'Turn on Developer mode (top-right), click Load unpacked, and select the extracted folder.',
+
+      'ins_use_title': 'How to use',
+      'ins_use_1': 'Click the extension icon, then pick a mode: full page, visible area, or selection.',
+      'ins_use_2': 'For a selection, drag a box. Scroll the wheel or drag to an edge to extend it. Esc cancels.',
+      'ins_use_3': 'The stitched result opens in a new tab, where you can save PNG, JPG, or PDF, copy it, or send it to the annotation tool.',
+      'ins_use_4': 'Every tool from this site sits in the same popup, so it works with no connection.',
+      'ins_keys': 'Keyboard shortcuts (change them at chrome://extensions/shortcuts):',
+      'ins_key_full': 'Capture entire page',
+      'ins_key_visible': 'Capture visible area',
+      'ins_key_selection': 'Capture selection',
+
+      'ins_note_title': 'Good to know',
+      'ins_note_1': 'Browser-internal pages (chrome://, the Web Store, the built-in PDF viewer) cannot be captured \u2014 the browser forbids it.',
+      'ins_note_2': 'After a restart the browser may show a developer-mode warning. Dismiss it; nothing is wrong.',
+      'ins_note_3': 'Because it is installed from a file rather than the Web Store, the browser will not update it automatically. Come back here and repeat these steps for a newer version.',
+      'ins_privacy': 'Your images never leave your device. Screenshots stay in local browser storage only until the result tab reads them, then they are deleted.',
+      'ins_source': 'Source code'
     },
 
     zh: {
@@ -1483,6 +1522,7 @@
 
       'm_metadata': '\u56fe\u7247\u5143\u6570\u636e',
       'm_image_editor': '\u5feb\u901f\u56fe\u7247\u7f16\u8f91',
+      'm_install': "浏览器插件",
 
       'toast_copied': '\u5df2\u590d\u5236',
       'toast_copy_fail': '\u590d\u5236\u5931\u8d25',
@@ -1494,7 +1534,43 @@
       'toast_invalid': 'SVG \u65e0\u6548',
       'toast_grouped': '\u5df2\u7f16\u7ec4',
       'toast_ungrouped': '\u5df2\u53d6\u6d88\u7f16\u7ec4',
-      'toast_duplicated': '\u5df2\u590d\u5236'
+      'toast_duplicated': '\u5df2\u590d\u5236',
+
+
+      // 安装页
+      "ins_title": "浏览器插件 — 70015",
+      "ins_desc": "把 70015 图片工具装成 Chrome / Edge 插件：整页、可见区域、可滚动选区截图，加上全部工具页，完全离线可用。",
+      "ins_h1": "浏览器插件",
+      "ins_lede": "整套工具箱，再加三种适用于任何网页的截图模式。",
+      "ins_download": "下载 Chrome / Edge 版",
+      "ins_meta": "ZIP 压缩包 · v{version} · {size} KB · 不上传任何文件",
+      "ins_unsupported": "此下载适用于 Chrome 102+ 与 Edge 102+。Firefox 需要已签名的版本，目前尚未发布。",
+      "ins_why": "免费且开源。无需账号，无埋点，无网络请求。",
+      "ins_steps_title": "四步安装",
+      "ins_s1_t": "下载压缩包",
+      "ins_s1_d": "点击上方按钮保存 ZIP 文件。",
+      "ins_s2_t": "解压",
+      "ins_s2_d": "右键选“全部解压”，或用任意解压工具。解压后的文件夹里会有 manifest.json。",
+      "ins_s2_w": "解压后请勿删除或移动这个文件夹——浏览器是直接从中加载插件的。",
+      "ins_s3_t": "打开扩展页面",
+      "ins_s3_d": "把下面的地址粘贴到地址栏并回车。",
+      "ins_s4_t": "加载文件夹",
+      "ins_s4_d": "打开右上角的“开发者模式”，点“加载已解压的扩展程序”，选中刚解压的文件夹。",
+      "ins_use_title": "使用方法",
+      "ins_use_1": "点击插件图标，选择模式：整页、可见区域或选定区域。",
+      "ins_use_2": "选定区域时拖拽画框；滚动鼠标滚轮或拖到边缘可继续延伸，Esc 取消。",
+      "ins_use_3": "拼接结果会在新标签页打开，可保存为 PNG / JPG / PDF，也可复制或直接转到标注工具。",
+      "ins_use_4": "站点上的每个工具都在同一个弹出菜单里，断网也能用。",
+      "ins_keys": "快捷键（可在 chrome://extensions/shortcuts 修改）：",
+      "ins_key_full": "截取整个页面",
+      "ins_key_visible": "截取可见区域",
+      "ins_key_selection": "截取选定区域",
+      "ins_note_title": "注意事项",
+      "ins_note_1": "浏览器内置页面（chrome:// 、应用商店、内置 PDF 阅读器）无法截图，这是浏览器本身的限制。",
+      "ins_note_2": "重启后浏览器可能提示开发者模式警告，关掉即可，不影响使用。",
+      "ins_note_3": "因为是从文件而非应用商店安装，浏览器不会自动更新。需要新版本时回到本页重复上述步骤。",
+      "ins_privacy": "图片始终不会离开你的设备。截图仅保存在浏览器本地，结果页读取后即删除。",
+      "ins_source": "源码"
     }
   };
 

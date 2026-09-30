@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Extension &mdash; 70015</title>
+  <meta name="description" content="Install the 70015 image tools as a Chrome or Edge extension. Full-page, visible-area and scrolling-selection screenshots, plus every tool page, fully offline.">
+  <link rel="canonical" href="https://70015.net/install">
+  <meta property="og:title" content="Browser Extension &mdash; 70015">
+  <meta property="og:description" content="Full-page screenshots and 13 local image tools, as a Chrome / Edge extension. Nothing is uploaded.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/install">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "70015 Image Tools browser extension",
+    "applicationCategory": "BrowserApplication",
+    "operatingSystem": "Chrome, Edge",
+    "url": "https://70015.net/install",
+    "description": "Chrome and Edge extension offering full-page, visible-area and scrolling-selection screenshots plus 13 offline image tools.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <img src="logo.svg" alt="" width="26" height="26">
+        </span>
+        <div>
+          <h1 class="header__title" data-i18n="brand">TOOLS</h1>
+        </div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="12" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="19" cy="12" r="2"/>
+        </svg>
+      </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M18 6 L6 18"/>
+              <path d="M6 6 L18 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title" data-i18n="ins_h1">Browser Extension</h1>
+          <p class="hero__desc" data-i18n="ins_lede">The whole toolbox, plus three screenshot modes that work on any page.</p>
+        </div>
+      </section>
+
+      <section class="panel card ins-download">
+        <a class="btn btn--primary ins-download__btn" href="downloads/70015-chromium.zip" download>
+          <span class="ins-download__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          <span data-i18n="ins_download">Download for Chrome / Edge</span>
+        </a>
+        <p class="ins-download__meta"><span data-i18n="ins_meta">ZIP archive &middot; v{{VERSION}} &middot; 740 KB &middot; nothing is uploaded</span></p>
+        <p class="ins-download__why"><span data-i18n="ins_why">Free and open source. No account, no telemetry, no network requests.</span></p>
+        <p class="ins-download__alt"><span data-i18n="ins_unsupported">This download is for Chrome 102+ and Edge 102+.</span></p>
+      </section>
+
+      <section class="panel card">
+        <h2 class="ins-heading" data-i18n="ins_steps_title">Install in 4 steps</h2>
+        <ol class="ins-steps">
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">1</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_s1_t">Download the archive</h3>
+              <p class="ins-step__desc" data-i18n="ins_s1_d">Click the button above to save the ZIP file.</p>
+            </div>
+          </li>
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">2</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_s2_t">Unzip it</h3>
+              <p class="ins-step__desc" data-i18n="ins_s2_d">Right-click the file and choose Extract All, or use any archiver. The extracted folder contains manifest.json.</p>
+              <p class="ins-step__warn" data-i18n="ins_s2_w">Do not delete or move that folder afterwards.</p>
+            </div>
+          </li>
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">3</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_s3_t">Open the extensions page</h3>
+              <p class="ins-step__desc" data-i18n="ins_s3_d">Paste the address below into the address bar and press Enter.</p>
+              <code class="ins-code">chrome://extensions</code>
+            </div>
+          </li>
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">4</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_s4_t">Load the folder</h3>
+              <p class="ins-step__desc" data-i18n="ins_s4_d">Turn on Developer mode (top-right), click Load unpacked, and select the extracted folder.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="panel card">
+        <h2 class="ins-heading" data-i18n="ins_use_title">How to use</h2>
+        <ul class="ins-list">
+          <li data-i18n="ins_use_1">Click the extension icon, then pick a mode.</li>
+          <li data-i18n="ins_use_2">For a selection, drag a box. Esc cancels.</li>
+          <li data-i18n="ins_use_3">The stitched result opens in a new tab.</li>
+          <li data-i18n="ins_use_4">Every tool from this site sits in the same popup.</li>
+        </ul>
+        <p class="ins-keys-label" data-i18n="ins_keys">Keyboard shortcuts:</p>
+        <ul class="ins-keys">
+          <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd><span data-i18n="ins_key_full">Capture entire page</span></li>
+          <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd><span data-i18n="ins_key_visible">Capture visible area</span></li>
+          <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd><span data-i18n="ins_key_selection">Capture selection</span></li>
+        </ul>
+      </section>
+
+      <section class="panel card">
+        <h2 class="ins-heading" data-i18n="ins_note_title">Good to know</h2>
+        <ul class="ins-list ins-list--note">
+          <li data-i18n="ins_note_1">Browser-internal pages cannot be captured.</li>
+          <li data-i18n="ins_note_2">A developer-mode warning after restart is harmless.</li>
+          <li data-i18n="ins_note_3">It will not update itself automatically.</li>
+        </ul>
+        <p class="ins-privacy"><span data-i18n="ins_privacy">Your images never leave your device.</span></p>
+        <p class="ins-source"><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="ins_source">Source code</a></p>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+</body>
+</html>
