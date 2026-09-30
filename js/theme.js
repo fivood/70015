@@ -10,8 +10,10 @@
       localStorage.setItem('70015-theme', theme);
     } catch (e) {}
     updateIcon(theme);
-    var tc = document.querySelector('meta[name="theme-color"]');
-    if (tc) tc.setAttribute('content', theme === 'dark' ? '#111827' : '#f3f4f6');
+    // Pages ship one meta per media query; override both so the manual toggle wins.
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (tc) {
+      tc.setAttribute('content', theme === 'dark' ? '#1d1c1e' : '#203848');
+    });
   }
 
   function updateIcon(theme) {

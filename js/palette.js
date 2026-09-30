@@ -209,7 +209,7 @@
   function reextractAll() {
     if (state.items.length === 0) return;
     const version = ++extractionVersion;
-    state.items.forEach((item) => (item.colors = []));
+    state.items.forEach((item) => { item.colors = []; item.done = false; });
     render();
     extractItems(state.items, version);
   }
@@ -221,10 +221,10 @@
         // A removed item or a newer extraction must not write stale results
         // back into the page.
         if (version !== extractionVersion || !state.items.includes(item)) continue;
-        item.colors = colors;
+        item.colors = colors; item.done = true;
       } catch (err) {
         if (version !== extractionVersion || !state.items.includes(item)) continue;
-        item.colors = [];
+        item.colors = []; item.done = true;
       }
       if (version === extractionVersion && state.items.includes(item)) renderItem(item);
     }
@@ -279,24 +279,25 @@
       const a = imageData[i + 3];
       if (a < 128) continue;
 
-      // Quantize to 6bit, merge similar colors
-      const qr = Math.min(255, Math.round(r / 32) * 32);
-      const qg = Math.min(255, Math.round(g / 32) * 32);
-      const qb = Math.min(255, Math.round(b / 32) * 32);
-      const key = `${qr},${qg},${qb}`;
-
-      buckets.set(key, (buckets.get(key) || 0) + 1);
+      // Bucket by quantized color, but keep channel sums so the swatch is the
+      // bucket's real average color rather than a grid point like #20c0e0.
+      const key = (r >> 5) * 64 + (g >> 5) * 8 + (b >> 5);
+      const bucket = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+      bucket.n++; bucket.r += r; bucket.g += g; bucket.b += b;
+      buckets.set(key, bucket);
     }
 
     // Sort by frequency
-    const sorted = Array.from(buckets.entries())
-      .sort((a, b) => b[1] - a[1])
+    const sorted = Array.from(buckets.values())
+      .sort((a, b) => b.n - a.n)
       .slice(0, colorCount * 3);
 
     // Merge overly similar colors
     const unique = [];
-    for (const [key] of sorted) {
-      const [r, g, b] = key.split(',').map(Number);
+    for (const bucket of sorted) {
+      const r = Math.round(bucket.r / bucket.n);
+      const g = Math.round(bucket.g / bucket.n);
+      const b = Math.round(bucket.b / bucket.n);
       const hex = rgbToHex(r, g, b);
 
       let tooClose = false;
@@ -338,14 +339,15 @@
     const colorsHtml = item.colors
       .map(
         (color) => `
-        <div class="color-swatch" style="background-color: ${color.hex};" data-hex="${color.hex}" title="Copy ${color.hex}">
+        <div class="color-swatch" data-hex="${color.hex}" title="Copy ${color.hex}">
           <span class="color-swatch__label">${color.hex}</span>
         </div>
       `
       )
       .join('');
 
-    const loading = item.colors.length === 0 ? '<p class="palette-card__name">' + t('pal_extracting', 'Extracting...') + '</p>' : '';
+    const status = !item.done ? t('pal_extracting', 'Extracting...') : item.colors.length === 0 ? t('pal_no_colors', 'No colors found (unreadable or fully transparent image)') : '';
+    const loading = status ? '<p class="palette-card__name">' + status + '</p>' : '';
 
     el.innerHTML = `
       <img class="palette-card__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async">
@@ -361,6 +363,7 @@
     `;
 
     el.querySelectorAll('.color-swatch').forEach((swatch) => {
+      swatch.style.backgroundColor = swatch.dataset.hex; // CSSOM: inline style attrs are blocked by CSP
       swatch.addEventListener('click', () => {
         copyToClipboard(swatch.dataset.hex);
       });

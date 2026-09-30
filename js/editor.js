@@ -736,10 +736,10 @@
     // Fill
     html += '<div class="prop-row prop-row--swatches"><label>Fill</label>';
     html += '<input type="color" id="propFill" value="' + (fill !== 'none' && fill.indexOf('url') < 0 ? normalizeHex(fill) : '#000000') + '">';
-    html += '<button class="color-swatch" data-fill="none" title="No fill" aria-label="No fill" style="background:transparent;background-image:linear-gradient(45deg,var(--surface-3) 25%,transparent 25%),linear-gradient(-45deg,var(--surface-3) 25%,transparent 25%);background-size:8px 8px;"></button>';
-    SWATCHES.forEach(function (c) { html += '<button class="color-swatch" data-fill="' + c + '" style="background:' + c + '" title="' + c + '" aria-label="Fill ' + c + '"></button>'; });
-    html += '<button class="color-swatch" data-gradient="linear" title="Linear gradient" aria-label="Linear gradient" style="background:linear-gradient(135deg,#7dd3fc,#203848);"></button>';
-    html += '<button class="color-swatch" data-gradient="radial" title="Radial gradient" aria-label="Radial gradient" style="background:radial-gradient(circle,#7dd3fc,#203848);"></button>';
+    html += '<button class="color-swatch color-swatch--none" data-fill="none" title="No fill" aria-label="No fill"></button>';
+    SWATCHES.forEach(function (c) { html += '<button class="color-swatch" data-fill="' + c + '" title="' + c + '" aria-label="Fill ' + c + '"></button>'; });
+    html += '<button class="color-swatch color-swatch--linear" data-gradient="linear" title="Linear gradient" aria-label="Linear gradient"></button>';
+    html += '<button class="color-swatch color-swatch--radial" data-gradient="radial" title="Radial gradient" aria-label="Radial gradient"></button>';
     html += '</div>';
 
     // Gradient editor
@@ -769,8 +769,8 @@
     // Stroke
     html += '<div class="prop-row prop-row--swatches"><label>Stroke</label>';
     html += '<input type="color" id="propStroke" value="' + (stroke !== 'none' ? normalizeHex(stroke) : '#000000') + '">';
-    html += '<button class="color-swatch" data-stroke="none" title="No stroke" aria-label="No stroke" style="background:transparent;background-image:linear-gradient(45deg,var(--surface-3) 25%,transparent 25%),linear-gradient(-45deg,var(--surface-3) 25%,transparent 25%);background-size:8px 8px;"></button>';
-    SWATCHES.forEach(function (c) { html += '<button class="color-swatch" data-stroke="' + c + '" style="background:' + c + '" title="' + c + '" aria-label="Stroke ' + c + '"></button>'; });
+    html += '<button class="color-swatch color-swatch--none" data-stroke="none" title="No stroke" aria-label="No stroke"></button>';
+    SWATCHES.forEach(function (c) { html += '<button class="color-swatch" data-stroke="' + c + '" title="' + c + '" aria-label="Stroke ' + c + '"></button>'; });
     html += '</div>';
 
     html += '<div class="prop-row"><label>Width</label><input class="range" type="range" id="propStrokeWidth" min="0" max="40" value="' + sw + '"><span class="prop-value" id="propStrokeWidthVal">' + sw + '</span></div>';
@@ -819,6 +819,11 @@
     }
 
     props.innerHTML = html;
+    // CSSOM, not style="": inline style attributes are blocked by the site CSP.
+    props.querySelectorAll('.color-swatch[data-fill], .color-swatch[data-stroke]').forEach(function (s) {
+      var c = s.dataset.fill || s.dataset.stroke;
+      if (c !== 'none') s.style.background = c;
+    });
     bindPropEvents();
   }
 
@@ -1095,7 +1100,7 @@
     list.innerHTML = '';
     var nodes = userElements().reverse();
     if (countEl) countEl.textContent = nodes.length === 1 ? tpl('ed_element_count', '{count} element', { count: nodes.length }) : tpl('ed_elements_count', '{count} elements', { count: nodes.length });
-    if (nodes.length === 0) { list.innerHTML = '<p style="font-size:12px;color:var(--text-dim);padding:8px 0;">' + t('ed_no_elements', 'No elements yet') + '</p>'; return; }
+    if (nodes.length === 0) { list.innerHTML = '<p class="editor__layers-empty">' + t('ed_no_elements', 'No elements yet') + '</p>'; return; }
 
     function layerButton(label, glyph, disabled, handler) {
       var button = document.createElement('button');
@@ -1704,8 +1709,8 @@
   function deepImport(srcNode) {
     if (srcNode.nodeType === Node.TEXT_NODE) return document.createTextNode(srcNode.textContent);
     if (srcNode.nodeType !== Node.ELEMENT_NODE) return null;
-    var tag = srcNode.tagName.toLowerCase();
-    var node = document.createElementNS(SVG_NS, tag);
+    // localName keeps camelCase (linearGradient, clipPath); lowercasing breaks them.
+    var node = document.createElementNS(SVG_NS, srcNode.localName);
     for (var i = 0; i < srcNode.attributes.length; i++) {
       node.setAttribute(srcNode.attributes[i].name, srcNode.attributes[i].value);
     }
@@ -1722,8 +1727,10 @@
     var reader = new FileReader();
     reader.onload = function (e) {
       try {
-        var tmp = document.createElement('div'); tmp.innerHTML = e.target.result;
-        var svg = tmp.querySelector('svg'); if (!svg) { showToast(t('ed_no_svg_found', 'No SVG found')); return; }
+        // DOMParser gives an inert document: unlike div.innerHTML, handlers such as
+        // <img onerror> in the file never fire. text/html keeps lenient parsing.
+        var parsedDoc = new DOMParser().parseFromString(e.target.result, 'text/html');
+        var svg = parsedDoc.querySelector('svg'); if (!svg) { showToast(t('ed_no_svg_found', 'No SVG found')); return; }
         sanitizeSvg(svg);
         var importedViewBox = sourceViewBox(svg);
         DOC = { x: importedViewBox[0], y: importedViewBox[1], w: importedViewBox[2], h: importedViewBox[3] };
@@ -2054,16 +2061,18 @@
 
   // ---- Keyboard ----
   document.addEventListener('keydown', function (e) {
-    var tag = e.target.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    var tag = e.target.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
-      if (e.key === 'y') { e.preventDefault(); redo(); return; }
-      if (e.key === 'd' && selected.length) { e.preventDefault(); document.getElementById('duplicateBtn').click(); return; }
-      if (e.key === 'g' && selected.length) { e.preventDefault(); if (e.shiftKey) document.getElementById('ungroupBtn').click(); else document.getElementById('groupBtn').click(); return; }
-      if (e.key === 'a') { e.preventDefault(); clearPathEditing(); selected = userElements().filter(function (node) { return !isLocked(node) && !isHidden(node); }); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
-      if (e.key === 'c') { e.preventDefault(); copySelected(false); return; }
-      if (e.key === 'x') { e.preventDefault(); copySelected(true); return; }
-      if (e.key === 'v') { e.preventDefault(); pasteClipboard(); return; }
+      // Shift/CapsLock turn e.key uppercase ('Z'), so compare lowercased.
+      var key = e.key.toLowerCase();
+      if (key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (key === 'y') { e.preventDefault(); redo(); return; }
+      if (key === 'd' && selected.length) { e.preventDefault(); document.getElementById('duplicateBtn').click(); return; }
+      if (key === 'g' && selected.length) { e.preventDefault(); if (e.shiftKey) document.getElementById('ungroupBtn').click(); else document.getElementById('groupBtn').click(); return; }
+      if (key === 'a') { e.preventDefault(); clearPathEditing(); selected = userElements().filter(function (node) { return !isLocked(node) && !isHidden(node); }); updateSelection(); updateProps(); updateLayers(); updateActionButtons(); return; }
+      if (key === 'c') { e.preventDefault(); copySelected(false); return; }
+      if (key === 'x') { e.preventDefault(); copySelected(true); return; }
+      if (key === 'v') { e.preventDefault(); pasteClipboard(); return; }
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && selected.length) {
       e.preventDefault();
@@ -2098,7 +2107,9 @@
   });
 
   document.addEventListener('keyup', function (e) {
-    if (e.key.startsWith('Arrow') && selected.length) snapshot();
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key.startsWith('Arrow') && selected.length && !pathEditing) snapshot();
   });
 
   // ---- Helper: offset element ----

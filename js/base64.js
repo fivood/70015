@@ -199,6 +199,16 @@
     return raw;
   }
 
+  // Decode locally: fetch(dataUrl) is blocked by the site's CSP connect-src.
+  function dataUrlToBlob(dataUrl) {
+    const comma = dataUrl.indexOf(',');
+    const mime = dataUrl.slice(5, dataUrl.indexOf(';'));
+    const bin = atob(dataUrl.slice(comma + 1).replace(/\s+/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
   async function updatePreview() {
     const version = ++previewVersion;
     const value = base64Input.value;
@@ -216,8 +226,7 @@
     }
 
     try {
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
+      const blob = dataUrlToBlob(dataUrl);
       if (version !== previewVersion) return;
       previewObjectUrl = URL.createObjectURL(blob);
     } catch (err) {
@@ -247,13 +256,13 @@
     if (!dataUrl) return;
 
     try {
-      const blob = await (await fetch(dataUrl)).blob();
+      const blob = dataUrlToBlob(dataUrl);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       // Try to infer extension
       const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,/i);
-      const ext = match && match[1] ? match[1].replace(/^jpeg$/i, 'jpg') : 'png';
+      const ext = match && match[1] ? match[1].replace(/^jpeg$/i, 'jpg').replace(/^svg\+xml$/i, 'svg') : 'png';
       a.download = 'base64-image.' + ext;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);

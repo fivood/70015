@@ -63,10 +63,10 @@
         <div class="iso-toolbar">
           <!-- 视图切换 (3D 等距 ↔ 2D 平面) -->
           <div class="iso-toolbar__group">
-            <button class="iso-tool-btn is-active" data-view="iso" type="button" data-i18n="iso_view_3d" data-i18n-title="iso_view_3d" style="width: auto; padding: 0 8px; font-size: 11px; font-weight: 600;">
+            <button class="iso-tool-btn iso-tool-btn--text is-active" data-view="iso" type="button" data-i18n="iso_view_3d" data-i18n-title="iso_view_3d">
               3D Iso
             </button>
-            <button class="iso-tool-btn" data-view="plan" type="button" data-i18n="iso_view_2d" data-i18n-title="iso_view_2d" style="width: auto; padding: 0 8px; font-size: 11px; font-weight: 600;">
+            <button class="iso-tool-btn iso-tool-btn--text" data-view="plan" type="button" data-i18n="iso_view_2d" data-i18n-title="iso_view_2d">
               2D Plan
             </button>
           </div>
@@ -97,21 +97,21 @@
 
           <!-- 朝向选择 (Top/Left/Right) -->
           <div class="iso-toolbar__group" id="planeGroup">
-            <button class="iso-tool-btn is-active" data-plane="top" type="button" data-i18n="iso_plane_top" data-i18n-title="iso_plane_top" style="width: auto; padding: 0 6px; font-size: 10.5px;">Top</button>
-            <button class="iso-tool-btn" data-plane="left" type="button" data-i18n="iso_plane_left" data-i18n-title="iso_plane_left" style="width: auto; padding: 0 6px; font-size: 10.5px;">Left</button>
-            <button class="iso-tool-btn" data-plane="right" type="button" data-i18n="iso_plane_right" data-i18n-title="iso_plane_right" style="width: auto; padding: 0 6px; font-size: 10.5px;">Right</button>
+            <button class="iso-tool-btn iso-tool-btn--plane is-active" data-plane="top" type="button" data-i18n="iso_plane_top" data-i18n-title="iso_plane_top">Top</button>
+            <button class="iso-tool-btn iso-tool-btn--plane" data-plane="left" type="button" data-i18n="iso_plane_left" data-i18n-title="iso_plane_left">Left</button>
+            <button class="iso-tool-btn iso-tool-btn--plane" data-plane="right" type="button" data-i18n="iso_plane_right" data-i18n-title="iso_plane_right">Right</button>
           </div>
 
           <span class="iso-sep" aria-hidden="true"></span>
 
           <!-- 吸附精度 (允许绘制薄墙 0.25 / 0.1 格) -->
-          <div class="iso-toolbar__group" title="吸附网格步长/薄墙精度">
-            <span style="font-size: 11px; padding-left: 4px; color: var(--text-muted);" data-i18n="iso_precision">Step</span>
-            <select id="snapStepSelect" style="background: transparent; border: none; font-size: 11px; color: var(--text); outline: none; cursor: pointer; padding: 0 4px; font-family: monospace;">
-              <option value="0.25" selected>0.25格 (精细/薄墙)</option>
-              <option value="0.5">0.5格 (半格)</option>
-              <option value="1.0">1.0格 (整格)</option>
-              <option value="0.1">0.1格 (微调)</option>
+          <div class="iso-toolbar__group" data-i18n-title="iso_step_tip" title="Snap step">
+            <span class="iso-step-label" data-i18n="iso_precision">Step</span>
+            <select id="snapStepSelect" class="iso-step-select">
+              <option value="0.25" selected data-i18n="iso_step_025">0.25 (fine / thin walls)</option>
+              <option value="0.5" data-i18n="iso_step_05">0.5 (half)</option>
+              <option value="1.0" data-i18n="iso_step_1">1.0 (whole)</option>
+              <option value="0.1" data-i18n="iso_step_01">0.1 (nudge)</option>
             </select>
           </div>
 
@@ -132,7 +132,7 @@
           <label class="iso-prop" data-i18n-title="iso_stroke" title="Stroke">
             <span data-i18n="iso_stroke">Stroke</span>
             <input type="color" id="strokeColor" value="#1f2937">
-            <input type="checkbox" id="hasOutline" checked style="margin-left: 2px;">
+            <input type="checkbox" id="hasOutline" class="iso-outline-check" checked>
           </label>
 
           <span class="iso-sep" aria-hidden="true"></span>

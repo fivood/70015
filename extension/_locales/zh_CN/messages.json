@@ -15,5 +15,6 @@
   "result_title": { "message": "长截图 — 70015" },
   "result_info": { "message": "$W$ × $H$ px · $COUNT$ 段", "placeholders": { "W": { "content": "$1" }, "H": { "content": "$2" }, "COUNT": { "content": "$3" } } },
   "copied": { "message": "已复制到剪贴板" },
-  "copy_fail": { "message": "复制失败" }
+  "copy_fail": { "message": "复制失败" },
+  "truncated": { "message": "页面过长，底部已截断" }
 }

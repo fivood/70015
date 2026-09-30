@@ -31,6 +31,8 @@
   const toast = document.getElementById('toast');
 
   const hasLib = typeof window.qrcode === 'function';
+  // Default encoder keeps only the low byte of each char, breaking non-ASCII text.
+  if (hasLib && qrcode.stringToBytesFuncs) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
   let ecl = 'M';
   let lastQr = null;
   let lastMeta = null;

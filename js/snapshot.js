@@ -41,6 +41,8 @@
   const pdfReady = typeof window.pdfjsLib === 'object' && window.pdfjsLib;
   const MAX_PDF_FILE_SIZE = 100 * 1024 * 1024;
   const MAX_OUTPUT_PIXELS = 64 * 1024 * 1024;
+  const MAX_CANVAS_SIDE = 32767; // Chrome canvas limit per side
+  function tooBig(w, h) { return w * h > MAX_OUTPUT_PIXELS || w > MAX_CANVAS_SIDE || h > MAX_CANVAS_SIDE; }
 
   let activeMode = 'screen';
   let stream = null;
@@ -70,7 +72,6 @@
   const STABLE_THRESH = 2.0;
   const DEBOUNCE_MS = 300;
   const MAX_SCROLL_WAIT = 5000;
-  const OVERLAP_SEARCH = 200;
   const MATCH_ROWS = 16;
   const SAMPLE_STEP = 4;
   const NCC_THRESH = 0.92;
@@ -287,7 +288,7 @@
     const page = await pdfDoc.getPage(num);
     const scale = computeScale(page.getViewport({ scale: 1 }));
     const viewport = page.getViewport({ scale });
-    if (viewport.width * viewport.height > MAX_OUTPUT_PIXELS) {
+    if (tooBig(viewport.width, viewport.height)) {
       pdfHint.textContent = t('snp_pdf_open_fail', 'This PDF page is too large to render safely.');
       return;
     }
@@ -357,7 +358,7 @@
         if (width > maxWidth) maxWidth = width;
         totalHeight += height;
       }
-      if (!maxWidth || !totalHeight || maxWidth * totalHeight > MAX_OUTPUT_PIXELS) {
+      if (!maxWidth || !totalHeight || tooBig(maxWidth, totalHeight)) {
         throw new Error('PDF output is too large');
       }
       workCanvas.width = maxWidth;
@@ -485,7 +486,7 @@
     const sy = Math.round(rect.y * scale.sy);
     const sw = Math.max(1, Math.round(rect.w * scale.sx));
     const sh = Math.max(1, Math.round(rect.h * scale.sy));
-    if (sw * sh > MAX_OUTPUT_PIXELS) { sel.hidden = true; showToast(t('snp_capture_failed', 'Capture is too large')); return; }
+    if (tooBig(sw, sh)) { sel.hidden = true; showToast(t('snp_capture_failed', 'Capture is too large')); return; }
     workCanvas.width = sw;
     workCanvas.height = sh;
     const ctx = workCanvas.getContext('2d');
@@ -501,7 +502,7 @@
       const w = video.videoWidth;
       const h = video.videoHeight;
       if (!w || !h) { showToast(t('snp_stream_not_ready', 'Stream not ready')); return; }
-      if (w * h > MAX_OUTPUT_PIXELS) { showToast(t('snp_capture_failed', 'Capture is too large')); return; }
+      if (tooBig(w, h)) { showToast(t('snp_capture_failed', 'Capture is too large')); return; }
       workCanvas.width = w;
       workCanvas.height = h;
       const ctx = workCanvas.getContext('2d');
@@ -512,7 +513,7 @@
       if (!pdfDoc || !pdfCanvas.width) return;
       const w = pdfCanvas.width;
       const h = pdfCanvas.height;
-      if (w * h > MAX_OUTPUT_PIXELS) { showToast(t('snp_capture_failed', 'Capture is too large')); return; }
+      if (tooBig(w, h)) { showToast(t('snp_capture_failed', 'Capture is too large')); return; }
       workCanvas.width = w;
       workCanvas.height = h;
       const ctx = workCanvas.getContext('2d');
@@ -523,7 +524,7 @@
   }
 
   function finalizeCapture(w, h) {
-    if (!w || !h || w * h > MAX_OUTPUT_PIXELS) {
+    if (!w || !h || tooBig(w, h)) {
       showToast(t('snp_capture_failed', 'Capture is too large')); return;
     }
     if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
@@ -571,7 +572,7 @@
         var oldH = stitchCanvas.height;
         var newW = Math.max(stitchCanvas.width, w);
       var newH = oldH + h;
-        if (newW * newH > MAX_OUTPUT_PIXELS) {
+        if (tooBig(newW, newH)) {
           showToast(t('snp_stitching_failed', 'Stitched image is too large'));
           return;
         }
@@ -732,7 +733,7 @@
     const sy = Math.round(lockedRegion.y * scale.sy);
     const sw = lockedRegion.nw;
     const sh = Math.max(1, Math.round(lockedRegion.h * scale.sy));
-    if (sw * sh > MAX_OUTPUT_PIXELS) return;
+    if (tooBig(sw, sh)) return;
 
     workCanvas.width = sw;
     workCanvas.height = sh;
@@ -761,7 +762,7 @@
     } else {
       const oldH = autoStitchCanvas.height;
       const newH = oldH + appendH;
-      if (w * newH > MAX_OUTPUT_PIXELS) {
+      if (tooBig(w, newH)) {
         stopRecording();
         showToast(t('snp_stitch_too_large', 'Stitched image reached max size. Recording stopped.'));
         return;
@@ -869,23 +870,26 @@
 
   // --- Overlap detection (NCC) ---
 
+  // The previous frame's bottom rows can sit anywhere in the new frame (small
+  // scrolls = large overlap), so search every offset, not just the top rows.
   function findOverlapRows(prevData, newData, width) {
     const prevH = prevData.height;
     const newH = newData.height;
-    const searchRows = Math.min(OVERLAP_SEARCH, Math.floor(prevH * 0.4), newH - MATCH_ROWS);
-    if (searchRows < MATCH_ROWS) return 0;
+    if (prevH < MATCH_ROWS || newH < MATCH_ROWS) return 0;
+    const lastOff = newH - MATCH_ROWS;
 
     const tplY = prevH - MATCH_ROWS;
     const tplGray = toGrayStrip(prevData.data, width, tplY, MATCH_ROWS);
     const tplStats = computeStats(tplGray);
+    const newGray = toGrayStrip(newData.data, width, 0, newH);
 
     if (tplStats.std < 1.0) {
-      return findOverlapMSE(prevData, newData, width, searchRows);
+      return findOverlapMSE(tplGray, newGray, width, lastOff);
     }
 
     let bestNCC = -1, bestOffset = -1;
-    for (let off = 0; off <= searchRows - MATCH_ROWS; off++) {
-      const candGray = toGrayStrip(newData.data, width, off, MATCH_ROWS);
+    for (let off = 0; off <= lastOff; off++) {
+      const candGray = newGray.subarray(off * width, (off + MATCH_ROWS) * width);
       const candStats = computeStats(candGray);
       if (candStats.std < 0.5) continue;
 
@@ -908,14 +912,10 @@
     return 0;
   }
 
-  function findOverlapMSE(prevData, newData, width, searchRows) {
-    const prevH = prevData.height;
-    const tplY = prevH - MATCH_ROWS;
-    const tplGray = toGrayStrip(prevData.data, width, tplY, MATCH_ROWS);
-
+  function findOverlapMSE(tplGray, newGray, width, lastOff) {
     let bestMSE = Infinity, bestOffset = -1;
-    for (let off = 0; off <= searchRows - MATCH_ROWS; off++) {
-      const candGray = toGrayStrip(newData.data, width, off, MATCH_ROWS);
+    for (let off = 0; off <= lastOff; off++) {
+      const candGray = newGray.subarray(off * width, (off + MATCH_ROWS) * width);
       let sum = 0;
       for (let i = 0; i < tplGray.length; i += SAMPLE_STEP) {
         const d = tplGray[i] - candGray[i];

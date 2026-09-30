@@ -144,16 +144,24 @@
   canvas.addEventListener('mousedown', onDown);
   canvas.addEventListener('touchstart', onDown, { passive: false });
 
+  // Canvas px per on-screen CSS px: width/size sliders mean what the user sees,
+  // not raw pixels of a (possibly 4000px) image shown at 800px.
+  function uiScale() {
+    const w = canvas.getBoundingClientRect().width;
+    return w ? canvas.width / w : 1;
+  }
+
   function onDown(e) {
     if (!img || textOpen) return;
     if (tool === 'text') { openTextInput(e); return; }
     e.preventDefault();
     const p = pos(e);
+    const width = strokeWidth * uiScale();
     drawing = true;
     if (tool === 'pen' || tool === 'highlight') {
-      current = { type: tool, points: [{ x: p.x, y: p.y }], color, width: strokeWidth };
+      current = { type: tool, points: [{ x: p.x, y: p.y }], color, width };
     } else {
-      current = { type: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y, color, width: strokeWidth };
+      current = { type: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y, color, width };
     }
     render();
   }
@@ -208,7 +216,7 @@
     textInput.style.left = (p.cssX + (canvas.getBoundingClientRect().left - stageRect.left)) + 'px';
     textInput.style.top = (p.cssY + (canvas.getBoundingClientRect().top - stageRect.top)) + 'px';
     textInput.style.color = color;
-    textInput.style.fontSize = (fontSize * (canvas.getBoundingClientRect().width / canvas.width)) + 'px';
+    textInput.style.fontSize = fontSize + 'px';
     textInput.hidden = false;
     textInput.value = '';
     textOpen = true;
@@ -220,7 +228,7 @@
     if (!textOpen) return;
     textOpen = false;
     if (commit && textInput.value.trim()) {
-      shapes.push({ type: 'text', x: textInput._pos.x, y: textInput._pos.y, text: textInput.value, color, size: fontSize });
+      shapes.push({ type: 'text', x: textInput._pos.x, y: textInput._pos.y, text: textInput.value, color, size: fontSize * uiScale() });
       redoStack = [];
       updateUndoRedo();
       render();
@@ -233,7 +241,8 @@
     if (e.key === 'Enter') { e.preventDefault(); closeTextInput(true); }
     else if (e.key === 'Escape') { e.preventDefault(); closeTextInput(false); }
   });
-  textInput.addEventListener('blur', () => closeTextInput(false));
+  // Clicking away (e.g. straight to Export) keeps the typed text; Escape discards.
+  textInput.addEventListener('blur', () => closeTextInput(true));
 
   // ---------- Mosaic ----------
 

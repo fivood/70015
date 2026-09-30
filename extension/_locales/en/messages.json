@@ -15,5 +15,6 @@
   "result_title": { "message": "Long Screenshot — 70015" },
   "result_info": { "message": "$W$ × $H$ px · $COUNT$ segments", "placeholders": { "W": { "content": "$1" }, "H": { "content": "$2" }, "COUNT": { "content": "$3" } } },
   "copied": { "message": "Copied to clipboard" },
-  "copy_fail": { "message": "Copy failed" }
+  "copy_fail": { "message": "Copy failed" },
+  "truncated": { "message": "page too long, bottom cut off" }
 }

@@ -10,8 +10,10 @@
   var downloadBtn = document.getElementById('downloadBtn');
   var copyBtn = document.getElementById('copyBtn');
 
-  function msg(key) {
-    return chrome.i18n.getMessage(key) || key;
+  var MAX_SIDE = 32767;
+
+  function msg(key, subs) {
+    return chrome.i18n.getMessage(key, subs) || key;
   }
 
   document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -37,64 +39,45 @@
 
   async function processCaptures() {
     setStatus(msg('stitching'));
-
     var stored = await chrome.storage.local.get('zimgCaptures');
-    if (!stored || !stored.zimgCaptures) {
+    var data = stored && stored.zimgCaptures;
+    if (!data || !data.captures || !data.captures.length) {
       setStatus(msg('failed'));
       return;
     }
-
-    var data = stored.zimgCaptures;
-    var captures = data.captures;
-    var opts = data.opts;
+    chrome.storage.local.remove('zimgCaptures');
 
     var images = [];
-    for (var i = 0; i < captures.length; i++) {
-      setStatus(msg('capturing') + ' ' + (i + 1) + '/' + captures.length);
-      try {
-        var img = await loadImage(captures[i].dataUrl);
-        images.push(img);
-      } catch (e) {
-        console.error('Failed to load capture', i, e);
-      }
+    for (var i = 0; i < data.captures.length; i++) {
+      images.push(await loadImage(data.captures[i].dataUrl));
     }
 
-    if (!images.length) {
-      setStatus(msg('failed'));
-      return;
+    // Screenshot pixels per CSS pixel (covers devicePixelRatio and page zoom).
+    var scale = images[0].naturalWidth / data.viewW;
+    var ctx = resultCanvas.getContext('2d');
+
+    if (data.mode === 'region') {
+      var c = data.crop;
+      resultCanvas.width = Math.max(1, Math.round(c.w * scale));
+      resultCanvas.height = Math.max(1, Math.round(c.h * scale));
+      ctx.drawImage(images[0], Math.round(c.x * scale), Math.round(c.y * scale), resultCanvas.width, resultCanvas.height,
+        0, 0, resultCanvas.width, resultCanvas.height);
+    } else {
+      resultCanvas.width = images[0].naturalWidth;
+      resultCanvas.height = Math.min(MAX_SIDE, Math.round(data.height * scale));
+      // Each shot is drawn at its real scroll offset; later shots cover the overlap.
+      images.forEach(function (img, idx) {
+        ctx.drawImage(img, 0, Math.round(data.captures[idx].y * scale));
+      });
     }
 
-    setStatus(msg('stitching'));
-
-    var stitchOpts = {};
-    if (opts.mode === 'region' && opts.region) {
-      var r = opts.region;
-      var dpr = opts.dpr || 1;
-      var viewportPxX = r.x - Math.floor(r.x / r.viewW) * r.viewW;
-      stitchOpts.cropX = Math.round(viewportPxX * dpr);
-      stitchOpts.cropW = Math.round(r.w * dpr);
-    }
-
-    var result = ZimgStitch.stitchImages(images, stitchOpts);
-
-    if (!result || !result.canvas) {
-      setStatus(msg('failed'));
-      return;
-    }
-
-    resultCanvas.width = result.canvas.width;
-    resultCanvas.height = result.canvas.height;
-    resultCanvas.getContext('2d').drawImage(result.canvas, 0, 0);
-
-    var w = result.canvas.width;
-    var h = result.canvas.height;
-    info.textContent = w + ' × ' + h + ' px · ' + result.segments + ' segments';
+    var text = msg('result_info', [String(resultCanvas.width), String(resultCanvas.height), String(images.length)]);
+    if (data.truncated) text += ' · ' + msg('truncated');
+    info.textContent = text;
 
     statusBar.hidden = true;
     preview.hidden = false;
     actions.hidden = false;
-
-    chrome.storage.local.remove('zimgCaptures');
   }
 
   downloadBtn.addEventListener('click', function () {
@@ -110,21 +93,20 @@
   });
 
   copyBtn.addEventListener('click', async function () {
+    var label = copyBtn.querySelector('span');
     try {
-      var blob = await new Promise(function (resolve) {
-        resultCanvas.toBlob(resolve, 'image/png');
-      });
-      if (blob && navigator.clipboard && window.ClipboardItem) {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        copyBtn.querySelector('span').textContent = msg('copied');
-        setTimeout(function () {
-          copyBtn.querySelector('span').textContent = msg('copy_image');
-        }, 2000);
-      }
+      var blob = await new Promise(function (resolve) { resultCanvas.toBlob(resolve, 'image/png'); });
+      if (!blob || !navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      label.textContent = msg('copied');
     } catch (e) {
-      copyBtn.querySelector('span').textContent = msg('copy_fail');
+      label.textContent = msg('copy_fail');
     }
+    setTimeout(function () { label.textContent = msg('copy_image'); }, 2000);
   });
 
-  processCaptures();
+  processCaptures().catch(function (err) {
+    console.error(err);
+    setStatus(msg('failed'));
+  });
 })();

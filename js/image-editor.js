@@ -329,15 +329,16 @@
 
   downloadEditedBtn.addEventListener('click', () => {
     if (!state.source) return;
-    const base = renderBase();
-    let output = renderStyled(base, state.format === 'jpeg');
+    let base = renderBase();
+    // Crop first so corners and watermark land on the exported frame, not the uncropped image.
     if (state.crop && state.crop.w >= 2 && state.crop.h >= 2) {
       const cropped = document.createElement('canvas');
       cropped.width = Math.round(state.crop.w);
       cropped.height = Math.round(state.crop.h);
-      cropped.getContext('2d').drawImage(output, state.crop.x, state.crop.y, state.crop.w, state.crop.h, 0, 0, cropped.width, cropped.height);
-      output = cropped;
+      cropped.getContext('2d').drawImage(base, state.crop.x, state.crop.y, state.crop.w, state.crop.h, 0, 0, cropped.width, cropped.height);
+      base = cropped;
     }
+    const output = renderStyled(base, state.format === 'jpeg');
     if (output.width * output.height > MAX_OUTPUT_PIXELS) {
       showToast(t('image_editor_output_large', 'The image is too large to export safely.'));
       return;

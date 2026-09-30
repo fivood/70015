@@ -35,7 +35,6 @@
   var isDragging = false;
   var isPanning = false;
   var isSpacePressed = false;
-  var isAltPressed = false;
   var panStart = { x: 0, y: 0 };
   var startMouse = { x: 0, y: 0 };
   var currentMouse = { x: 0, y: 0 };
@@ -283,6 +282,15 @@
 
   // ==================== 渲染系统 ====================
 
+  // Canvas can't parse 'var(--x)'; resolve theme tokens to real colors (cache reset each render).
+  var themeColors = {};
+  function cssVar(name) {
+    if (!themeColors[name]) {
+      themeColors[name] = getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() || '#888888';
+    }
+    return themeColors[name];
+  }
+
   function toWorld(sx, sy) {
     return { x: (sx - pan.x) / zoom, y: (sy - pan.y) / zoom };
   }
@@ -298,8 +306,83 @@
     }
   }
 
+  function isSolid(s) { return s.type === 'box' || s.type === 'plane' || s.type === 'rect_2d'; }
+
+  // ponytail: painter's sort by gx+gy, overlapping boxes of very different sizes can mis-order
+  function isoDepth(s) {
+    if (s.type === 'rect_2d') return (s.x + s.y) / 32;
+    return (s.gx + s.gy) + (s.gz || 0) * 0.5;
+  }
+
+  // Solids depth-sorted first, then strokes/lines on top in drawing order
+  // (strokes have no depth and would otherwise be hidden behind boxes).
+  function isoDrawOrder(list) {
+    return list.filter(isSolid).sort(function (a, b) { return isoDepth(a) - isoDepth(b); })
+      .concat(list.filter(function (s) { return !isSolid(s); }));
+  }
+
+  function drawIsoScene(list) {
+    isoDrawOrder(list).forEach(function (s) {
+      if (s.type === 'box') drawBox(s);
+      else if (s.type === 'plane') drawPlane(s);
+      else if (s.type === 'brush_stroke') drawBrushStroke(s);
+      else if (s.type === 'line') drawLine(s);
+      else if (s.type === 'rect_2d') drawRect2DAsIso(s);
+    });
+  }
+
+  function distToSegment(p, a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var len2 = dx * dx + dy * dy;
+    var t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  }
+
+  function hitsPolyline(world, points, width) {
+    var tol = Math.max(6 / zoom, (width || 2) / 2);
+    for (var i = 1; i < points.length; i++) {
+      if (distToSegment(world, points[i - 1], points[i]) <= tol) return true;
+    }
+    return false;
+  }
+
+  function hitsBoxIso(b, world) {
+    var v = getBoxVertices(b);
+    return pointInPolygon(world, [v[4], v[5], v[6], v[7]]) ||
+      pointInPolygon(world, [v[3], v[2], v[6], v[7]]) ||
+      pointInPolygon(world, [v[2], v[1], v[5], v[6]]);
+  }
+
+  function hitsRect(world, x, y, w, h) {
+    return world.x >= x && world.x <= x + w && world.y >= y && world.y <= y + h;
+  }
+
+  function shapeHit(s, world) {
+    if (s.type === 'line') return hitsPolyline(world, [s.start, s.end], s.width);
+    if (s.type === 'brush_stroke') return viewMode === 'iso' && hitsPolyline(world, s.points, s.size);
+    if (viewMode === 'iso') {
+      if (s.type === 'box') return hitsBoxIso(s, world);
+      if (s.type === 'plane') return pointInPolygon(world, getPlaneVertices(s));
+      if (s.type === 'rect_2d') return hitsBoxIso({ gx: s.x / 32, gy: s.y / 32, gz: 0, gw: s.width / 32, gd: s.height / 32, gh: s.extrudeHeight || 0.25 }, world);
+      return false;
+    }
+    if (s.type === 'box' || (s.type === 'plane' && s.planeType === 'top')) return hitsRect(world, s.gx * 32, s.gy * 32, s.gw * 32, s.gd * 32);
+    if (s.type === 'rect_2d') return hitsRect(world, s.x, s.y, s.width, s.height);
+    return false;
+  }
+
+  // Topmost shape under the pointer, in the same order the current view draws them.
+  function shapeAt(world) {
+    var order = viewMode === 'iso' ? isoDrawOrder(shapes) : shapes;
+    for (var i = order.length - 1; i >= 0; i--) {
+      if (shapeHit(order[i], world)) return order[i];
+    }
+    return null;
+  }
+
   function render() {
     if (!canvas || !ctx) return;
+    themeColors = {};
     var w = canvas.width;
     var h = canvas.height;
     ctx.clearRect(0, 0, w, h);
@@ -315,21 +398,7 @@
     }
 
     if (viewMode === 'iso') {
-      // 3D 等距模式：深度排序
-      var sorted = shapes.slice().sort(function (a, b) {
-        var dA = (a.type === 'box' || a.type === 'plane') ? (a.gx + a.gy) + (a.gz || 0) * 0.5 : 0;
-        var dB = (b.type === 'box' || b.type === 'plane') ? (b.gx + b.gy) + (b.gz || 0) * 0.5 : 0;
-        return dA - dB;
-      });
-
-      for (var i = 0; i < sorted.length; i++) {
-        var s = sorted[i];
-        if (s.type === 'box') drawBox(s);
-        else if (s.type === 'plane') drawPlane(s);
-        else if (s.type === 'brush_stroke') drawBrushStroke(s);
-        else if (s.type === 'line') drawLine(s);
-        else if (s.type === 'rect_2d') drawRect2DAsIso(s);
-      }
+      drawIsoScene(shapes);
 
       // 实时 3D 盒子高度拉伸
       if (boxExtrudeStage === 'pulling_height' && boxBase) {
@@ -460,7 +529,7 @@
 
   function drawIsoGrid() {
     ctx.save();
-    ctx.strokeStyle = 'var(--border)';
+    ctx.strokeStyle = cssVar('border');
     ctx.lineWidth = 0.5 / zoom;
     var range = 35;
     for (var gx = -range; gx <= range; gx += (snapStep >= 0.5 ? 1 : 0.5)) {
@@ -470,7 +539,7 @@
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
-      ctx.strokeStyle = isMajor ? 'var(--text-muted)' : 'var(--border)';
+      ctx.strokeStyle = isMajor ? cssVar('text-muted') : cssVar('border');
       ctx.lineWidth = (isMajor ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
@@ -481,7 +550,7 @@
       ctx.beginPath();
       ctx.moveTo(q1.x, q1.y);
       ctx.lineTo(q2.x, q2.y);
-      ctx.strokeStyle = isMajor2 ? 'var(--text-muted)' : 'var(--border)';
+      ctx.strokeStyle = isMajor2 ? cssVar('text-muted') : cssVar('border');
       ctx.lineWidth = (isMajor2 ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
@@ -489,7 +558,7 @@
     // 原点
     var o = gridToScreen(0, 0, 0);
     var xEnd = gridToScreen(2, 0, 0);
-    ctx.strokeStyle = 'var(--primary)';
+    ctx.strokeStyle = cssVar('primary');
     ctx.lineWidth = 1.5 / zoom;
     ctx.beginPath();
     ctx.moveTo(o.x, o.y);
@@ -503,17 +572,17 @@
     ctx.stroke();
 
     var zEnd = gridToScreen(0, 0, 2);
-    ctx.strokeStyle = 'var(--text)';
+    ctx.strokeStyle = cssVar('text');
     ctx.beginPath();
     ctx.moveTo(o.x, o.y);
     ctx.lineTo(zEnd.x, zEnd.y);
     ctx.stroke();
 
     ctx.font = Math.max(9, Math.round(10 / zoom)) + 'px sans-serif';
-    ctx.fillStyle = 'var(--text-muted)';
+    ctx.fillStyle = cssVar('text-muted');
     ctx.fillText('+X', xEnd.x + 4 / zoom, xEnd.y + 4 / zoom);
     ctx.fillText('+Y', yEnd.x - 16 / zoom, yEnd.y + 4 / zoom);
-    ctx.fillStyle = 'var(--text)';
+    ctx.fillStyle = cssVar('text');
     ctx.fillText('+Z (H)', zEnd.x - 14 / zoom, zEnd.y - 4 / zoom);
 
     ctx.restore();
@@ -521,7 +590,7 @@
 
   function drawPlanGrid() {
     ctx.save();
-    ctx.strokeStyle = 'var(--border)';
+    ctx.strokeStyle = cssVar('border');
     ctx.lineWidth = 0.5 / zoom;
     var range = 40 * 32;
     var step = 32 * snapStep;
@@ -530,7 +599,7 @@
       ctx.beginPath();
       ctx.moveTo(x, -range);
       ctx.lineTo(x, range);
-      ctx.strokeStyle = isMajor ? 'var(--text-muted)' : 'var(--border)';
+      ctx.strokeStyle = isMajor ? cssVar('text-muted') : cssVar('border');
       ctx.lineWidth = (isMajor ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
@@ -539,7 +608,7 @@
       ctx.beginPath();
       ctx.moveTo(-range, y);
       ctx.lineTo(range, y);
-      ctx.strokeStyle = isMajor2 ? 'var(--text-muted)' : 'var(--border)';
+      ctx.strokeStyle = isMajor2 ? cssVar('text-muted') : cssVar('border');
       ctx.lineWidth = (isMajor2 ? 0.8 : 0.4) / zoom;
       ctx.stroke();
     }
@@ -551,7 +620,7 @@
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineWidth = 1.2;
-    ctx.strokeStyle = b.hasOutline ? (b.outlineColor || 'var(--border)') : 'transparent';
+    ctx.strokeStyle = b.hasOutline ? (b.outlineColor || cssVar('border')) : 'transparent';
 
     // Left
     ctx.beginPath();
@@ -590,7 +659,7 @@
     ctx.fill();
     if (p.hasOutline) {
       ctx.lineWidth = 1.2;
-      ctx.strokeStyle = p.outlineColor || 'var(--border)';
+      ctx.strokeStyle = p.outlineColor || cssVar('border');
       ctx.stroke();
     }
     ctx.restore();
@@ -631,7 +700,7 @@
     ctx.fillStyle = r.fillColor;
     ctx.fill();
     ctx.lineWidth = 1.2;
-    ctx.strokeStyle = r.outlineColor || 'var(--border)';
+    ctx.strokeStyle = r.outlineColor || cssVar('border');
     ctx.stroke();
     ctx.restore();
   }
@@ -639,7 +708,7 @@
   function drawHeightIndicator(b) {
     var v = getBoxVertices(b);
     ctx.save();
-    ctx.strokeStyle = 'var(--text)';
+    ctx.strokeStyle = cssVar('text');
     ctx.setLineDash([2, 2]);
     ctx.lineWidth = 1.2 / zoom;
     ctx.beginPath();
@@ -651,16 +720,16 @@
     var labelY = (v[2].y + v[6].y) / 2;
     var tag = 'H: ' + b.gh.toFixed(2) + ' (Click)';
     ctx.font = 'bold ' + Math.max(9, Math.round(10.5 / zoom)) + 'px monospace';
-    ctx.fillStyle = 'var(--surface)';
+    ctx.fillStyle = cssVar('surface');
     ctx.fillRect(labelX - 2 / zoom, labelY - 8 / zoom, 110 / zoom, 16 / zoom);
-    ctx.fillStyle = 'var(--text)';
+    ctx.fillStyle = cssVar('text');
     ctx.fillText(tag, labelX, labelY + 4 / zoom);
     ctx.restore();
   }
 
   function drawSurfaceBrushCursor(pt, face) {
     ctx.save();
-    ctx.strokeStyle = 'var(--primary)';
+    ctx.strokeStyle = cssVar('primary');
     ctx.lineWidth = 1.5 / zoom;
     var r = 8 / zoom;
     ctx.beginPath();
@@ -689,8 +758,8 @@
 
   function drawSnapCursor(pt) {
     ctx.save();
-    ctx.strokeStyle = 'var(--primary)';
-    ctx.fillStyle = 'var(--primary)';
+    ctx.strokeStyle = cssVar('primary');
+    ctx.fillStyle = cssVar('primary');
     ctx.lineWidth = 1 / zoom;
     var size = 3 / zoom;
     ctx.beginPath();
@@ -727,7 +796,7 @@
         ctx.closePath();
         ctx.fillStyle = 'rgba(49, 127, 168, 0.25)';
         ctx.fill();
-        ctx.strokeStyle = 'var(--primary)';
+        ctx.strokeStyle = cssVar('primary');
         ctx.lineWidth = 1.5;
         ctx.stroke();
       } else if (currentTool === 'plane') {
@@ -772,9 +841,9 @@
         ctx.stroke();
       }
     } else {
-      if (currentTool === 'rect_2d') {
+      if (currentTool === 'box' || currentTool === 'plane') {
         ctx.fillStyle = currentColor;
-        ctx.strokeStyle = 'var(--primary)';
+        ctx.strokeStyle = cssVar('primary');
         var rx = Math.min(startMouse.x, currentMouse.x);
         var ry = Math.min(startMouse.y, currentMouse.y);
         var rw = Math.abs(currentMouse.x - startMouse.x);
@@ -881,25 +950,27 @@
       return;
     }
 
-    if (currentTool === 'eyedropper' || isAltPressed) {
-      for (var i = shapes.length - 1; i >= 0; i--) {
-        var s = shapes[i];
-        if (s.baseColor || s.color || s.fillColor) {
-          currentColor = s.baseColor || s.color || s.fillColor;
-          if (fillColorInput) fillColorInput.value = currentColor;
-          updateShadeBoxes();
-          break;
-        }
+    // e.altKey, not a tracked keydown flag: Alt+Tab never delivers the keyup.
+    if (currentTool === 'eyedropper' || e.altKey) {
+      var picked = shapeAt(rawWorld);
+      var pickedColor = picked && (picked.baseColor || picked.color || picked.fillColor);
+      if (pickedColor) {
+        currentColor = pickedColor;
+        if (fillColorInput) fillColorInput.value = currentColor;
+        updateShadeBoxes();
+        render();
       }
       return;
     }
 
     if (currentTool === 'eraser') {
-      if (shapes.length > 0) {
-        pushState(shapes.slice(0, shapes.length - 1));
-      }
+      var hit = shapeAt(rawWorld);
+      if (hit) pushState(shapes.filter(function (s) { return s !== hit; }));
       return;
     }
+
+    // Plan view only draws footprints: box → wall, plane → floor tile.
+    if (viewMode === 'plan' && currentTool !== 'box' && currentTool !== 'plane') return;
 
     if (currentTool === 'brush') {
       isDragging = true;
@@ -1036,6 +1107,7 @@
       }
     } else {
       // 2D 平面模式：直接创建 3D 兼容的矩形
+      if (dist <= 3) return; // a stray click shouldn't drop a wall
       var rx = Math.min(startMouse.x, currentMouse.x);
       var ry = Math.min(startMouse.y, currentMouse.y);
       var rw = Math.max(16, Math.abs(currentMouse.x - startMouse.x));
@@ -1046,6 +1118,15 @@
       var gw2 = rw / 32;
       var gd2 = rh / 32;
       var sh2 = compute3Shades(currentColor);
+
+      if (currentTool === 'plane') {
+        pushState(shapes.concat([{
+          type: 'plane', planeType: 'top',
+          gx: gx2, gy: gy2, gz: 0, gw: gw2, gd: gd2,
+          color: currentColor, hasOutline: hasOutline, outlineColor: outlineColor
+        }]));
+        return;
+      }
 
       var newBoxFromPlan = {
         type: 'box',
@@ -1108,7 +1189,7 @@
   function extrude2DPlan() {
     var boxes = shapes.filter(function (s) { return s.type === 'box'; });
     if (boxes.length === 0) {
-      alert(tr('iso_sample'));
+      alert(tr('iso_no_boxes'));
       return;
     }
     viewMode = 'iso';
@@ -1130,41 +1211,21 @@
     offCtx.translate(pan.x, pan.y);
     offCtx.scale(zoom, zoom);
 
-    var sorted = shapes.slice().sort(function (a, b) {
-      var dA = (a.type === 'box' || a.type === 'plane') ? (a.gx + a.gy) + (a.gz || 0) * 0.5 : 0;
-      var dB = (b.type === 'box' || b.type === 'plane') ? (b.gx + b.gy) + (b.gz || 0) * 0.5 : 0;
-      return dA - dB;
-    });
-
-    sorted.forEach(function (s) {
-      var isLineArt = format === 'lineart';
-      if (s.type === 'box') {
-        var v = getBoxVertices(s);
-        offCtx.lineWidth = isLineArt ? 2 : 1.2;
-        offCtx.strokeStyle = isLineArt ? '#000000' : (s.outlineColor || '#1f2937');
-        // Left
-        offCtx.beginPath();
-        offCtx.moveTo(v[3].x, v[3].y); offCtx.lineTo(v[2].x, v[2].y); offCtx.lineTo(v[6].x, v[6].y); offCtx.lineTo(v[7].x, v[7].y);
-        offCtx.closePath();
-        offCtx.fillStyle = isLineArt ? '#ffffff' : s.leftColor;
-        offCtx.fill();
-        offCtx.stroke();
-        // Right
-        offCtx.beginPath();
-        offCtx.moveTo(v[2].x, v[2].y); offCtx.lineTo(v[1].x, v[1].y); offCtx.lineTo(v[5].x, v[5].y); offCtx.lineTo(v[6].x, v[6].y);
-        offCtx.closePath();
-        offCtx.fillStyle = isLineArt ? '#ffffff' : s.rightColor;
-        offCtx.fill();
-        offCtx.stroke();
-        // Top
-        offCtx.beginPath();
-        offCtx.moveTo(v[4].x, v[4].y); offCtx.lineTo(v[5].x, v[5].y); offCtx.lineTo(v[6].x, v[6].y); offCtx.lineTo(v[7].x, v[7].y);
-        offCtx.closePath();
-        offCtx.fillStyle = isLineArt ? '#ffffff' : s.topColor;
-        offCtx.fill();
-        offCtx.stroke();
-      }
-    });
+    var list = shapes;
+    if (format === 'lineart') {
+      list = shapes.map(function (s) {
+        var c = Object.assign({}, s, { hasOutline: true, outlineColor: '#000000' });
+        if (s.type === 'box') { c.topColor = c.leftColor = c.rightColor = '#ffffff'; }
+        else if (s.type === 'plane') c.color = '#ffffff';
+        else if (s.type === 'rect_2d') c.fillColor = '#ffffff';
+        else c.color = '#000000';
+        return c;
+      });
+    }
+    // Reuse the on-screen draw routines against the export context.
+    var screenCtx = ctx;
+    ctx = offCtx;
+    try { drawIsoScene(list); } finally { ctx = screenCtx; }
 
     var link = document.createElement('a');
     link.download = '70015_isometric_' + (format === 'lineart' ? 'lineart_' : '') + Date.now() + '.png';
@@ -1195,9 +1256,10 @@
     resize();
 
     // 绑定画布事件
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    // Pointer events so touch/pen work too (canvas has touch-action: none).
+    canvas.addEventListener('pointerdown', handleMouseDown);
+    canvas.addEventListener('pointermove', handleMouseMove);
+    window.addEventListener('pointerup', handleMouseUp);
     canvas.addEventListener('wheel', handleWheel, { passive: false });
     canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
@@ -1337,10 +1399,24 @@
     }
 
     // 快捷键
+    var canvasHovered = false;
+    canvas.addEventListener('mouseenter', function () { canvasHovered = true; });
+    canvas.addEventListener('mouseleave', function () { canvasHovered = false; });
+    // Keyup is lost if the window loses focus mid-press.
+    window.addEventListener('blur', function () { isSpacePressed = false; });
+
+    var TOOL_KEYS = { b: 'box', p: 'plane', d: 'brush', l: 'line', e: 'eraser', i: 'eyedropper' };
+
     window.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-      if (e.code === 'Space') isSpacePressed = true;
-      if (e.key === 'Alt') isAltPressed = true;
+      // Space pans only over the canvas; elsewhere it must still activate buttons.
+      if (e.code === 'Space' && canvasHovered) { isSpacePressed = true; e.preventDefault(); }
+      var toolKey = !e.ctrlKey && !e.metaKey && !e.altKey && TOOL_KEYS[e.key.toLowerCase()];
+      if (toolKey) {
+        currentTool = toolKey;
+        toolBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tool === toolKey); });
+        render();
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) redo(); else undo();
@@ -1349,7 +1425,8 @@
         e.preventDefault();
         redo();
       }
-      if (e.key === 'Tab') {
+      // Only hijack Tab while the pointer is on the canvas, so keyboard navigation still works.
+      if (e.key === 'Tab' && canvasHovered && !e.shiftKey) {
         e.preventDefault();
         currentPlane = currentPlane === 'top' ? 'left' : currentPlane === 'left' ? 'right' : 'top';
         if (planeBtns) {
@@ -1361,8 +1438,10 @@
 
     window.addEventListener('keyup', function (e) {
       if (e.code === 'Space') isSpacePressed = false;
-      if (e.key === 'Alt') isAltPressed = false;
     });
+
+    // Theme toggle changes CSS tokens the canvas resolves at render time.
+    new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     // 监听语言切换
     window.onLangChange = function () {

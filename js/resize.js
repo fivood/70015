@@ -183,10 +183,16 @@
   }
 
   var HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-  var HANDLE_SIZE = 16; // px hit area in canvas coords (scaled)
+  var HANDLE_SIZE = 14; // CSS px; converted to canvas px so handles stay grabbable on downscaled big images
+
+  // Canvas px per CSS px of the displayed crop canvas.
+  function uiScale() {
+    var w = cropCanvas.getBoundingClientRect().width;
+    return w ? cropCanvas.width / w : 1;
+  }
 
   function handleRects(r) {
-    var hs = Math.max(10, HANDLE_SIZE);
+    var hs = HANDLE_SIZE * uiScale();
     var map = {};
     var x = r.x, y = r.y, w = r.w, h = r.h;
     map.nw = { x: x - hs / 2, y: y - hs / 2, w: hs, h: hs };
@@ -326,6 +332,7 @@
   function renderCrop() {
     if (!cImg) return;
     var W = cropCanvas.width, H = cropCanvas.height;
+    var u = uiScale();
     cctx.clearRect(0, 0, W, H);
     cctx.drawImage(cImg, 0, 0, W, H);
     // dim outside crop
@@ -336,13 +343,13 @@
     cctx.fillRect(0, crop.y + crop.h, W, H - (crop.y + crop.h));
     // crop border
     cctx.strokeStyle = '#ffffff';
-    cctx.lineWidth = 1.5;
+    cctx.lineWidth = 1.5 * u;
     cctx.strokeRect(crop.x + 0.5, crop.y + 0.5, crop.w - 1, crop.h - 1);
     cctx.strokeStyle = 'rgba(0,0,0,0.4)';
     cctx.strokeRect(crop.x, crop.y, crop.w, crop.h);
     // rule-of-thirds guide
     cctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    cctx.lineWidth = 1;
+    cctx.lineWidth = u;
     cctx.beginPath();
     for (var i = 1; i < 3; i++) {
       cctx.moveTo(crop.x + crop.w * i / 3, crop.y);
@@ -357,7 +364,7 @@
       var r = hr[id];
       cctx.fillStyle = '#ffffff';
       cctx.strokeStyle = 'rgba(0,0,0,0.6)';
-      cctx.lineWidth = 1;
+      cctx.lineWidth = u;
       cctx.fillRect(r.x, r.y, r.w, r.h);
       cctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
     });
@@ -437,16 +444,23 @@
     if (!imgs.length) { showToast(t('sz_need_image')); return; }
     var version = stitchLoadVersion;
     var pending = imgs.length;
-    imgs.forEach(function (f) {
+    // Fill slots by selection index so load-completion order can't reshuffle images.
+    var slots = new Array(imgs.length);
+    function done() {
+      if (--pending > 0) return;
+      if (version !== stitchLoadVersion) return;
+      slots.forEach(function (item) { if (item) stitchFiles.push(item); });
+      renderStitchList(); updateStitchUI();
+    }
+    imgs.forEach(function (f, i) {
       var url = URL.createObjectURL(f);
       var image = new Image();
       image.onload = function () {
-        if (version !== stitchLoadVersion) { URL.revokeObjectURL(url); pending--; return; }
-        stitchFiles.push({ id: Math.random().toString(36).slice(2, 10), file: f, img: image, url: url, w: image.naturalWidth, h: image.naturalHeight });
-        pending--;
-        if (pending === 0) { renderStitchList(); updateStitchUI(); }
+        if (version !== stitchLoadVersion) URL.revokeObjectURL(url);
+        else slots[i] = { id: Math.random().toString(36).slice(2, 10), file: f, img: image, url: url, w: image.naturalWidth, h: image.naturalHeight };
+        done();
       };
-      image.onerror = function () { URL.revokeObjectURL(url); pending--; if (pending === 0) { renderStitchList(); updateStitchUI(); } };
+      image.onerror = function () { URL.revokeObjectURL(url); done(); };
       image.src = url;
     });
   }

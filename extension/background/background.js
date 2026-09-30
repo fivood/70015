@@ -1,19 +1,23 @@
 (function () {
   'use strict';
 
-  var captureState = null;
+  var MIN_CAPTURE_GAP = 550; // captureVisibleTab quota is 2 calls per second
+  var MAX_SIDE = 32767; // Chrome canvas limit per side
+  var MAX_PIXELS = 64 * 1024 * 1024;
+  var lastCaptureAt = 0;
 
   function sleep(ms) {
     return new Promise(function (r) { setTimeout(r, ms); });
   }
 
-  function sendToTab(tabId, msg) {
-    return chrome.tabs.sendMessage(tabId, msg);
-  }
-
-  async function captureTab() {
-    var dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
-    return dataUrl;
+  async function captureTab(tab) {
+    var wait = lastCaptureAt + MIN_CAPTURE_GAP - Date.now();
+    if (wait > 0) await sleep(wait);
+    // captureVisibleTab grabs whatever tab is active; stop if the user switched away.
+    var current = await chrome.tabs.get(tab.id);
+    if (!current.active) throw new Error('Tab is no longer active');
+    lastCaptureAt = Date.now();
+    return chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
   }
 
   async function injectContentScript(tabId) {
@@ -21,99 +25,79 @@
     await chrome.scripting.executeScript({ target: { tabId: tabId }, files: ['content/content.js'] });
   }
 
-  async function captureFullPage(tabId) {
-    try {
-      await injectContentScript(tabId);
-      var dims = await sendToTab(tabId, { type: 'getPageDimensions' });
-      var viewH = dims.viewH;
-      var scrollH = dims.scrollHeight;
-      var dpr = dims.dpr;
-      var overlap = Math.floor(viewH * 0.15);
-      var step = viewH - overlap;
-      var steps = Math.ceil(scrollH / step);
-      var captures = [];
-
-      for (var i = 0; i < steps; i++) {
-        var y = Math.min(i * step, scrollH - viewH);
-        await sendToTab(tabId, { type: 'scrollTo', y: y });
-        await sleep(400);
-        var dataUrl = await captureTab();
-        captures.push({ dataUrl: dataUrl, scrollY: y, viewH: viewH, dpr: dpr });
-      }
-
-      await sendToTab(tabId, { type: 'cleanup' });
-      openResultPage(captures, { mode: 'full', width: dims.viewW, dpr: dpr });
-    } catch (err) {
-      console.error('Full page capture failed:', err);
-    }
+  function flagError(tab, err) {
+    console.error('Capture failed:', err);
+    chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: '#ef4444' });
+    chrome.action.setBadgeText({ tabId: tab.id, text: '!' });
   }
 
-  async function captureRegion(tabId, region) {
+  // Captures land at their real scroll offsets, so stitching needs no image matching.
+  // ponytail: fixed/sticky headers repeat once per screen; hide them between shots if it matters.
+  async function captureFullPage(tab) {
+    var dims = await chrome.tabs.sendMessage(tab.id, { type: 'getPageDimensions' });
+    var viewH = dims.viewH;
+    var dpr = dims.dpr || 1;
+    // Stop before the stitched canvas would exceed browser limits.
+    var maxCssH = Math.floor(Math.min(MAX_SIDE, MAX_PIXELS / (dims.viewW * dpr)) / dpr);
+    var total = Math.min(dims.scrollHeight, maxCssH);
+    var captures = [];
     try {
-      var viewH = region.viewH;
-      var dpr = region.dpr;
-      var overlap = Math.floor(viewH * 0.15);
-      var step = viewH - overlap;
-      var startY = Math.max(0, region.startScrollY - region.y % viewH);
-      var endY = region.endScrollY;
-      var captures = [];
-
-      var y = region.startScrollY - (region.y - Math.floor(region.y / viewH) * viewH);
-      if (y < 0) y = 0;
-
-      while (y < endY) {
-        var scrollTarget = Math.max(0, Math.min(y, region.scrollH - viewH));
-        await sendToTab(tabId, { type: 'scrollTo', y: scrollTarget });
-        await sleep(400);
-        var dataUrl = await captureTab();
-        captures.push({
-          dataUrl: dataUrl,
-          scrollY: scrollTarget,
-          viewH: viewH,
-          dpr: dpr,
-          region: region
-        });
-        y += step;
-        if (y >= endY && scrollTarget < region.scrollH - viewH) break;
+      for (var y = 0; ; y += viewH) {
+        var target = Math.max(0, Math.min(y, total - viewH));
+        var res = await chrome.tabs.sendMessage(tab.id, { type: 'scrollTo', x: dims.scrollX, y: target });
+        var prev = captures[captures.length - 1];
+        if (prev && res.actualY <= prev.y) break; // page can't scroll further
+        await sleep(250); // let lazy-loaded images appear
+        captures.push({ dataUrl: await captureTab(tab), y: res.actualY });
+        if (target + viewH >= total) break;
       }
-
-      openResultPage(captures, {
-        mode: 'region',
-        region: region,
-        dpr: dpr
-      });
-    } catch (err) {
-      console.error('Region capture failed:', err);
+    } finally {
+      chrome.tabs.sendMessage(tab.id, { type: 'scrollTo', x: dims.scrollX, y: dims.scrollY }).catch(function () {});
     }
-  }
-
-  function openResultPage(captures, opts) {
-    var data = { captures: captures, opts: opts };
-    chrome.storage.local.set({ zimgCaptures: data }, function () {
-      chrome.tabs.create({ url: chrome.runtime.getURL('result/result.html') });
+    var last = captures[captures.length - 1];
+    await openResultPage(tab, {
+      mode: 'full',
+      captures: captures,
+      viewW: dims.viewW,
+      height: Math.min(total, last.y + viewH),
+      truncated: total < dims.scrollHeight
     });
   }
 
+  async function captureRegion(tab, rect, viewW) {
+    var dataUrl = await captureTab(tab);
+    await openResultPage(tab, { mode: 'region', captures: [{ dataUrl: dataUrl, y: 0 }], viewW: viewW, crop: rect });
+  }
+
+  async function openResultPage(tab, data) {
+    // Needs "unlimitedStorage": long pages exceed the default 10 MB quota.
+    await chrome.storage.local.set({ zimgCaptures: data });
+    await chrome.tabs.create({ url: chrome.runtime.getURL('result/result.html'), index: tab.index + 1 });
+  }
+
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-    if (msg.type === 'startFullPage') {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs[0]) captureFullPage(tabs[0].id);
-      });
-      sendResponse({ ok: true });
-    } else if (msg.type === 'startRegion') {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (!tabs[0]) return;
-        injectContentScript(tabs[0].id).then(function () {
-          return sendToTab(tabs[0].id, { type: 'startSelection' });
-        });
-      });
-      sendResponse({ ok: true });
-    } else if (msg.type === 'regionSelected') {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs[0]) captureRegion(tabs[0].id, msg.region);
-      });
-    } else if (msg.type === 'cancelled') {
-      // User cancelled selection
+    if (msg.type === 'start') {
+      chrome.tabs.get(msg.tabId).then(async function (tab) {
+        chrome.action.setBadgeText({ tabId: tab.id, text: '' });
+        try {
+          await injectContentScript(tab.id);
+        } catch (err) {
+          // chrome://, Web Store, PDF viewer, etc. can't be scripted.
+          sendResponse({ error: String(err && err.message || err) });
+          return;
+        }
+        if (msg.mode === 'region') {
+          await chrome.tabs.sendMessage(tab.id, { type: 'startSelection' });
+          sendResponse({ ok: true });
+        } else {
+          sendResponse({ ok: true });
+          captureFullPage(tab).catch(function (err) { flagError(tab, err); });
+        }
+      }).catch(function (err) { sendResponse({ error: String(err && err.message || err) }); });
+      return true;
+    }
+    if (msg.type === 'regionSelected' && sender.tab) {
+      captureRegion(sender.tab, msg.rect, msg.viewW).catch(function (err) { flagError(sender.tab, err); });
     }
   });
 })();
