@@ -57,8 +57,10 @@ function build(target) {
     const html = fs.readFileSync(path.join(root, file), 'utf8')
       .replace(linkRe, (m, name) => 'href="' + (name === './' ? 'index' : name) + '.html"')
       .replace(/\s*<link rel="manifest"[^>]*>/, '') // PWA manifest is meaningless inside an extension
-      // The download page states the version the zip was built from.
-      .replace(/\{\{VERSION\}\}/g, manifest.version);
+      // Pages keep a hard-coded version so the site works when deployed as plain
+      // files (Cloudflare Pages serves the repo as-is and never runs this script);
+      // __VERSION__ lets the built copy carry the manifest's version instead.
+      .replace(/__VERSION__/g, manifest.version);
     fs.writeFileSync(path.join(out, file), html);
   }
   console.log('Built dist/' + target + ' (v' + manifest.version + ', ' + pages.length + ' pages)');

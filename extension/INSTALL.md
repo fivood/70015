@@ -38,18 +38,27 @@ npx --yes serve .
 
 ```bash
 # 1. 改 extension/manifest.src.json 里的 version
-# 2. 重新构建并打包(--zip 会把 Chromium 包写到 downloads/)
+# 2. 把 install.html 里 ins_meta 那行的版本号与体积同步改掉（版本是写死的，见下）
+# 3. 重新构建并打包（--zip 会把 Chromium 包写到 downloads/）
 node extension/build.js --zip
-# 3. 提交 downloads/70015-chromium.zip 与 dist/ 下的产物
+# 4. 提交 downloads/70015-chromium.zip 与 install.html
 ```
 
-`{{VERSION}}` 占位符由构建脚本替换为 manifest 中的版本号,因此 `/install` 页面上的版本会自动跟随。
+**版本号在 `install.html` 里是写死的**，不是占位符。原因：Cloudflare Pages 直接以仓库原文
+部署（`pages deploy .`），**不会运行 `extension/build.js`**，所以任何构建期替换在线上都不生效。
+改版本时必须手动同步那一行。`__VERSION__` 这个占位符只有扩展构建产物会用（供扩展内部页面
+显示版本），站点页面不用它。
 
 ## 关于部署
 
-Cloudflare Pages 遵循 `.gitignore`,而 `dist/` 已在其中,所以构建产物目录**不会上线**;
-站点只提供 `downloads/70015-chromium.zip`。`dist/` 下的旧命名包(`70015-chromium-<version>.zip`)
-由构建脚本保留,同样不会被部署。
+已实测确认的两点：
+
+- `dist/` 在 `.gitignore` 中，Cloudflare Pages 遵循它，**构建产物目录不会上线**
+  （访问任意 `/dist/**` 路径会落到 index.html 回退页）。
+- 反过来，仓库里的**原始文件是会公开的**，包括 `/extension/**`（如 `manifest.src.json`、
+  `build.js`、`popup/popup.js`）与 `js/`、`css/`、`vendor/`。如果不想公开这些源码，需要把
+  站点源文件移到一个专门的发布目录，或改用「构建后部署」而不是「部署仓库原文」。
+
 
 ## 说明
 
