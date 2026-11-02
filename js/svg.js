@@ -13,9 +13,9 @@
   const svgHint = document.getElementById('svgHint');
   const copyBtn = document.getElementById('copyBtn');
   const downloadSvgBtn = document.getElementById('downloadSvgBtn');
-  const exportPngBtn = document.getElementById('exportPngBtn');
-  const pngScale = document.getElementById('pngScale');
-  const pngScaleValue = document.getElementById('pngScaleValue');
+  const exportPngBtn = document.getElementById('svgExportPngBtn');
+  const pngScale = document.getElementById('svgPngScale');
+  const pngScaleValue = document.getElementById('svgPngScaleValue');
   const toast = document.getElementById('toast');
   const workCanvas = document.getElementById('workCanvas');
 
@@ -266,6 +266,9 @@
     reader.onerror = () => showToast(tpl('svg_read_fail', 'Could not read {name}', { name: file.name }));
     reader.readAsText(file);
   }
+
+  // Tabs: editor (js/editor.js) / optimize & PNG.
+  initTabs(document.getElementById('editorTabs'));
 
   render();
 })();

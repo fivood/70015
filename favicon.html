@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favicon Generator &mdash; 70015</title>
+  <meta name="description" content="Generate favicon.ico, Apple touch icon, Android icons, and a web manifest from one image or SVG. Runs in your browser, no upload.">
+  <link rel="canonical" href="https://70015.net/favicon">
+  <meta property="og:title" content="Favicon Generator &mdash; 70015">
+  <meta property="og:description" content="favicon.ico, PNG icons, and a web manifest from one image. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/favicon">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 Favicon Generator",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/favicon",
+    "description": "Browser-based favicon generator: ICO, PNG icon sizes, and web manifest.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <img src="logo.svg" alt="" width="26" height="26">
+        </span>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title" data-i18n="t_favicon">Favicon Generator</h1>
+          <p class="hero__desc" data-i18n="fav_desc">Turn one image or SVG into favicon.ico, Apple and Android icons, and a web manifest.</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="upload" id="favDrop">
+          <input type="file" id="favInput" class="upload__input" accept="image/*,.svg" aria-label="Choose an image" data-i18n-aria-label="choose_image">
+          <div class="upload__content">
+            <div class="upload__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M32 44 V14"/>
+                <path d="M22 24 L32 14 L42 24"/>
+                <path d="M12 44 L12 50 H52 V44"/>
+              </svg>
+            </div>
+            <p class="upload__title" data-i18n="sz_drop_one">Drop an image here or click to upload</p>
+            <p class="upload__hint" data-i18n="fav_hint">SVG or a square PNG of 512px or more works best. Paste also works.</p>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="conv_non_square">Non-square images</label>
+            <div class="segmented" id="favFitSelector">
+              <button class="segmented__btn is-active" data-value="contain" type="button" data-i18n="conv_contain">Contain</button>
+              <button class="segmented__btn" data-value="cover" type="button" data-i18n="conv_cover">Cover</button>
+            </div>
+            <p class="settings__note" data-i18n="conv_cover_note">Cover crops to fill; Contain scales with transparent padding.</p>
+          </div>
+
+          <div class="settings__group" id="favCropGroup" hidden>
+            <span class="settings__label" data-i18n="conv_crop_pos">Crop position</span>
+            <div class="conv-preview__media"><canvas id="favCropCanvas" class="cover-picker"></canvas></div>
+            <div class="conv-preview__crop-foot">
+              <p class="settings__note" data-i18n="fav_crop_hint">Drag the frame to choose which part becomes the icon.</p>
+              <button class="btn btn--secondary btn--sm" id="favCropReset" type="button" data-i18n="conv_crop_center">Center</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card" id="favResult" hidden>
+        <div class="fav-previews" id="favPreviews"></div>
+        <div class="actions">
+          <div class="actions__info"><span id="favInfo">—</span></div>
+          <div class="actions__btns">
+            <button class="btn btn--secondary btn--sm" id="favIcoBtn" type="button" data-i18n="fav_dl_ico">Download favicon.ico</button>
+            <button class="btn btn--primary btn--sm" id="favZipBtn" type="button" data-i18n="conv_zip">Download ZIP</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script src="vendor/FileSaver.min.js"></script>
+  <script src="js/icon.js"></script>
+  <script src="js/favicon.js"></script>
+</body>
+</html>

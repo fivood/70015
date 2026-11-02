@@ -57,7 +57,7 @@
     width: null,
     height: null,
     icoSizes: [32, 256],
-    icoCropMode: 'cover',
+    icoCropMode: 'contain',
     customFit: 'contain',
   };
 
@@ -67,10 +67,9 @@
     jpeg: 'JPEG is the most compatible format for photos; transparent areas become white.',
     png: 'PNG is lossless and keeps transparency, but files are usually larger.',
     ico: 'ICO is used for favicons. Include 32\u00d732 and 256\u00d7256 for best coverage.',
-    favicon: 'Creates favicon.ico, common PNG sizes, and a web manifest in one ZIP.',
   };
   const FORMAT_NOTE_KEYS = {
-    webp: 'conv_note_webp', avif: 'conv_note_avif', jpeg: 'conv_note_jpeg', png: 'conv_note_png', ico: 'conv_note_ico', favicon: 'conv_note_favicon'
+    webp: 'conv_note_webp', avif: 'conv_note_avif', jpeg: 'conv_note_jpeg', png: 'conv_note_png', ico: 'conv_note_ico'
   };
   function formatNoteText(fmt) {
     if (typeof window.t === 'function' && FORMAT_NOTE_KEYS[fmt]) return window.t(FORMAT_NOTE_KEYS[fmt]);
@@ -91,7 +90,6 @@
     jpeg: 'jpg',
     png: 'png',
     ico: 'ico',
-    favicon: 'zip',
   };
 
   const DEFAULT_ICO_SIZES = [32, 256];
@@ -102,7 +100,6 @@
     'blog-cover': { format: 'webp', resizeMode: 'custom', width: 1200, height: 630, customFit: 'cover', quality: 0.85 },
     thumbnail: { format: 'jpeg', resizeMode: 'custom', width: 300, height: 300, customFit: 'cover', quality: 0.8 },
     social: { format: 'jpeg', resizeMode: 'custom', width: 1080, height: 1080, customFit: 'cover', quality: 0.9 },
-    favicon: { format: 'favicon', resizeMode: 'original', icoCropMode: 'cover', quality: 0.9 },
   };
 
   // Utilities
@@ -126,15 +123,6 @@
 
   function getBaseName(filename) {
     return filename.replace(/\.[^/.]+$/, '');
-  }
-
-  function blobToArrayBuffer(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(blob);
-    });
   }
 
   // Check if browser supports a canvas output format
@@ -435,14 +423,15 @@
     try {
       const zip = new JSZip();
       const folder = zip.folder('converted-images');
+      // a.png and a.jpg both become a.webp: number repeats instead of letting one overwrite the other.
+      const used = new Set();
       readyItems.forEach((item) => {
-        if (item.result.format === 'favicon' && item.result.files) {
-          const kitFolder = folder.folder(getBaseName(item.file.name));
-          item.result.files.forEach((file) => kitFolder.file(file.name, file.blob));
-          return;
-        }
-        const name = `${getBaseName(item.file.name)}.${FORMAT_EXTENSIONS[item.result.format]}`;
-        folder.file(name, item.result.blob);
+        const name = outputName(item);
+        const dot = name.lastIndexOf('.');
+        let unique = name;
+        for (let n = 2; used.has(unique.toLowerCase()); n++) unique = `${name.slice(0, dot)} (${n})${name.slice(dot)}`;
+        used.add(unique.toLowerCase());
+        folder.file(unique, item.result.blob);
       });
 
       const content = await zip.generateAsync({ type: 'blob' });
@@ -528,16 +517,19 @@
 
     for (const item of items) {
       if (generation !== conversionGeneration || !state.files.includes(item)) return;
+      const rev = item.rev;
       try {
         item.status = 'converting';
         renderItem(item);
 
-        const result = await convertFile(item.file, actualFormat, settings);
+        // A crop position picked in the preview dialog applies to this file only.
+        const result = await convertFile(item.file, actualFormat, item.focus ? { ...settings, focus: item.focus } : settings);
         if (generation !== conversionGeneration || !state.files.includes(item)) return;
+        if (item.rev !== rev) continue; // superseded by a newer reconvertItem
         item.result = result;
         item.status = 'ready';
         if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
-        item.blobUrl = URL.createObjectURL(result.previewBlob || result.blob);
+        item.blobUrl = URL.createObjectURL(result.blob);
       } catch (err) {
         if (generation !== conversionGeneration || !state.files.includes(item)) return;
         item.status = 'error';
@@ -555,63 +547,11 @@
     return context;
   }
 
-  function loadImageFromFile(file) {
-    return new Promise((resolve, reject) => {
-      var isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
-
-      if (isSvg) {
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          var svgText = e.target.result;
-          try {
-            var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
-            var svgEl = doc.documentElement;
-            if (svgEl && svgEl.nodeName.toLowerCase() === 'svg') {
-              var hasW = svgEl.getAttribute('width');
-              var hasH = svgEl.getAttribute('height');
-              var vb = svgEl.getAttribute('viewBox');
-              if (vb && (!hasW || !hasH)) {
-                var parts = vb.trim().split(/[\s,]+/);
-                if (parts.length === 4) {
-                  var w = parseFloat(parts[2]);
-                  var h = parseFloat(parts[3]);
-                  if (w > 0 && h > 0) {
-                    if (!hasW) svgEl.setAttribute('width', w);
-                    if (!hasH) svgEl.setAttribute('height', h);
-                    svgText = new XMLSerializer().serializeToString(doc);
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            // If parsing fails, use original text
-          }
-          var svgUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' }));
-          var img = new Image();
-          img.onload = function () { URL.revokeObjectURL(svgUrl); resolve(img); };
-          img.onerror = function () { URL.revokeObjectURL(svgUrl); reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
-          img.src = svgUrl;
-        };
-        reader.onerror = function () { reject(new Error(t('conv_file_read_failed', 'File read failed'))); };
-        reader.readAsText(file);
-      } else {
-        var url = URL.createObjectURL(file);
-        var img = new Image();
-        img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
-        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error(t('conv_read_image_fail', 'Could not read image'))); };
-        img.src = url;
-      }
-    });
-  }
-
   function convertFile(file, format, settings) {
-    return loadImageFromFile(file).then(function (img) {
+    return IconKit.loadImageFromFile(file).then(function (img) {
       try {
         if (format === 'ico') {
-          return convertToIco(img, settings);
-        }
-        if (format === 'favicon') {
-          return convertToFaviconKit(img, settings);
+          return IconKit.convertToIco(img, settings);
         }
 
         var canvas = document.createElement('canvas');
@@ -633,7 +573,8 @@
 
         var isCustomCover = settings.resizeMode === 'custom' && settings.customFit === 'cover' && settings.width && settings.height;
         if (isCustomCover) {
-          drawCoverRect(ctx, img, width, height);
+          const win = IconKit.coverWindow({ x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight }, width / height, settings.focus);
+          ctx.drawImage(img, win.x, win.y, win.w, win.h, 0, 0, width, height);
         } else {
           ctx.drawImage(img, 0, 0, width, height);
         }
@@ -667,249 +608,6 @@
     });
   }
 
-  // ICO generation: multi-size PNG-encoded icon
-  async function convertToIco(img, settings) {
-    const sizes = [...settings.icoSizes].sort((a, b) => a - b);
-    if (sizes.length === 0) sizes.push(32);
-
-    const pngBuffers = [];
-    const visibleBounds = getVisibleImageBounds(img);
-    for (const size of sizes) {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const c = canvas.getContext('2d');
-      c.clearRect(0, 0, size, size);
-      drawSquareImage(c, img, size, settings.icoCropMode, visibleBounds);
-
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error(t('ann_export_fail', 'Export failed'));
-      const buf = await blobToArrayBuffer(blob);
-      pngBuffers.push({ size, buffer: new Uint8Array(buf) });
-    }
-
-    const count = pngBuffers.length;
-    const headerSize = 6;
-    const dirSize = count * 16;
-    let dataOffset = headerSize + dirSize;
-
-    const header = new DataView(new ArrayBuffer(headerSize));
-    header.setUint16(0, 0, true); // Reserved
-    header.setUint16(2, 1, true); // Type: icon
-    header.setUint16(4, count, true); // Count
-
-    const dir = new DataView(new ArrayBuffer(dirSize));
-    const parts = [new Uint8Array(header.buffer)];
-
-    let dirOffset = 0;
-    for (let i = 0; i < count; i++) {
-      const { size, buffer } = pngBuffers[i];
-      const w = size >= 256 ? 0 : size;
-      const h = size >= 256 ? 0 : size;
-
-      dir.setUint8(dirOffset, w);
-      dir.setUint8(dirOffset + 1, h);
-      dir.setUint8(dirOffset + 2, 0); // ColorCount
-      dir.setUint8(dirOffset + 3, 0); // Reserved
-      dir.setUint16(dirOffset + 4, 1, true); // Planes
-      dir.setUint16(dirOffset + 6, 32, true); // BitCount
-      dir.setUint32(dirOffset + 8, buffer.length, true); // BytesInRes
-      dir.setUint32(dirOffset + 12, dataOffset, true); // ImageOffset
-
-      parts.push(buffer);
-      dataOffset += buffer.length;
-      dirOffset += 16;
-    }
-
-    parts.splice(1, 0, new Uint8Array(dir.buffer));
-    const icoBlob = new Blob(parts, { type: 'image/x-icon' });
-
-    return {
-      blob: icoBlob,
-      width: sizes[sizes.length - 1],
-      height: sizes[sizes.length - 1],
-      icoSizes: sizes,
-      originalWidth: img.naturalWidth,
-      originalHeight: img.naturalHeight,
-      format: 'ico',
-    };
-  }
-
-  async function renderSquarePng(img, size, mode, visibleBounds) {
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = getCanvasContext(canvas);
-    ctx.clearRect(0, 0, size, size);
-    drawSquareImage(ctx, img, size, mode, visibleBounds);
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error(t('ann_export_fail', 'Export failed'));
-    return blob;
-  }
-
-  async function convertToFaviconKit(img, settings) {
-    if (typeof JSZip !== 'function') throw new Error(t('conv_zip_failed', 'ZIP failed'));
-    const visibleBounds = getVisibleImageBounds(img);
-    const pngSizes = [16, 32, 48, 180, 192, 512];
-    const files = [];
-    const pngBlobs = {};
-    for (const size of pngSizes) {
-      pngBlobs[size] = await renderSquarePng(img, size, 'cover', visibleBounds);
-    }
-
-    const ico = await convertToIco(img, {
-      ...settings,
-      icoSizes: [16, 32, 48, 64, 128, 256],
-      icoCropMode: 'cover'
-    });
-    files.push({ name: 'favicon.ico', blob: ico.blob });
-    files.push({ name: 'favicon-16x16.png', blob: pngBlobs[16] });
-    files.push({ name: 'favicon-32x32.png', blob: pngBlobs[32] });
-    files.push({ name: 'favicon-48x48.png', blob: pngBlobs[48] });
-    files.push({ name: 'apple-touch-icon.png', blob: pngBlobs[180] });
-    files.push({ name: 'android-chrome-192x192.png', blob: pngBlobs[192] });
-    files.push({ name: 'android-chrome-512x512.png', blob: pngBlobs[512] });
-
-    const manifest = {
-      name: 'Web App',
-      short_name: 'Web App',
-      icons: [
-        { src: 'android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
-        { src: 'android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
-      ],
-      theme_color: '#ffffff',
-      background_color: '#ffffff',
-      display: 'standalone'
-    };
-    files.push({ name: 'site.webmanifest', blob: new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/manifest+json' }) });
-
-    const zip = new JSZip();
-    files.forEach((file) => zip.file(file.name, file.blob));
-    const blob = await zip.generateAsync({ type: 'blob' });
-    return {
-      blob,
-      previewBlob: pngBlobs[192],
-      files,
-      width: 512,
-      height: 512,
-      originalWidth: img.naturalWidth,
-      originalHeight: img.naturalHeight,
-      format: 'favicon'
-    };
-  }
-
-  // Cover crop and fill target rectangle
-  function drawCoverRect(c, img, targetWidth, targetHeight) {
-    const targetRatio = targetWidth / targetHeight;
-    const sourceRatio = img.naturalWidth / img.naturalHeight;
-    let sx, sy, sWidth, sHeight;
-
-    if (sourceRatio > targetRatio) {
-      sHeight = img.naturalHeight;
-      sWidth = sHeight * targetRatio;
-      sx = (img.naturalWidth - sWidth) / 2;
-      sy = 0;
-    } else {
-      sWidth = img.naturalWidth;
-      sHeight = sWidth / targetRatio;
-      sx = 0;
-      sy = (img.naturalHeight - sHeight) / 2;
-    }
-
-    c.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
-  }
-
-  // Draw image as square: cover crop or contain scale with transparent padding
-  function drawSquareImage(c, img, size, mode, visibleBounds) {
-    const source = visibleBounds || getVisibleImageBounds(img);
-    const ratio = source.width / source.height;
-
-    if (mode === 'contain') {
-      let dw, dh;
-      if (ratio > 1) {
-        dw = size;
-        dh = size / ratio;
-      } else {
-        dh = size;
-        dw = size * ratio;
-      }
-      const dx = (size - dw) / 2;
-      const dy = (size - dh) / 2;
-      c.clearRect(0, 0, size, size);
-      c.drawImage(img, source.x, source.y, source.width, source.height, dx, dy, dw, dh);
-      return;
-    }
-
-    // Cover: center crop
-    let sx, sy, sWidth, sHeight;
-    if (ratio > 1) {
-      sHeight = source.height;
-      sWidth = sHeight;
-      sx = source.x + (source.width - sWidth) / 2;
-      sy = source.y;
-    } else {
-      sWidth = source.width;
-      sHeight = sWidth;
-      sx = source.x;
-      sy = source.y + (source.height - sHeight) / 2;
-    }
-
-    c.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, size, size);
-  }
-
-  function getVisibleImageBounds(img) {
-    const fallback = { x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight };
-    if (!img.naturalWidth || !img.naturalHeight) return fallback;
-
-    const scanMax = 512;
-    const scale = Math.min(1, scanMax / Math.max(img.naturalWidth, img.naturalHeight));
-    const sw = Math.max(1, Math.round(img.naturalWidth * scale));
-    const sh = Math.max(1, Math.round(img.naturalHeight * scale));
-    const scan = document.createElement('canvas');
-    scan.width = sw;
-    scan.height = sh;
-    const sc = scan.getContext('2d', { willReadFrequently: true });
-    if (!sc) return fallback;
-    try {
-      sc.clearRect(0, 0, sw, sh);
-      sc.drawImage(img, 0, 0, sw, sh);
-    } catch (_) {
-      return fallback;
-    }
-
-    let minX = sw, minY = sh, maxX = -1, maxY = -1;
-    let data;
-    try {
-      data = sc.getImageData(0, 0, sw, sh).data;
-    } catch (_) {
-      return fallback;
-    }
-    for (let y = 0; y < sh; y++) {
-      for (let x = 0; x < sw; x++) {
-        if (data[(y * sw + x) * 4 + 3] > 8) {
-          if (x < minX) minX = x;
-          if (y < minY) minY = y;
-          if (x > maxX) maxX = x;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-
-    if (maxX < minX || maxY < minY) return fallback;
-
-    const pad = 1;
-    minX = Math.max(0, minX - pad);
-    minY = Math.max(0, minY - pad);
-    maxX = Math.min(sw - 1, maxX + pad);
-    maxY = Math.min(sh - 1, maxY + pad);
-
-    return {
-      x: Math.floor(minX / scale),
-      y: Math.floor(minY / scale),
-      width: Math.min(img.naturalWidth, Math.ceil((maxX - minX + 1) / scale)),
-      height: Math.min(img.naturalHeight, Math.ceil((maxY - minY + 1) / scale))
-    };
-  }
 
   function calculateDimensions(originalWidth, originalHeight, settings = state) {
     const mode = settings.resizeMode;
@@ -977,7 +675,7 @@
 
     const hasThumb = !!item.blobUrl;
     const thumbHtml = hasThumb
-      ? `<img class="file__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async">`
+      ? `<button class="file__thumb-btn" type="button" data-action="preview" title="${escapeHtml(t('conv_preview_open', 'View full size'))}"><img class="file__thumb" src="${item.blobUrl}" alt="" loading="lazy" decoding="async"></button>`
       : `<div class="file__thumb-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><path d="M21 15 L16 10 L10 16 L7 13 L3 17"/></svg></div>`;
 
     const statusClass = isError ? 'file__status--error' : isReady ? 'file__status--ready' : 'file__status--converting';
@@ -991,20 +689,24 @@
 
     let meta = `${formatBytes(item.file.size)}`;
     if (isReady) {
-      if (item.result.format === 'favicon' && item.result.files) {
-        meta = tpl('conv_favicon_meta', 'Favicon kit · {count} files · {size}', { count: item.result.files.length, size: formatBytes(item.result.blob.size) });
-      } else if (item.result.format === 'ico' && item.result.icoSizes) {
+      if (item.result.format === 'ico' && item.result.icoSizes) {
         const sizesText = item.result.icoSizes.join(', ') + ' px';
         meta = `ICO (${sizesText}) \u00b7 ${formatBytes(item.result.blob.size)}${reduction}`;
       } else {
         meta = `${item.result.width}\u00d7${item.result.height} \u00b7 ${formatBytes(item.result.blob.size)}${reduction}`;
       }
+      // The bold name is what gets downloaded; the source file moves to the meta line.
+      meta = `${escapeHtml(item.file.name)} \u2192 ${meta}`;
     }
+    const shownName = isReady ? outputName(item) : item.file.name;
+    const nameHtml = isReady
+      ? `<h3 class="file__name file__name--split" title="${escapeHtml(shownName)}"><span>${escapeHtml(getBaseName(item.file.name))}</span><span>.${FORMAT_EXTENSIONS[item.result.format]}</span></h3>`
+      : `<h3 class="file__name" title="${escapeHtml(shownName)}">${escapeHtml(shownName)}</h3>`;
 
     el.innerHTML = `
       ${thumbHtml}
       <div class="file__info">
-        <h3 class="file__name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</h3>
+        ${nameHtml}
         <p class="file__meta">${meta}</p>
         ${statusHtml}
       </div>
@@ -1028,16 +730,90 @@
     if (removeBtn) {
       removeBtn.addEventListener('click', () => removeItem(item.id));
     }
+
+    const previewBtn = el.querySelector('[data-action="preview"]');
+    if (previewBtn) {
+      previewBtn.addEventListener('click', () => openPreview(item));
+    }
+
+    if (previewItem === item) updatePreview();
+  }
+
+  function outputName(item) {
+    return `${getBaseName(item.file.name)}.${FORMAT_EXTENSIONS[item.result.format]}`;
   }
 
   function downloadItem(item) {
     if (!item.result) return;
-    const name = `${getBaseName(item.file.name)}.${FORMAT_EXTENSIONS[item.result.format]}`;
-    saveAs(item.result.blob, name);
+    saveAs(item.result.blob, outputName(item));
+  }
+
+  // ---------- Full-size preview, and crop position for Cover modes ----------
+  const previewDialog = document.getElementById('previewDialog');
+  const previewTitle = document.getElementById('previewTitle');
+  const previewImg = document.getElementById('previewImg');
+  const previewInfo = document.getElementById('previewInfo');
+  const previewCrop = document.getElementById('previewCrop');
+  let previewItem = null;
+  // Releasing the frame reconverts just this file with its new crop position.
+  const coverPicker = IconKit.createCoverPicker(document.getElementById('previewCropCanvas'), (focus) => {
+    previewItem.focus = focus;
+    reconvertItem(previewItem);
+  });
+
+  // Aspect ratio a Cover crop cuts the image to under the current settings, or null if nothing is cut.
+  function coverRatio(settings) {
+    if (settings.format === 'ico') return settings.icoCropMode === 'cover' ? 1 : null;
+    if (settings.resizeMode === 'custom' && settings.customFit === 'cover' && settings.width && settings.height) return settings.width / settings.height;
+    return null;
+  }
+
+  async function openPreview(item) {
+    previewItem = item;
+    previewCrop.hidden = true;
+    updatePreview();
+    previewDialog.showModal();
+
+    const ratio = coverRatio(state);
+    if (!ratio) return;
+    const img = await IconKit.loadImageFromFile(item.file);
+    if (previewItem !== item) return;
+    // ICO crops inside the visible (non-transparent) part of the image, as js/icon.js does.
+    const bounds = state.format === 'ico'
+      ? IconKit.getVisibleImageBounds(img)
+      : { x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight };
+    previewCrop.hidden = !coverPicker.show(img, bounds, ratio, item.focus);
+  }
+
+  function updatePreview() {
+    const item = previewItem;
+    previewTitle.textContent = item.result ? outputName(item) : item.file.name;
+    if (item.blobUrl && previewImg.getAttribute('src') !== item.blobUrl) previewImg.src = item.blobUrl;
+    previewImg.classList.toggle('is-stale', item.status !== 'ready');
+    previewInfo.textContent = item.result
+      ? `${item.result.format === 'ico' ? 'ICO ' + item.result.icoSizes.join(', ') + ' px' : item.result.width + '×' + item.result.height} · ${formatBytes(item.result.blob.size)}`
+      : t('conv_s_converting', 'Converting');
+  }
+
+  document.getElementById('previewCropReset').addEventListener('click', () => {
+    previewItem.focus = null;
+    coverPicker.setFocus(null);
+    reconvertItem(previewItem);
+  });
+
+  // Click on the backdrop closes, like the close button.
+  previewDialog.addEventListener('click', (e) => { if (e.target === previewDialog) previewDialog.close(); });
+  previewDialog.addEventListener('close', () => { previewItem = null; });
+
+  function reconvertItem(item) {
+    item.status = 'pending';
+    item.rev = (item.rev || 0) + 1; // a later drag supersedes a conversion still in flight
+    convertItems([item], conversionGeneration, captureSettings());
   }
 
   function removeItem(itemId) {
     const item = state.files.find((f) => f.id === itemId);
+    if (item && item === previewItem) previewDialog.close();
     if (item && item.blobUrl) URL.revokeObjectURL(item.blobUrl);
     state.files = state.files.filter((f) => f.id !== itemId);
     const el = document.getElementById(`file-${itemId}`);

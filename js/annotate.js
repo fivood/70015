@@ -87,7 +87,11 @@
   ['dragenter', 'dragover'].forEach(evt => imgDrop.addEventListener(evt, () => imgDrop.classList.add('is-dragover')));
   ['dragleave', 'drop'].forEach(evt => imgDrop.addEventListener(evt, () => imgDrop.classList.remove('is-dragover')));
   imgDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadImageFile(f); });
+  // Shares the Image Editor page with js/image-editor.js; only act while this tab is showing.
+  function tabHidden() { return stage.closest('[role="tabpanel"]').hidden; }
+
   window.addEventListener('paste', e => {
+    if (tabHidden()) return;
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     for (const it of items) {
@@ -95,13 +99,17 @@
     }
   });
 
-  // Opened via "Annotate" from another tool or the extension (js/export.js).
-  ImageExport.receiveAnnotateHandoff(blob => {
+  function loadBlob(blob) {
     const url = URL.createObjectURL(blob);
     const image = new Image();
     image.onload = () => { URL.revokeObjectURL(url); setupImage(image); };
     image.src = url; // skips the upload size cap: long screenshots are big by design
-  });
+  }
+
+  // Opened via "Annotate" from another tool or the extension (js/export.js),
+  // or handed the current edit by the Adjust tab on this page.
+  ImageExport.receiveAnnotateHandoff(loadBlob);
+  window.annotateImage = loadBlob;
 
   // ---------- Tools & props ----------
 
@@ -350,7 +358,7 @@
   replaceBtn.addEventListener('click', () => { editorPanel.hidden = true; loadPanel.hidden = false; img = null; });
 
   document.addEventListener('keydown', e => {
-    if (textOpen || !img) return;
+    if (textOpen || !img || tabHidden()) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       if (e.shiftKey) redo(); else undo();

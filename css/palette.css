@@ -52,7 +52,7 @@
   gap: var(--space-sm);
 }
 
-.color-swatch {
+.palette-swatch {
   position: relative;
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
@@ -62,13 +62,13 @@
   transition: transform 0.15s, box-shadow 0.2s;
 }
 
-.color-swatch:hover {
+.palette-swatch:hover {
   transform: scale(1.05);
   box-shadow: var(--shadow);
   z-index: 1;
 }
 
-.color-swatch__label {
+.palette-swatch__label {
   position: absolute;
   inset: auto 0 0 0;
   padding: 6px;
@@ -81,7 +81,7 @@
   letter-spacing: 0.02em;
 }
 
-[data-theme="dark"] .color-swatch__label {
+[data-theme="dark"] .palette-swatch__label {
   background: rgba(211, 218, 222, 0.85);
 }
 

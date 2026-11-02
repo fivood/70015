@@ -356,9 +356,18 @@
     }, mime, state.format === 'png' ? undefined : 0.9);
   });
 
+  // Tabs: adjust (this file) / annotate (js/annotate.js). A handoff from another tool opens Annotate.
+  const showTab = initTabs(document.getElementById('imageTabs'), location.hash === '#handoff' ? 'annotate' : null);
+
   document.getElementById('annotateEditedBtn').addEventListener('click', () => {
     const output = buildEditedCanvas(false);
-    if (output) ImageExport.sendToAnnotate(output);
+    if (!output) return;
+    output.toBlob((blob) => {
+      if (!blob) { showToast(t('image_editor_export_failed', 'Could not export edited image.')); return; }
+      window.annotateImage(blob);
+      showTab('annotate');
+      history.replaceState(null, '', '#annotate');
+    }, 'image/png');
   });
 
   input.addEventListener('change', (event) => { loadFile(event.target.files[0]); input.value = ''; });
@@ -367,6 +376,7 @@
   ['dragleave', 'drop'].forEach((eventName) => drop.addEventListener(eventName, () => drop.classList.remove('is-dragover')));
   drop.addEventListener('drop', (event) => loadFile(event.dataTransfer.files[0]));
   window.addEventListener('paste', (event) => {
+    if (drop.closest('[role="tabpanel"]').hidden) return; // Annotate tab handles its own paste
     const items = event.clipboardData && event.clipboardData.items;
     if (!items) return;
     for (const item of items) {

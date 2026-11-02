@@ -339,8 +339,8 @@
     const colorsHtml = item.colors
       .map(
         (color) => `
-        <div class="color-swatch" data-hex="${color.hex}" title="Copy ${color.hex}">
-          <span class="color-swatch__label">${color.hex}</span>
+        <div class="palette-swatch" data-hex="${color.hex}" title="Copy ${color.hex}">
+          <span class="palette-swatch__label">${color.hex}</span>
         </div>
       `
       )
@@ -362,7 +362,7 @@
       </div>
     `;
 
-    el.querySelectorAll('.color-swatch').forEach((swatch) => {
+    el.querySelectorAll('.palette-swatch').forEach((swatch) => {
       swatch.style.backgroundColor = swatch.dataset.hex; // CSSOM: inline style attrs are blocked by CSP
       swatch.addEventListener('click', () => {
         copyToClipboard(swatch.dataset.hex);
@@ -427,7 +427,10 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
-  window.onLangChange = function () {
+  // Shares the page with js/color.js, which sets its own handler first.
+  const prevLangChange = window.onLangChange;
+  window.onLangChange = function (lang) {
+    if (typeof prevLangChange === 'function') prevLangChange(lang);
     sampleValue.textContent = sampleLabel(state.samplePrecision);
     render();
   };

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Stitch &mdash; 70015</title>
+  <meta name="description" content="Stitch multiple images horizontally, vertically, or in a grid in your browser. Gap, alignment, background, export PNG, JPEG, or PDF. No upload.">
+  <link rel="canonical" href="https://70015.net/stitch">
+  <meta property="og:title" content="Image Stitch &mdash; 70015">
+  <meta property="og:description" content="Stitch images horizontally, vertically, or in a grid. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/stitch">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 Image Stitch",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/stitch",
+    "description": "Browser-based image stitching: horizontal, vertical, or grid layouts.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/resize.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <img src="logo.svg" alt="" width="26" height="26">
+        </span>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title" data-i18n="t_stitch">Image Stitch</h1>
+          <p class="hero__desc" data-i18n="st_desc">Stitch multiple images horizontally, vertically, or in a grid.</p>
+        </div>
+      </section>
+
+      <section class="panel card sz-panel" id="stitchPanel">
+        <div class="settings__group">
+          <span class="settings__label" data-i18n="sz_images">Images</span>
+          <div class="upload" id="stitchDrop">
+            <input type="file" id="stitchInput" class="upload__input" accept="image/*" multiple aria-label="Choose images" data-i18n-aria-label="choose_images">
+            <div class="upload__content">
+              <div class="upload__icon" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M32 44 V14"/>
+                  <path d="M22 24 L32 14 L42 24"/>
+                  <path d="M12 44 L12 50 H52 V44"/>
+                </svg>
+              </div>
+              <p class="upload__title" data-i18n="sz_drop_many">Drop images here or click to upload</p>
+              <p class="upload__hint" data-i18n="sz_hint_many">Multiple images supported — reorder in the list</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings sz-stitch-settings" id="stitchSettings" hidden>
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="sz_stitch_dir">Direction</label>
+            <div class="segmented" id="stitchDirSelector">
+              <button class="segmented__btn is-active" data-value="h" type="button" data-i18n="sz_stitch_h">Horizontal</button>
+              <button class="segmented__btn" data-value="v" type="button" data-i18n="sz_stitch_v">Vertical</button>
+              <button class="segmented__btn" data-value="grid" type="button" data-i18n="sz_stitch_grid">Grid</button>
+            </div>
+          </div>
+
+          <div class="settings__group" id="stitchMatchGroup">
+            <label class="settings__label" data-i18n="st_match">Match size to</label>
+            <div class="segmented" id="stitchMatchSelector">
+              <button class="segmented__btn is-active" data-value="min" type="button" data-i18n="st_match_min">Smallest image</button>
+              <button class="segmented__btn" data-value="max" type="button" data-i18n="st_match_max">Largest image</button>
+            </div>
+            <p class="settings__note" data-i18n="st_match_note">Smallest shrinks big images so nothing is enlarged; Largest keeps every detail of the biggest image but enlarges the others.</p>
+          </div>
+
+          <div class="settings__dimensions">
+            <div class="field" id="stitchColsField">
+              <label for="stitchCols" data-i18n="sz_stitch_cols">Columns</label>
+              <input type="number" id="stitchCols" min="1" max="12" value="2">
+            </div>
+            <div class="field">
+              <label for="stitchGap" data-i18n="sz_stitch_gap">Gap px</label>
+              <input type="number" id="stitchGap" min="0" max="500" value="0">
+            </div>
+          </div>
+
+          <div class="settings__group" id="stitchAlignGroup">
+            <label class="settings__label" data-i18n="sz_stitch_align">Alignment</label>
+            <div class="segmented" id="stitchAlignSelector">
+              <button class="segmented__btn is-active" data-value="start" type="button" data-i18n="sz_align_start">Start</button>
+              <button class="segmented__btn" data-value="center" type="button" data-i18n="sz_align_center">Center</button>
+              <button class="segmented__btn" data-value="end" type="button" data-i18n="sz_align_end">End</button>
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="sz_stitch_bg">Background</label>
+            <div class="chips" id="stitchBgSelector">
+              <button class="chip chip--btn is-active" data-value="#ffffff" type="button"><span data-i18n="sz_bg_white">White</span></button>
+              <button class="chip chip--btn" data-value="#000000" type="button"><span data-i18n="sz_bg_black">Black</span></button>
+              <button class="chip chip--btn" data-value="transparent" type="button"><span data-i18n="qr_transparent">Transparent</span></button>
+              <label class="chip"><input type="color" id="stitchBgColor" value="#ffffff"><span data-i18n="sz_bg_custom">Custom</span></label>
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="sz_output">Output</label>
+            <div class="segmented sz-output-selector" id="stitchFormatSelector">
+              <button class="segmented__btn is-active" data-value="png" type="button" data-i18n="ed_png">PNG</button>
+              <button class="segmented__btn" data-value="jpeg" type="button" data-i18n="sz_jpeg">JPEG</button>
+              <button class="segmented__btn" data-value="pdf" type="button">PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sz-stage-wrap" id="stitchPreviewWrap" hidden>
+          <span class="settings__label" data-i18n="st_preview">Preview</span>
+          <div class="sz-stage">
+            <canvas id="stitchPreview" class="sz-stitch-preview"></canvas>
+          </div>
+          <p class="settings__note" data-i18n="st_preview_hint">Click an image in the preview, or the crop button in the list, to choose which part of it to use.</p>
+        </div>
+
+        <section class="list sz-stitch-list" id="stitchList" aria-live="polite"></section>
+
+        <div class="sz-stage-wrap" id="stitchCropPanel" hidden>
+          <span class="settings__label" id="stitchCropTitle"></span>
+          <div class="sz-stage">
+            <canvas id="stitchCropCanvas" class="sz-stitch-crop-canvas"></canvas>
+          </div>
+          <p class="settings__note" data-i18n="st_crop_hint">Drag to draw the region to keep; drag inside it to move it.</p>
+          <div class="actions__btns">
+            <button class="btn btn--secondary btn--sm" id="stitchCropFull" type="button" data-i18n="st_crop_full">Use whole image</button>
+            <button class="btn btn--secondary btn--sm" id="stitchCropCancel" type="button" data-i18n="st_crop_cancel">Cancel</button>
+            <button class="btn btn--primary btn--sm" id="stitchCropApply" type="button" data-i18n="st_crop_apply">Apply</button>
+          </div>
+        </div>
+
+        <div class="actions sz-actions" id="stitchActions" hidden>
+          <div class="actions__info">
+            <span id="stitchInfo">—</span>
+          </div>
+          <div class="actions__btns">
+            <button class="btn btn--secondary btn--sm" id="stitchClearBtn" type="button" data-i18n="conv_clear">Clear</button>
+            <button class="btn btn--secondary btn--sm" id="stitchAnnotateBtn" type="button" data-i18n="exp_annotate">Annotate</button>
+            <button class="btn btn--primary btn--sm" id="stitchExportBtn" type="button" data-i18n="sz_download">Download</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <canvas id="workCanvas" hidden></canvas>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/stitch.js"></script>
+</body>
+</html>

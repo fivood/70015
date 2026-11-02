@@ -38,7 +38,7 @@
 .metadata__fact {
   padding: 4px 8px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-xs);
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;

@@ -52,8 +52,8 @@
 }
 
 .qr-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 4px; }
-.qr-color input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
-.qr-color input[type="color"]::-moz-color-swatch { border: none; border-radius: 6px; }
+.qr-color input[type="color"]::-webkit-color-swatch { border: none; border-radius: var(--radius-xs); }
+.qr-color input[type="color"]::-moz-color-swatch { border: none; border-radius: var(--radius-xs); }
 
 .qr-color span {
   font-size: 12px;

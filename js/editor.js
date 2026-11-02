@@ -1578,6 +1578,7 @@
   }, { passive: false });
 
   document.addEventListener('keydown', function (e) {
+    if (!stage.offsetParent) return; // editor tab hidden
     if (e.key === ' ' && !e.target.matches('input, textarea')) { spaceDown = true; stage.style.cursor = 'grab'; e.preventDefault(); }
   });
   document.addEventListener('keyup', function (e) { if (e.key === ' ') { spaceDown = false; stage.style.cursor = ''; } });
@@ -2061,6 +2062,7 @@
 
   // ---- Keyboard ----
   document.addEventListener('keydown', function (e) {
+    if (!stage.offsetParent) return; // editor tab hidden
     var tag = e.target.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (e.ctrlKey || e.metaKey) {
       // Shift/CapsLock turn e.key uppercase ('Z'), so compare lowercased.

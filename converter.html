@@ -115,7 +115,6 @@
               <button class="chip chip--btn" data-preset="blog-cover" type="button"><span data-i18n="conv_p_blog">Blog cover 1200&times;630</span></button>
               <button class="chip chip--btn" data-preset="thumbnail" type="button"><span data-i18n="conv_p_thumb">Thumbnail 300&times;300</span></button>
               <button class="chip chip--btn" data-preset="social" type="button"><span data-i18n="conv_p_social">Social 1080&times;1080</span></button>
-              <button class="chip chip--btn" data-preset="favicon" type="button"><span data-i18n="conv_favicon_kit">Favicon kit</span></button>
             </div>
             <p class="settings__note" data-i18n="conv_presets">Presets auto-fill format, size, and fit.</p>
           </div>
@@ -128,7 +127,6 @@
               <button class="segmented__btn" data-value="jpeg" type="button">JPEG</button>
               <button class="segmented__btn" data-value="png" type="button" data-i18n="ed_png">PNG</button>
               <button class="segmented__btn" data-value="ico" type="button">ICO</button>
-              <button class="segmented__btn" data-value="favicon" type="button" data-i18n="conv_favicon_kit">Favicon kit</button>
             </div>
             <p class="settings__note" id="formatNote" data-i18n="conv_note_webp">WebP has the best balance of size and compatibility.</p>
           </div>
@@ -146,11 +144,12 @@
             <div class="settings__subgroup">
               <label class="settings__label" data-i18n="conv_non_square">Non-square images</label>
               <div class="segmented" id="icoCropSelector">
-                <button class="segmented__btn is-active" data-value="cover" type="button" data-i18n="conv_cover">Cover</button>
-                <button class="segmented__btn" data-value="contain" type="button" data-i18n="conv_contain">Contain</button>
+                <button class="segmented__btn is-active" data-value="contain" type="button" data-i18n="conv_contain">Contain</button>
+                <button class="segmented__btn" data-value="cover" type="button" data-i18n="conv_cover">Cover</button>
               </div>
               <p class="settings__note" data-i18n="conv_cover_note">Cover crops to fill; Contain scales with transparent padding.</p>
             </div>
+            <p class="settings__note"><a href="favicon" data-i18n="conv_favicon_link">Need favicon.ico plus PNG sizes and a manifest? Use the Favicon Generator &rarr;</a></p>
           </div>
 
           <div class="settings__group">
@@ -213,6 +212,27 @@
     <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
   </div>
 
+  <dialog class="conv-preview" id="previewDialog" aria-labelledby="previewTitle">
+    <div class="conv-preview__head">
+      <h2 class="conv-preview__title" id="previewTitle"></h2>
+      <form method="dialog">
+        <button class="menu__close" type="submit" aria-label="Close" data-i18n-aria-label="menu_close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+        </button>
+      </form>
+    </div>
+    <div class="conv-preview__media"><img id="previewImg" alt=""></div>
+    <p class="settings__note" id="previewInfo"></p>
+    <div class="conv-preview__crop" id="previewCrop" hidden>
+      <span class="settings__label" data-i18n="conv_crop_pos">Crop position</span>
+      <div class="conv-preview__media"><canvas id="previewCropCanvas" class="cover-picker"></canvas></div>
+      <div class="conv-preview__crop-foot">
+        <p class="settings__note" data-i18n="conv_crop_hint">Drag the frame to choose which part is kept. Applies to this image only.</p>
+        <button class="btn btn--secondary btn--sm" id="previewCropReset" type="button" data-i18n="conv_crop_center">Center</button>
+      </div>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <canvas id="workCanvas" hidden></canvas>
@@ -223,6 +243,7 @@
   <script src="js/theme.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
+  <script src="js/icon.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

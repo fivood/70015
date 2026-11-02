@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SVG Editor &mdash; 70015</title>
-  <meta name="description" content="Draw and edit SVG in your browser. Shapes, text, freehand paths, gradients, multi-select, align, grid, zoom. Export SVG or PNG. No upload.">
+  <meta name="description" content="Draw and edit SVG in your browser, or optimize existing SVG markup and convert it to PNG. Shapes, text, paths, gradients, grid, zoom. No upload.">
   <link rel="canonical" href="https://70015.net/editor">
   <meta property="og:title" content="SVG Editor &mdash; 70015">
-  <meta property="og:description" content="Browser-based SVG drawing editor with gradients, zoom, grid, and alignment. No upload.">
+  <meta property="og:description" content="Browser-based SVG editor and optimizer: draw, minify, convert to PNG. No upload.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://70015.net/editor">
   <script type="application/ld+json">
@@ -27,6 +27,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="css/svg.css">
   <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -70,182 +71,253 @@
     </nav>
 
     <main class="main main--editor">
-      <div class="mobile-notice" role="note" data-i18n="mobile_editor_notice">On mobile, swipe the toolbar horizontally. Touch editing works, but precise path work is easier on a larger screen.</div>
-      <section class="editor card">
-        <div class="editor__toolbar">
-          <div class="editor__tools" id="tools" role="group" aria-label="Tools" data-i18n-aria-label="ed_tools">
-            <button class="tool is-active" data-tool="select" type="button" title="Select / move (1)" data-i18n-title="ed_select_move">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 8-6 2-2 6z"/></svg>
-            </button>
-            <button class="tool" data-tool="rect" type="button" title="Rectangle (2)" data-i18n-title="ed_rectangle_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-            </button>
-            <button class="tool" data-tool="ellipse" type="button" title="Ellipse (3)" data-i18n-title="ed_ellipse_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
-            </button>
-            <button class="tool" data-tool="line" type="button" title="Line (4)" data-i18n-title="ed_line_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="20" y2="4"/></svg>
-            </button>
-            <button class="tool" data-tool="text" type="button" title="Text (5)" data-i18n-title="ed_text_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16M12 5v14M9 19h6"/></svg>
-            </button>
-            <button class="tool" data-tool="pen" type="button" title="Freehand pen (6)" data-i18n-title="ed_pen_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18c2-1 3-4 4-6s2-4 4-5 4 0 5 1 1 3 0 5-4 4-6 4"/></svg>
-            </button>
-            <button class="tool" data-tool="polygon" type="button" title="Polygon &mdash; click to add points, double-click to close (7)" data-i18n-title="ed_polygon_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 L21 9 L18 20 L6 20 L3 9 Z"/></svg>
-            </button>
-            <button class="tool" data-tool="star" type="button" title="Star (8)" data-i18n-title="ed_star_tool">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2 L14.5 8.5 L21.5 9 L16 13.5 L18 20.5 L12 16.5 L6 20.5 L8 13.5 L2.5 9 L9.5 8.5 Z"/></svg>
-            </button>
-          </div>
+      <div class="segmented page-tabs" id="editorTabs" role="tablist">
+        <button class="segmented__btn is-active" data-tab="editor" type="button" role="tab" aria-controls="tabEditor" data-i18n="ed_tab_editor">Editor</button>
+        <button class="segmented__btn" data-tab="optimize" type="button" role="tab" aria-controls="tabOptimize" data-i18n="ed_tab_optimize">Optimize &amp; PNG</button>
+      </div>
 
-          <span class="editor__sep" aria-hidden="true"></span>
+      <div id="tabEditor" role="tabpanel">
+        <div class="mobile-notice" role="note" data-i18n="mobile_editor_notice">On mobile, swipe the toolbar horizontally. Touch editing works, but precise path work is easier on a larger screen.</div>
+        <section class="editor card">
+          <div class="editor__toolbar">
+            <div class="editor__tools" id="tools" role="group" aria-label="Tools" data-i18n-aria-label="ed_tools">
+              <button class="tool is-active" data-tool="select" type="button" title="Select / move (1)" data-i18n-title="ed_select_move">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 8-6 2-2 6z"/></svg>
+              </button>
+              <button class="tool" data-tool="rect" type="button" title="Rectangle (2)" data-i18n-title="ed_rectangle_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+              </button>
+              <button class="tool" data-tool="ellipse" type="button" title="Ellipse (3)" data-i18n-title="ed_ellipse_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+              </button>
+              <button class="tool" data-tool="line" type="button" title="Line (4)" data-i18n-title="ed_line_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+              </button>
+              <button class="tool" data-tool="text" type="button" title="Text (5)" data-i18n-title="ed_text_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16M12 5v14M9 19h6"/></svg>
+              </button>
+              <button class="tool" data-tool="pen" type="button" title="Freehand pen (6)" data-i18n-title="ed_pen_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18c2-1 3-4 4-6s2-4 4-5 4 0 5 1 1 3 0 5-4 4-6 4"/></svg>
+              </button>
+              <button class="tool" data-tool="polygon" type="button" title="Polygon &mdash; click to add points, double-click to close (7)" data-i18n-title="ed_polygon_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 L21 9 L18 20 L6 20 L3 9 Z"/></svg>
+              </button>
+              <button class="tool" data-tool="star" type="button" title="Star (8)" data-i18n-title="ed_star_tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2 L14.5 8.5 L21.5 9 L16 13.5 L18 20.5 L12 16.5 L6 20.5 L8 13.5 L2.5 9 L9.5 8.5 Z"/></svg>
+              </button>
+            </div>
 
-          <label class="editor__prop" title="Fill" data-i18n-title="ed_fill">
-            <span class="editor__prop-label" data-i18n="ed_fill">Fill</span>
-            <input type="color" id="fillColor" value="#7dd3fc">
-          </label>
-          <label class="editor__prop" title="Stroke" data-i18n-title="ed_stroke">
-            <span class="editor__prop-label" data-i18n="ed_stroke">Stroke</span>
-            <input type="color" id="strokeColor" value="#203848">
-          </label>
-          <label class="editor__prop editor__prop--range" title="Stroke width" data-i18n-title="ed_stroke_width">
-            <span class="editor__prop-label">W <span id="strokeWidthValue">3</span></span>
-            <input class="range" type="range" id="strokeWidth" min="0" max="40" value="3">
-          </label>
+            <span class="editor__sep" aria-hidden="true"></span>
 
-          <span class="editor__sep" aria-hidden="true"></span>
+            <label class="editor__prop" title="Fill" data-i18n-title="ed_fill">
+              <span class="editor__prop-label" data-i18n="ed_fill">Fill</span>
+              <input type="color" id="fillColor" value="#7dd3fc">
+            </label>
+            <label class="editor__prop" title="Stroke" data-i18n-title="ed_stroke">
+              <span class="editor__prop-label" data-i18n="ed_stroke">Stroke</span>
+              <input type="color" id="strokeColor" value="#203848">
+            </label>
+            <label class="editor__prop editor__prop--range" title="Stroke width" data-i18n-title="ed_stroke_width">
+              <span class="editor__prop-label">W <span id="strokeWidthValue">3</span></span>
+              <input class="range" type="range" id="strokeWidth" min="0" max="40" value="3">
+            </label>
 
-          <div class="editor__actions">
-            <button class="btn btn--secondary btn--sm" id="undoBtn" type="button" title="Undo (Ctrl+Z)" data-i18n-title="ann_undo_title" disabled>&#8694;</button>
-            <button class="btn btn--secondary btn--sm" id="redoBtn" type="button" title="Redo (Ctrl+Y)" data-i18n-title="ann_redo_title" disabled>&#8695;</button>
-            <button class="btn btn--secondary btn--sm" id="duplicateBtn" type="button" title="Duplicate (Ctrl+D)" data-i18n-title="ed_duplicate" data-i18n="ed_dup_short" disabled>Dup</button>
-            <button class="btn btn--secondary btn--sm" id="groupBtn" type="button" title="Group (Ctrl+G)" data-i18n-title="ed_group" data-i18n="ed_group_short" disabled>Grp</button>
-            <button class="btn btn--secondary btn--sm" id="ungroupBtn" type="button" title="Ungroup (Ctrl+Shift+G)" data-i18n-title="ed_ungroup" data-i18n="ed_ungroup_short" disabled>Ung</button>
-            <button class="btn btn--secondary btn--sm" id="flipHBtn" type="button" title="Flip horizontal" data-i18n-title="ed_flip_h" disabled>&#8596;</button>
-            <button class="btn btn--secondary btn--sm" id="flipVBtn" type="button" title="Flip vertical" data-i18n-title="ed_flip_v" disabled>&#8597;</button>
-            <button class="btn btn--secondary btn--sm" id="frontBtn" type="button" title="Bring to front" data-i18n-title="ed_front" disabled>&#10514;</button>
-            <button class="btn btn--secondary btn--sm" id="backBtn" type="button" title="Send to back" data-i18n-title="ed_back" disabled>&#10515;</button>
-            <button class="btn btn--secondary btn--sm" id="deleteBtn" type="button" title="Delete (Del)" data-i18n-title="ed_delete" disabled>&#128465;</button>
-          </div>
+            <span class="editor__sep" aria-hidden="true"></span>
 
-          <span class="editor__sep" aria-hidden="true"></span>
+            <div class="editor__actions">
+              <button class="btn btn--secondary btn--sm" id="undoBtn" type="button" title="Undo (Ctrl+Z)" data-i18n-title="ann_undo_title" disabled>&#8694;</button>
+              <button class="btn btn--secondary btn--sm" id="redoBtn" type="button" title="Redo (Ctrl+Y)" data-i18n-title="ann_redo_title" disabled>&#8695;</button>
+              <button class="btn btn--secondary btn--sm" id="duplicateBtn" type="button" title="Duplicate (Ctrl+D)" data-i18n-title="ed_duplicate" data-i18n="ed_dup_short" disabled>Dup</button>
+              <button class="btn btn--secondary btn--sm" id="groupBtn" type="button" title="Group (Ctrl+G)" data-i18n-title="ed_group" data-i18n="ed_group_short" disabled>Grp</button>
+              <button class="btn btn--secondary btn--sm" id="ungroupBtn" type="button" title="Ungroup (Ctrl+Shift+G)" data-i18n-title="ed_ungroup" data-i18n="ed_ungroup_short" disabled>Ung</button>
+              <button class="btn btn--secondary btn--sm" id="flipHBtn" type="button" title="Flip horizontal" data-i18n-title="ed_flip_h" disabled>&#8596;</button>
+              <button class="btn btn--secondary btn--sm" id="flipVBtn" type="button" title="Flip vertical" data-i18n-title="ed_flip_v" disabled>&#8597;</button>
+              <button class="btn btn--secondary btn--sm" id="frontBtn" type="button" title="Bring to front" data-i18n-title="ed_front" disabled>&#10514;</button>
+              <button class="btn btn--secondary btn--sm" id="backBtn" type="button" title="Send to back" data-i18n-title="ed_back" disabled>&#10515;</button>
+              <button class="btn btn--secondary btn--sm" id="deleteBtn" type="button" title="Delete (Del)" data-i18n-title="ed_delete" disabled>&#128465;</button>
+            </div>
 
-          <div class="editor__actions editor__actions--align" id="alignGroup" hidden>
-            <button class="btn btn--secondary btn--sm" data-align="left" type="button" title="Align left" data-i18n-title="ed_align_left">&#8676;</button>
-            <button class="btn btn--secondary btn--sm" data-align="ch" type="button" title="Align center horizontal" data-i18n-title="ed_align_center_h">&#8592;&#8735;</button>
-            <button class="btn btn--secondary btn--sm" data-align="right" type="button" title="Align right" data-i18n-title="ed_align_right">&#8677;</button>
-            <button class="btn btn--secondary btn--sm" data-align="top" type="button" title="Align top" data-i18n-title="ed_align_top">&#8679;</button>
-            <button class="btn btn--secondary btn--sm" data-align="cv" type="button" title="Align center vertical" data-i18n-title="ed_align_center_v">&#8595;&#8735;</button>
-            <button class="btn btn--secondary btn--sm" data-align="bottom" type="button" title="Align bottom" data-i18n-title="ed_align_bottom">&#8680;</button>
-          </div>
+            <span class="editor__sep" aria-hidden="true"></span>
 
-          <span class="editor__sep" aria-hidden="true"></span>
+            <div class="editor__actions editor__actions--align" id="alignGroup" hidden>
+              <button class="btn btn--secondary btn--sm" data-align="left" type="button" title="Align left" data-i18n-title="ed_align_left">&#8676;</button>
+              <button class="btn btn--secondary btn--sm" data-align="ch" type="button" title="Align center horizontal" data-i18n-title="ed_align_center_h">&#8592;&#8735;</button>
+              <button class="btn btn--secondary btn--sm" data-align="right" type="button" title="Align right" data-i18n-title="ed_align_right">&#8677;</button>
+              <button class="btn btn--secondary btn--sm" data-align="top" type="button" title="Align top" data-i18n-title="ed_align_top">&#8679;</button>
+              <button class="btn btn--secondary btn--sm" data-align="cv" type="button" title="Align center vertical" data-i18n-title="ed_align_center_v">&#8595;&#8735;</button>
+              <button class="btn btn--secondary btn--sm" data-align="bottom" type="button" title="Align bottom" data-i18n-title="ed_align_bottom">&#8680;</button>
+            </div>
 
-          <div class="editor__actions">
-            <button class="btn btn--secondary btn--sm" id="zoomOutBtn" type="button" title="Zoom out" data-i18n-title="ed_zoom_out">&minus;</button>
-            <span class="editor__zoom-label" id="zoomLabel">100%</span>
-          </div>
-          <button class="btn btn--secondary btn--sm" id="zoomInBtn" type="button" title="Zoom in" data-i18n-title="ed_zoom_in">+</button>
-          <button class="btn btn--secondary btn--sm" id="fitBtn" type="button" title="Fit to screen" data-i18n-title="ed_fit_screen" data-i18n="conv_fit">Fit</button>
-          <button class="btn btn--secondary btn--sm" id="gridBtn" type="button" title="Toggle grid" data-i18n-title="ed_toggle_grid" data-i18n="ed_grid">Grid</button>
-          <button class="btn btn--secondary btn--sm" id="snapBtn" type="button" title="Toggle snap to grid" data-i18n-title="ed_toggle_snap" data-i18n="ed_snap">Snap</button>
+            <span class="editor__sep" aria-hidden="true"></span>
 
-          <span class="editor__sep" aria-hidden="true"></span>
+            <div class="editor__actions">
+              <button class="btn btn--secondary btn--sm" id="zoomOutBtn" type="button" title="Zoom out" data-i18n-title="ed_zoom_out">&minus;</button>
+              <span class="editor__zoom-label" id="zoomLabel">100%</span>
+              <button class="btn btn--secondary btn--sm" id="zoomInBtn" type="button" title="Zoom in" data-i18n-title="ed_zoom_in">+</button>
+              <button class="btn btn--secondary btn--sm" id="fitBtn" type="button" title="Fit to screen" data-i18n-title="ed_fit_screen" data-i18n="conv_fit">Fit</button>
+              <button class="btn btn--secondary btn--sm" id="gridBtn" type="button" title="Toggle grid" data-i18n-title="ed_toggle_grid" data-i18n="ed_grid">Grid</button>
+              <button class="btn btn--secondary btn--sm" id="snapBtn" type="button" title="Toggle snap to grid" data-i18n-title="ed_toggle_snap" data-i18n="ed_snap">Snap</button>
+            </div>
 
-          <div class="editor__actions">
-            <button class="btn btn--secondary btn--sm" id="importBtn" type="button" data-i18n="ed_import">Import</button>
-            <input type="file" id="importInput" accept="image/svg+xml,.svg" hidden>
-            <button class="btn btn--secondary btn--sm" id="clearBtn" type="button" data-i18n="conv_clear">Clear</button>
-            <select class="btn btn--secondary btn--sm" id="exportArea" title="Export area" data-i18n-title="ed_export_area" aria-label="Export area" data-i18n-aria-label="ed_export_area">
-              <option value="canvas" data-i18n="ed_export_canvas">Canvas</option>
-              <option value="content" data-i18n="ed_export_content">Content</option>
-            </select>
-            <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button" data-i18n="ed_svg">SVG</button>
-            <select class="btn btn--primary btn--sm" id="pngScale" title="PNG export scale" data-i18n-title="ed_png_scale" aria-label="PNG scale" data-i18n-aria-label="ed_png_scale">
-              <option value="1">1&times;</option>
-              <option value="2">2&times;</option>
-              <option value="4">4&times;</option>
-            </select>
-            <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button" data-i18n="ed_png">PNG</button>
-          </div>
-        </div>
+            <span class="editor__sep" aria-hidden="true"></span>
 
-        <div class="editor__body">
-          <div class="editor__stage" id="stage">
-            <svg id="artboard" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
-            <div class="editor__overlay" id="overlay">
-              <div class="editor__selbox" id="selBox" hidden></div>
-              <div class="editor__handle" data-h="nw" hidden></div>
-              <div class="editor__handle" data-h="n" hidden></div>
-              <div class="editor__handle" data-h="ne" hidden></div>
-              <div class="editor__handle" data-h="e" hidden></div>
-              <div class="editor__handle" data-h="se" hidden></div>
-              <div class="editor__handle" data-h="s" hidden></div>
-              <div class="editor__handle" data-h="sw" hidden></div>
-              <div class="editor__handle" data-h="w" hidden></div>
-              <div class="editor__rotate" id="rotateHandle" hidden></div>
+            <div class="editor__actions">
+              <button class="btn btn--secondary btn--sm" id="importBtn" type="button" data-i18n="ed_import">Import</button>
+              <input type="file" id="importInput" accept="image/svg+xml,.svg" hidden>
+              <button class="btn btn--secondary btn--sm" id="clearBtn" type="button" data-i18n="conv_clear">Clear</button>
+              <select class="btn btn--secondary btn--sm" id="exportArea" title="Export area" data-i18n-title="ed_export_area" aria-label="Export area" data-i18n-aria-label="ed_export_area">
+                <option value="canvas" data-i18n="ed_export_canvas">Canvas</option>
+                <option value="content" data-i18n="ed_export_content">Content</option>
+              </select>
+              <button class="btn btn--primary btn--sm" id="exportSvgBtn" type="button" data-i18n="ed_svg">SVG</button>
+              <select class="btn btn--primary btn--sm" id="pngScale" title="PNG export scale" data-i18n-title="ed_png_scale" aria-label="PNG scale" data-i18n-aria-label="ed_png_scale">
+                <option value="1">1&times;</option>
+                <option value="2">2&times;</option>
+                <option value="4">4&times;</option>
+              </select>
+              <button class="btn btn--primary btn--sm" id="exportPngBtn" type="button" data-i18n="ed_png">PNG</button>
             </div>
           </div>
 
-          <aside class="editor__sidebar">
-            <div class="editor__panel editor__panel--canvas">
-              <div class="editor__panel-head">
-                <span class="editor__panel-title" data-i18n="ed_canvas">Canvas</span>
-                <span class="editor__panel-sub" id="canvasSizeLabel">800 × 600</span>
+          <div class="editor__body">
+            <div class="editor__stage" id="stage">
+              <svg id="artboard" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
+              <div class="editor__overlay" id="overlay">
+                <div class="editor__selbox" id="selBox" hidden></div>
+                <div class="editor__handle" data-h="nw" hidden></div>
+                <div class="editor__handle" data-h="n" hidden></div>
+                <div class="editor__handle" data-h="ne" hidden></div>
+                <div class="editor__handle" data-h="e" hidden></div>
+                <div class="editor__handle" data-h="se" hidden></div>
+                <div class="editor__handle" data-h="s" hidden></div>
+                <div class="editor__handle" data-h="sw" hidden></div>
+                <div class="editor__handle" data-h="w" hidden></div>
+                <div class="editor__rotate" id="rotateHandle" hidden></div>
               </div>
-              <div class="editor__canvas-controls">
-                <label class="editor__field">
-                  <span data-i18n="ed_canvas_preset">Preset</span>
-                  <select id="canvasPreset">
-                    <option value="custom" data-i18n="ed_canvas_custom">Custom</option>
-                    <option value="800x600">800 × 600</option>
-                    <option value="1200x1200">1200 × 1200</option>
-                    <option value="1920x1080">1920 × 1080</option>
-                    <option value="1080x1920">1080 × 1920</option>
-                    <option value="794x1123">A4 · 794 × 1123</option>
-                  </select>
-                </label>
-                <div class="editor__canvas-size">
+            </div>
+
+            <aside class="editor__sidebar">
+              <div class="editor__panel editor__panel--canvas">
+                <div class="editor__panel-head">
+                  <span class="editor__panel-title" data-i18n="ed_canvas">Canvas</span>
+                  <span class="editor__panel-sub" id="canvasSizeLabel">800 × 600</span>
+                </div>
+                <div class="editor__canvas-controls">
                   <label class="editor__field">
-                    <span data-i18n="ed_canvas_width">Width</span>
-                    <input id="canvasWidth" type="number" min="1" max="100000" step="1" value="800" inputmode="numeric">
+                    <span data-i18n="ed_canvas_preset">Preset</span>
+                    <select id="canvasPreset">
+                      <option value="custom" data-i18n="ed_canvas_custom">Custom</option>
+                      <option value="800x600">800 × 600</option>
+                      <option value="1200x1200">1200 × 1200</option>
+                      <option value="1920x1080">1920 × 1080</option>
+                      <option value="1080x1920">1080 × 1920</option>
+                      <option value="794x1123">A4 · 794 × 1123</option>
+                    </select>
                   </label>
-                  <span class="editor__canvas-times" aria-hidden="true">×</span>
-                  <label class="editor__field">
-                    <span data-i18n="ed_canvas_height">Height</span>
-                    <input id="canvasHeight" type="number" min="1" max="100000" step="1" value="600" inputmode="numeric">
-                  </label>
+                  <div class="editor__canvas-size">
+                    <label class="editor__field">
+                      <span data-i18n="ed_canvas_width">Width</span>
+                      <input id="canvasWidth" type="number" min="1" max="100000" step="1" value="800" inputmode="numeric">
+                    </label>
+                    <span class="editor__canvas-times" aria-hidden="true">×</span>
+                    <label class="editor__field">
+                      <span data-i18n="ed_canvas_height">Height</span>
+                      <input id="canvasHeight" type="number" min="1" max="100000" step="1" value="600" inputmode="numeric">
+                    </label>
+                  </div>
+                  <div class="editor__panel-actions">
+                    <button class="btn btn--primary btn--sm" id="applyCanvasBtn" type="button" data-i18n="ed_apply_size">Apply size</button>
+                    <button class="btn btn--secondary btn--sm" id="fitCanvasBtn" type="button" data-i18n="ed_fit_canvas">Fit canvas</button>
+                  </div>
                 </div>
-                <div class="editor__panel-actions">
-                  <button class="btn btn--primary btn--sm" id="applyCanvasBtn" type="button" data-i18n="ed_apply_size">Apply size</button>
-                  <button class="btn btn--secondary btn--sm" id="fitCanvasBtn" type="button" data-i18n="ed_fit_canvas">Fit canvas</button>
+              </div>
+              <div class="editor__panel">
+                <div class="editor__panel-head">
+                  <span class="editor__panel-title" data-i18n="ed_props">Properties</span>
+                  <span class="editor__panel-sub" id="propType">Nothing selected</span>
+                </div>
+                <div class="editor__props" id="props"></div>
+              </div>
+              <div class="editor__panel">
+                <div class="editor__panel-head">
+                  <span class="editor__panel-title" data-i18n="ed_source">Source</span>
+                  <div class="editor__panel-actions">
+                    <button class="btn btn--primary btn--sm" id="applyCodeBtn" type="button" data-i18n="ed_apply_source" disabled>Apply</button>
+                    <button class="btn btn--secondary btn--sm" id="revertCodeBtn" type="button" data-i18n="ed_revert_source" disabled>Revert</button>
+                    <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button" data-i18n="b64_copy">Copy</button>
+                  </div>
+                </div>
+                <textarea class="editor__code" id="codeView" rows="8" spellcheck="false" data-i18n-placeholder="ed_source_placeholder" placeholder="SVG source appears here"></textarea>
+              </div>
+            </aside>
+          </div>
+          <p class="settings__note" id="editorHint" data-i18n="ed_hint">Pick a tool and drag on the canvas. Shift constrains proportions/angles; Alt draws from center; Alt-drag duplicates. Ctrl+C/V copies and pastes; Esc cancels drawing. Scroll to zoom, Space+drag to pan. Shortcuts: 1-8 switch tools.</p>
+        </section>
+      </div>
+
+      <div id="tabOptimize" role="tabpanel" hidden>
+        <section class="panel card">
+          <div class="settings__group">
+            <span class="settings__label" data-i18n="ed_source">Source</span>
+            <div class="upload" id="svgDrop">
+              <input type="file" id="svgInput" class="upload__input" accept="image/svg+xml,.svg" aria-label="Choose an SVG" data-i18n-aria-label="choose_svg">
+              <div class="upload__content">
+                <div class="upload__icon" aria-hidden="true">
+                  <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M32 44 V14"/>
+                    <path d="M22 24 L32 14 L42 24"/>
+                    <path d="M12 44 L12 50 H52 V44"/>
+                  </svg>
+                </div>
+                <p class="upload__title" data-i18n="svg_drop">Drop an SVG here or click to upload</p>
+                <p class="upload__hint" data-i18n="svg_hint_paste">Or paste markup in the box below</p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="svgText" data-i18n="svg_markup">SVG markup</label>
+              <textarea class="field__textarea" id="svgText" rows="6" placeholder="<svg xmlns='http://www.w3.org/2000/svg' ...>...</svg>"></textarea>
+            </div>
+          </div>
+
+          <div class="settings">
+            <div class="settings__group">
+              <label class="settings__label" data-i18n="svg_optimize">Optimize</label>
+              <div class="chips">
+                <label class="chip"><input type="checkbox" id="optComments" ><span data-i18n="svg_strip_comments">Strip comments</span></label>
+                <label class="chip"><input type="checkbox" id="optEditor" checked><span data-i18n="svg_strip_cruft">Remove editor metadata (Inkscape/Sodipodi/metadata)</span></label>
+                <label class="chip"><input type="checkbox" id="optWs" checked><span data-i18n="svg_collapse_ws">Collapse whitespace</span></label>
+                <label class="chip"><input type="checkbox" id="optDecl" checked><span data-i18n="svg_drop_decl">Drop XML declaration</span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel card">
+          <div class="settings__group">
+            <span class="settings__label" data-i18n="svg_result">Result</span>
+            <div class="preview">
+              <div class="preview__media svg__media" id="svgPreview">
+                <span class="svg__placeholder" id="svgPlaceholder" data-i18n="svg_preview">Preview will appear here</span>
+              </div>
+              <div class="preview__info">
+                <span id="svgInfo">&mdash;</span>
+                <div class="actions__btns">
+                  <button class="btn btn--secondary btn--sm" id="copyBtn" type="button" data-i18n="svg_copy_svg">Copy SVG</button>
+                  <button class="btn btn--secondary btn--sm" id="downloadSvgBtn" type="button" data-i18n="qr_svg">Download SVG</button>
+                  <button class="btn btn--primary btn--sm" id="svgExportPngBtn" type="button" data-i18n="svg_export_png">Export PNG</button>
                 </div>
               </div>
             </div>
-            <div class="editor__panel">
-              <div class="editor__panel-head">
-                <span class="editor__panel-title" data-i18n="ed_props">Properties</span>
-                <span class="editor__panel-sub" id="propType">Nothing selected</span>
+            <div class="settings__subgroup">
+              <div class="settings__row">
+                <label class="settings__label" for="svgPngScale" data-i18n="svg_scale">PNG scale <span class="settings__value" id="svgPngScaleValue">2&times;</span></label>
+                <input class="range" type="range" id="svgPngScale" min="1" max="8" step="0.5" value="2">
               </div>
-              <div class="editor__props" id="props"></div>
             </div>
-            <div class="editor__panel">
-              <div class="editor__panel-head">
-                <span class="editor__panel-title" data-i18n="ed_source">Source</span>
-                <div class="editor__panel-actions">
-                  <button class="btn btn--primary btn--sm" id="applyCodeBtn" type="button" data-i18n="ed_apply_source" disabled>Apply</button>
-                  <button class="btn btn--secondary btn--sm" id="revertCodeBtn" type="button" data-i18n="ed_revert_source" disabled>Revert</button>
-                  <button class="btn btn--secondary btn--sm" id="copyCodeBtn" type="button" data-i18n="b64_copy">Copy</button>
-                </div>
-              </div>
-              <textarea class="editor__code" id="codeView" rows="8" spellcheck="false" data-i18n-placeholder="ed_source_placeholder" placeholder="SVG source appears here"></textarea>
-            </div>
-          </aside>
-        </div>
-        <p class="settings__note" id="editorHint" data-i18n="ed_hint">Pick a tool and drag on the canvas. Shift constrains proportions/angles; Alt draws from center; Alt-drag duplicates. Ctrl+C/V copies and pastes; Esc cancels drawing. Scroll to zoom, Space+drag to pan. Shortcuts: 1-8 switch tools.</p>
-      </section>
+            <p class="settings__note" id="svgHint" data-i18n="svg_paste_hint">Paste or upload an SVG to begin.</p>
+          </div>
+        </section>
+      </div>
     </main>
 
     <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
@@ -253,10 +325,14 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <canvas id="workCanvas" hidden></canvas>
+
   <script src="js/menu.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
+  <script src="js/tabs.js"></script>
   <script src="js/editor.js"></script>
+  <script src="js/svg.js"></script>
 </body>
 </html>

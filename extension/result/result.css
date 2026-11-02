@@ -5,7 +5,7 @@
   --surface: #ffffff;
   --text: #111827;
   --text-muted: #6b7280;
-  --primary: #317fa8;
+  --primary: #2b749a;
   --border: rgba(17,24,39,0.1);
   --shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
@@ -59,7 +59,7 @@ body {
   padding: 16px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 6px;
   box-shadow: var(--shadow);
   margin-bottom: 16px;
   font-size: 14px;
@@ -83,7 +83,7 @@ body {
 .result__preview {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: var(--shadow);
   padding: 16px;
   margin-bottom: 16px;
@@ -126,7 +126,7 @@ body {
   gap: 8px;
   padding: 10px 18px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--surface);
   color: var(--text);
   font-size: 14px;

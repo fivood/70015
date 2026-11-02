@@ -170,6 +170,9 @@
     pickHint.textContent = t('col_pick_hint', 'Screen picker needs desktop Chrome/Edge. Click a swatch or HEX to choose colors.');
   }
 
+  // Tabs: picker & contrast / palette from image (js/palette.js).
+  initTabs(document.getElementById('colorTabs'));
+
   render();
   window.onLangChange = render;
 })();

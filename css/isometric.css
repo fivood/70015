@@ -38,7 +38,7 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border-radius: calc(var(--radius-sm) - 2px);
+  border-radius: var(--radius-xs);
   border: none;
   background: transparent;
   color: var(--text-muted);
@@ -90,7 +90,7 @@
 .iso-prop input[type="color"] {
   -webkit-appearance: none;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   width: 26px;
   height: 26px;
   padding: 0;
@@ -104,7 +104,7 @@
 
 .iso-prop input[type="color"]::-webkit-color-swatch {
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
 }
 
 .iso-shades {
@@ -120,7 +120,7 @@
 .iso-shade-box {
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgba(0, 0, 0, 0.15);
   cursor: pointer;
   transition: transform 0.15s ease;

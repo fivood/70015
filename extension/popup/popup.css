@@ -8,8 +8,8 @@
   --btn-hover: #e5e7eb;
   --border: #d1d5db;
   --line: #e5e7eb;
-  --primary: #317fa8;
-  --primary-hover: #3d95c4;
+  --primary: #2b749a;
+  --primary-hover: #245f80;
   --status-bg: #f0f9ff;
 }
 
@@ -62,7 +62,7 @@ body {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--btn);
   color: var(--text);
   font: inherit;
@@ -141,7 +141,7 @@ body {
   gap: 5px;
   padding: 8px 4px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -163,7 +163,7 @@ body {
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--btn);
   color: var(--primary);
 }

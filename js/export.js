@@ -116,7 +116,7 @@
 
   async function sendToAnnotate(canvas) {
     // Open the tab while the click's user activation is still valid, then fill it.
-    window.open(isExtension ? '/annotate.html#handoff' : 'annotate#handoff', '_blank');
+    window.open(isExtension ? '/image-editor.html#handoff' : 'image-editor#handoff', '_blank');
     var blob = await toBlob(canvas, 'image/png');
     await put(HANDOFF_KEY, blob);
     var ch = new BroadcastChannel(HANDOFF_DB);
@@ -129,7 +129,7 @@
     if (location.hash !== '#handoff' || !window.indexedDB) return;
     var done = false;
     var ch = new BroadcastChannel(HANDOFF_DB);
-    function take() {
+    function grab() {
       take(HANDOFF_KEY).then(function (blob) {
         if (!blob || done) return;
         done = true;
@@ -139,8 +139,8 @@
       });
     }
     // Subscribe first, then check: the image may already be stored or arrive later.
-    ch.onmessage = take;
-    take();
+    ch.onmessage = grab;
+    grab();
   }
 
   // ---------- Standard action buttons ----------

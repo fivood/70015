@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Image Size &mdash; 70015</title>
-  <meta name="description" content="Crop, stitch, and resize images to exact sizes or ratios in your browser. Single-image crop, multi-image stitch, scale by dimensions. No upload.">
+  <meta name="description" content="Crop and resize images to exact sizes or ratios in your browser. No upload.">
   <link rel="canonical" href="https://70015.net/resize">
   <meta property="og:title" content="Image Size &mdash; 70015">
-  <meta property="og:description" content="Crop, stitch, and resize images to exact sizes or ratios. No upload.">
+  <meta property="og:description" content="Crop and resize images to exact sizes or ratios. No upload.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://70015.net/resize">
   <script type="application/ld+json">
@@ -18,7 +18,7 @@
     "applicationCategory": "DesignApplication",
     "operatingSystem": "Any",
     "url": "https://70015.net/resize",
-    "description": "Browser-based image crop, stitch, and resize tool. Exact sizes and aspect ratios.",
+    "description": "Browser-based image crop and resize tool. Exact sizes and aspect ratios.",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
   </script>
@@ -74,7 +74,7 @@
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
           <h1 class="hero__title" data-i18n="t_resize">Image Size</h1>
-          <p class="hero__desc" data-i18n="sz_desc">Crop a single image to a size or ratio, stitch multiple images together, or scale by exact dimensions.</p>
+          <p class="hero__desc" data-i18n="sz_desc">Crop an image to a size or ratio, or scale it to exact dimensions.</p>
         </div>
       </section>
 
@@ -83,7 +83,6 @@
           <label class="settings__label" data-i18n="sz_mode">Mode</label>
           <div class="segmented" id="modeSelector">
             <button class="segmented__btn is-active" data-mode="crop" type="button" data-i18n="sz_mode_crop">Crop</button>
-            <button class="segmented__btn" data-mode="stitch" type="button" data-i18n="sz_mode_stitch">Stitch</button>
             <button class="segmented__btn" data-mode="scale" type="button" data-i18n="sz_mode_scale">Scale</button>
           </div>
           <p class="settings__note" id="modeNote" data-i18n="sz_crop_note">Drag on the image to select a crop region. Pick a ratio or set a target size.</p>
@@ -175,90 +174,6 @@
         </div>
       </section>
 
-      <!-- STITCH MODE -->
-      <section class="panel card sz-panel" id="stitchPanel" hidden>
-        <div class="settings__group">
-          <span class="settings__label" data-i18n="sz_images">Images</span>
-          <div class="upload" id="stitchDrop">
-            <input type="file" id="stitchInput" class="upload__input" accept="image/*" multiple aria-label="Choose images" data-i18n-aria-label="choose_images">
-            <div class="upload__content">
-              <div class="upload__icon" aria-hidden="true">
-                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M32 44 V14"/>
-                  <path d="M22 24 L32 14 L42 24"/>
-                  <path d="M12 44 L12 50 H52 V44"/>
-                </svg>
-              </div>
-              <p class="upload__title" data-i18n="sz_drop_many">Drop images here or click to upload</p>
-              <p class="upload__hint" data-i18n="sz_hint_many">Multiple images supported — reorder in the list</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="settings sz-stitch-settings" id="stitchSettings" hidden>
-          <div class="settings__group">
-            <label class="settings__label" data-i18n="sz_stitch_dir">Direction</label>
-            <div class="segmented" id="stitchDirSelector">
-              <button class="segmented__btn is-active" data-value="h" type="button" data-i18n="sz_stitch_h">Horizontal</button>
-              <button class="segmented__btn" data-value="v" type="button" data-i18n="sz_stitch_v">Vertical</button>
-              <button class="segmented__btn" data-value="grid" type="button" data-i18n="sz_stitch_grid">Grid</button>
-            </div>
-          </div>
-
-          <div class="settings__dimensions">
-            <div class="field" id="stitchColsField">
-              <label for="stitchCols" data-i18n="sz_stitch_cols">Columns</label>
-              <input type="number" id="stitchCols" min="1" max="12" value="2">
-            </div>
-            <div class="field">
-              <label for="stitchGap" data-i18n="sz_stitch_gap">Gap px</label>
-              <input type="number" id="stitchGap" min="0" max="500" value="0">
-            </div>
-          </div>
-
-          <div class="settings__group">
-            <label class="settings__label" data-i18n="sz_stitch_align">Alignment</label>
-            <div class="segmented" id="stitchAlignSelector">
-              <button class="segmented__btn is-active" data-value="start" type="button" data-i18n="sz_align_start">Start</button>
-              <button class="segmented__btn" data-value="center" type="button" data-i18n="sz_align_center">Center</button>
-              <button class="segmented__btn" data-value="end" type="button" data-i18n="sz_align_end">End</button>
-            </div>
-          </div>
-
-          <div class="settings__group">
-            <label class="settings__label" data-i18n="sz_stitch_bg">Background</label>
-            <div class="chips" id="stitchBgSelector">
-              <button class="chip chip--btn is-active" data-value="#ffffff" type="button"><span data-i18n="sz_bg_white">White</span></button>
-              <button class="chip chip--btn" data-value="#000000" type="button"><span data-i18n="sz_bg_black">Black</span></button>
-              <button class="chip chip--btn" data-value="transparent" type="button"><span data-i18n="qr_transparent">Transparent</span></button>
-              <label class="chip"><input type="color" id="stitchBgColor" value="#ffffff"><span data-i18n="sz_bg_custom">Custom</span></label>
-            </div>
-          </div>
-
-          <div class="settings__group">
-            <label class="settings__label" data-i18n="sz_output">Output</label>
-            <div class="segmented sz-output-selector" id="stitchFormatSelector">
-              <button class="segmented__btn is-active" data-value="png" type="button" data-i18n="ed_png">PNG</button>
-              <button class="segmented__btn" data-value="jpeg" type="button" data-i18n="sz_jpeg">JPEG</button>
-              <button class="segmented__btn" data-value="pdf" type="button">PDF</button>
-            </div>
-          </div>
-        </div>
-
-        <section class="list sz-stitch-list" id="stitchList" aria-live="polite"></section>
-
-        <div class="actions sz-actions" id="stitchActions" hidden>
-          <div class="actions__info">
-            <span id="stitchInfo">—</span>
-          </div>
-          <div class="actions__btns">
-            <button class="btn btn--secondary btn--sm" id="stitchClearBtn" type="button" data-i18n="conv_clear">Clear</button>
-            <button class="btn btn--secondary btn--sm" id="stitchAnnotateBtn" type="button" data-i18n="exp_annotate">Annotate</button>
-            <button class="btn btn--primary btn--sm" id="stitchExportBtn" type="button" data-i18n="sz_download">Download</button>
-          </div>
-        </div>
-      </section>
-
       <!-- SCALE MODE -->
       <section class="panel card sz-panel" id="scalePanel" hidden>
         <div class="settings__group">
@@ -318,6 +233,12 @@
                 <input class="range" type="range" id="scaleQuality" min="1" max="100" value="92">
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="sz-stage-wrap" id="scalePreviewWrap" hidden>
+          <div class="sz-stage">
+            <canvas id="scalePreview"></canvas>
           </div>
         </div>
 
