@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image Prep &mdash; 70015</title>
+  <meta name="description" content="Paste a screenshot and get an AI-ready copy back on your clipboard: resized to what the model uses, metadata removed, token estimate shown. Runs in your browser, no upload.">
+  <link rel="canonical" href="https://70015.net/ai-prep">
+  <meta property="og:title" content="AI Image Prep &mdash; 70015">
+  <meta property="og:description" content="Paste in, paste out: resize images for AI chats and strip metadata. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/ai-prep">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 AI Image Prep",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/ai-prep",
+    "description": "Browser-based image preparation for AI chats: resize, strip metadata, copy to clipboard.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <img src="logo.svg" alt="" width="26" height="26">
+        </span>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title" data-i18n="t_aiprep">AI Image Prep</h1>
+          <p class="hero__desc" data-i18n="aip_desc">Paste an image, get an AI-ready copy back on your clipboard: resized to what the model uses, metadata removed.</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="upload" id="aipDrop">
+          <input type="file" id="aipInput" class="upload__input" accept="image/*" aria-label="Choose an image" data-i18n-aria-label="choose_image">
+          <div class="upload__content">
+            <div class="upload__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="18" y="12" width="28" height="40" rx="3"/>
+                <path d="M26 12 V8 H38 V12"/>
+                <path d="M26 30 L32 36 L40 26"/>
+              </svg>
+            </div>
+            <p class="upload__title" data-i18n="aip_paste">Press Ctrl+V (⌘V) anywhere on this page</p>
+            <p class="upload__hint" data-i18n="aip_paste_hint">The result goes straight back to your clipboard, ready to paste into the AI chat. You can also drop or choose a file.</p>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings__group">
+            <label class="settings__label" data-i18n="aip_size">Longest side</label>
+            <div class="segmented" id="aipSize">
+              <button class="segmented__btn" data-value="1024" type="button">1024</button>
+              <button class="segmented__btn is-active" data-value="1568" type="button">1568 · Claude</button>
+              <button class="segmented__btn" data-value="2048" type="button">2048</button>
+              <button class="segmented__btn" data-value="0" type="button" data-i18n="conv_original">Original</button>
+            </div>
+            <p class="settings__note" data-i18n="aip_size_note">Claude scales anything above 1568 px down anyway, so shrinking first mainly cuts upload size. Pick 1024 to spend fewer tokens. Images are never enlarged.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card" id="aipResult" hidden>
+        <p class="aip-status" id="aipStatus" role="status" aria-live="polite"></p>
+        <div class="conv-preview__media" id="aipMedia"></div>
+        <dl class="aip-stats">
+          <dt data-i18n="aip_stat_size">Size</dt><dd id="aipDims">—</dd>
+          <dt data-i18n="aip_stat_file">File</dt><dd id="aipBytes">—</dd>
+          <dt data-i18n="aip_stat_tokens">Tokens</dt><dd><span id="aipTokens">—</span> <span class="aip-stats__hint" data-i18n="aip_tokens_hint">(Claude estimate: width × height ÷ 750)</span></dd>
+          <dt data-i18n="aip_stat_meta">Metadata</dt><dd data-i18n="aip_meta_removed">Removed (EXIF, location, camera and editor data are not copied)</dd>
+        </dl>
+        <div class="actions__btns" id="aipActions"></div>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/ai-prep.js"></script>
+</body>
+</html>
