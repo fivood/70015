@@ -38,16 +38,20 @@ npx --yes serve .
 
 ```bash
 # 1. 改 extension/manifest.src.json 里的 version
-# 2. 把 install.html 里 ins_meta 那行的版本号与体积同步改掉（版本是写死的，见下）
-# 3. 重新构建并打包（--zip 会把 Chromium 包写到 downloads/）
+# 2. 重新构建并打包（--zip 会把 Chromium 包写到 downloads/，
+#    并把版本号与体积写进 install.html 的 .ins-download__ver）
 node extension/build.js --zip
-# 4. 提交 downloads/70015-chromium.zip 与 install.html
+# 3. 提交 downloads/70015-chromium.zip 与 install.html
 ```
 
 **版本号在 `install.html` 里是写死的**，不是占位符。原因：Cloudflare Pages 直接以仓库原文
 部署（`pages deploy .`），**不会运行 `extension/build.js`**，所以任何构建期替换在线上都不生效。
-改版本时必须手动同步那一行。`__VERSION__` 这个占位符只有扩展构建产物会用（供扩展内部页面
-显示版本），站点页面不用它。
+因此由 `--zip` 在本地把那一段改好再提交；它放在没有 `data-i18n` 的 span 里，翻译不会覆盖它。
+（压缩包内的 install.html 是打包前复制的，显示的是上一版的数值，扩展内无影响。）
+`__VERSION__` 这个占位符只有扩展构建产物会用（供扩展内部页面显示版本），站点页面不用它。
+
+合并掉的工具（palette、svg、annotate）在站点上保留为跳转页；构建时会跳过含
+`http-equiv="refresh"` 的页面，因为扩展里无法解析不带 `.html` 的跳转地址。
 
 ## 关于部署
 

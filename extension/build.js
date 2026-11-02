@@ -32,7 +32,10 @@ const TARGETS = {
   }
 };
 
-const pages = fs.readdirSync(root).filter((f) => f.endsWith('.html'));
+// Redirect stubs for merged tools (palette, svg, annotate) only make sense on the site:
+// their relative refresh URL has no .html, which an extension page cannot resolve.
+const pages = fs.readdirSync(root).filter((f) => f.endsWith('.html') &&
+  !fs.readFileSync(path.join(root, f), 'utf8').includes('http-equiv="refresh"'));
 const names = pages.map((f) => f.slice(0, -5));
 const linkRe = new RegExp('href="(\\./|' + names.join('|') + ')"', 'g');
 
@@ -112,5 +115,18 @@ for (const target of Object.keys(TARGETS)) {
       : path.join(root, 'dist', '70015-firefox-' + source.version + '.zip');
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     zipDir(out, dest);
+    if (target === 'extension') syncInstallMeta(dest);
   }
+}
+
+// The site serves install.html as-is (no build on deploy), so write the zip's version
+// and size into it here. The zip's own copy of install.html shows the previous values.
+function syncInstallMeta(zipPath) {
+  const file = path.join(root, 'install.html');
+  const kb = Math.round(fs.statSync(zipPath).size / 1024);
+  const html = fs.readFileSync(file, 'utf8');
+  const re = /(<span class="ins-download__ver">)[^<]*(<\/span>)/;
+  if (!re.test(html)) throw new Error('install.html: .ins-download__ver span not found');
+  fs.writeFileSync(file, html.replace(re, '$1v' + source.version + ' &middot; ' + kb + ' KB$2'));
+  console.log('Updated install.html: v' + source.version + ', ' + kb + ' KB');
 }
