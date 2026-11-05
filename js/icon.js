@@ -142,13 +142,13 @@
   }
 
   // favicon.ico + common PNG sizes + web manifest. Returns [{ name, blob }].
-  async function buildFaviconFiles(img, mode, focus) {
+  async function buildFaviconFiles(img, mode, focus, icoSizes) {
     const visibleBounds = getVisibleImageBounds(img);
     const png = {};
     for (const size of [16, 32, 48, 180, 192, 512]) {
       png[size] = await renderSquarePng(img, size, mode, visibleBounds, focus);
     }
-    const ico = await convertToIco(img, { icoSizes: [16, 32, 48, 64, 128, 256], icoCropMode: mode, focus });
+    const ico = await convertToIco(img, { icoSizes: icoSizes || [16, 32, 48, 64, 128, 256], icoCropMode: mode, focus });
 
     const manifest = {
       name: 'Web App',

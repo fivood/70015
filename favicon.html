@@ -95,6 +95,19 @@
 
         <div class="settings">
           <div class="settings__group">
+            <span class="settings__label" data-i18n="conv_ico_sizes">ICO sizes</span>
+            <div class="chips" id="favIcoSizes">
+              <label class="chip"><input type="checkbox" value="16" checked><span>16&times;16</span></label>
+              <label class="chip"><input type="checkbox" value="32" checked><span>32&times;32</span></label>
+              <label class="chip"><input type="checkbox" value="48" checked><span>48&times;48</span></label>
+              <label class="chip"><input type="checkbox" value="64" checked><span>64&times;64</span></label>
+              <label class="chip"><input type="checkbox" value="128" checked><span>128&times;128</span></label>
+              <label class="chip"><input type="checkbox" value="256" checked><span>256&times;256</span></label>
+            </div>
+            <p class="settings__note" data-i18n="fav_ico_sizes_note">Sizes packed into favicon.ico. 16, 32 and 48 cover browser tabs; add 256 for a desktop or app icon.</p>
+          </div>
+
+          <div class="settings__group">
             <label class="settings__label" data-i18n="conv_non_square">Non-square images</label>
             <div class="segmented" id="favFitSelector">
               <button class="segmented__btn is-active" data-value="contain" type="button" data-i18n="conv_contain">Contain</button>
@@ -115,14 +128,21 @@
       </section>
 
       <section class="panel card" id="favResult" hidden>
-        <div class="fav-previews" id="favPreviews"></div>
-        <div class="actions">
-          <div class="actions__info"><span id="favInfo">—</span></div>
-          <div class="actions__btns">
-            <button class="btn btn--secondary btn--sm" id="favIcoBtn" type="button" data-i18n="fav_dl_ico">Download favicon.ico</button>
-            <button class="btn btn--primary btn--sm" id="favZipBtn" type="button" data-i18n="conv_zip">Download ZIP</button>
+        <div class="fav-dl">
+          <div class="fav-dl__text">
+            <h2 class="fav-dl__title" data-i18n="fav_ico_title">favicon.ico only</h2>
+            <p class="fav-dl__desc" id="favIcoInfo">—</p>
           </div>
+          <button class="btn btn--primary btn--sm" id="favIcoBtn" type="button" data-i18n="fav_dl_ico">Download favicon.ico</button>
         </div>
+        <div class="fav-dl">
+          <div class="fav-dl__text">
+            <h2 class="fav-dl__title" data-i18n="fav_pack_title">Website icon pack (ZIP)</h2>
+            <p class="fav-dl__desc"><span data-i18n="fav_pack_desc">favicon.ico, the PNG icons below and site.webmanifest, for a site&rsquo;s &lt;head&gt;.</span> <span id="favZipInfo"></span></p>
+          </div>
+          <button class="btn btn--secondary btn--sm" id="favZipBtn" type="button" data-i18n="fav_dl_zip">Download icon pack</button>
+        </div>
+        <div class="fav-previews" id="favPreviews"></div>
       </section>
     </main>
 

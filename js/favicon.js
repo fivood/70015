@@ -19,9 +19,17 @@
   var fitSelector = document.getElementById('favFitSelector');
   var result = document.getElementById('favResult');
   var previews = document.getElementById('favPreviews');
-  var info = document.getElementById('favInfo');
+  var icoInfo = document.getElementById('favIcoInfo');
+  var zipInfo = document.getElementById('favZipInfo');
+  var sizeChips = document.getElementById('favIcoSizes');
 
   var img = null, baseName = 'favicon', fit = 'contain', focus = null, files = [], version = 0, previewUrls = [];
+
+  function icoSizes() {
+    return [].map.call(sizeChips.querySelectorAll('input:checked'), function (c) { return parseInt(c.value, 10); });
+  }
+
+  function kb(n) { return (n / 1024).toFixed(1) + ' KB'; }
 
   // Cover only: where the square icon is cut from the image.
   var cropGroup = document.getElementById('favCropGroup');
@@ -46,7 +54,7 @@
   function build() {
     if (!img) return;
     var v = ++version;
-    IconKit.buildFaviconFiles(img, fit, focus).then(function (out) {
+    IconKit.buildFaviconFiles(img, fit, focus, icoSizes()).then(function (out) {
       if (v !== version) return;
       files = out;
       render();
@@ -65,7 +73,8 @@
         '<figcaption>' + f.name + '</figcaption></figure>';
     }).join('');
     var total = files.reduce(function (s, f) { return s + f.blob.size; }, 0);
-    info.textContent = files.length + ' files · ' + (total / 1024).toFixed(1) + ' KB';
+    icoInfo.textContent = icoSizes().join(', ') + ' px · ' + kb(files[0].blob.size);
+    zipInfo.textContent = files.length + ' ' + t('fav_files') + ' · ' + kb(total);
     result.hidden = false;
   }
 
@@ -90,6 +99,15 @@
     [].forEach.call(fitSelector.querySelectorAll('.segmented__btn'), function (b) { b.classList.toggle('is-active', b === btn); });
     fit = btn.dataset.value;
     syncPicker();
+    build();
+  });
+
+  sizeChips.addEventListener('change', function (e) {
+    if (!icoSizes().length) {
+      e.target.checked = true;
+      showToast(t('conv_select_ico'));
+      return;
+    }
     build();
   });
 

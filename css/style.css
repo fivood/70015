@@ -1455,6 +1455,44 @@ body {
 }
 
 /* Favicon Generator */
+.fav-dl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
+  padding: var(--space) var(--space-lg);
+  margin-bottom: var(--space);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.fav-dl__title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fav-dl__desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.fav-dl .btn {
+  flex-shrink: 0;
+}
+
+.fav-dl + .fav-previews {
+  margin-top: var(--space-lg);
+}
+
+@media (max-width: 560px) {
+  .fav-dl {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .fav-previews {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
