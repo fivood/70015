@@ -266,6 +266,28 @@
   // on the strongest edges. Multiples of the true size score just as high, so take the
   // smallest size near the top score, then settle on the local peak next to it.
   // ponytail: one uniform period per axis; warped grids need per-line fitting (proper-pixel-art's Hough approach).
+  // Cell size from the spacing of edge peaks: local maxima above 20 % of the strongest edge,
+  // then the median gap, refined to the mean of the gaps within ±30 % of it (so 12 and 13 px
+  // gaps give 12.5). A drifting grid still has a typical gap, where scoring one uniform grid
+  // over the whole image would settle on a multiple of it. After the step estimate in
+  // Sprite Fusion Pixel Snapper (MIT, see walkCuts). Returns null with too few peaks.
+  function peakStep(P) {
+    var max = 0, i;
+    for (i = 0; i < P.length; i++) if (P[i] > max) max = P[i];
+    if (!max) return null;
+    var peaks = [];
+    for (i = 1; i < P.length - 1; i++) {
+      if (P[i] > max * 0.2 && P[i] > P[i - 1] && P[i] >= P[i + 1] && (!peaks.length || i - peaks[peaks.length - 1] >= 2)) peaks.push(i);
+    }
+    if (peaks.length < 4) return null;
+    var gaps = [];
+    for (i = 1; i < peaks.length; i++) gaps.push(peaks[i] - peaks[i - 1]);
+    var med = gaps.slice().sort(function (a, b) { return a - b; })[gaps.length >> 1];
+    var near = gaps.filter(function (g) { return g >= med * 0.7 && g <= med * 1.3; });
+    var step = near.reduce(function (s, g) { return s + g; }, 0) / near.length;
+    return step >= 2 && step <= 64 ? step : null;
+  }
+
   function detectPeriod(P, forceP) {
     var mean = 0;
     for (var i = 0; i < P.length; i++) mean += P[i];
@@ -274,6 +296,12 @@
       var f = lineScore(P, forceP);
       return { p: forceP, o: f.phase, strength: mean ? f.s / mean : 0 };
     }
+    var step = peakStep(P);
+    if (step) {
+      var at = lineScore(P, step);
+      return { p: Math.round(step * 10) / 10, o: at.phase, strength: mean ? at.s / mean : 0 };
+    }
+    // Too few clear edges for the peak spacing: score each candidate size instead.
     var maxP = Math.min(64, (P.length + 1) / 4), scores = [], top = 0;
     for (var k = 20; k / 10 <= maxP; k++) {
       var r = lineScore(P, k / 10);
@@ -291,9 +319,50 @@
 
   // forceP: use this cell size (px) and only fit where the grid starts.
   function detectGrid(d, w, h, forceP) {
-    var gx = detectPeriod(edgeProfile(d, w, h, false), forceP);
-    var gy = detectPeriod(edgeProfile(d, w, h, true), forceP);
-    return gx && gy ? { x: gx, y: gy } : null;
+    var px = edgeProfile(d, w, h, false), py = edgeProfile(d, w, h, true);
+    var gx = detectPeriod(px, forceP), gy = detectPeriod(py, forceP);
+    if (!gx || !gy) return null;
+    // strength stays the uniform-grid score: the walker always lands on local maxima, so
+    // edge strength along walked lines would look high even for photos.
+    gx.cuts = walkCuts(px, w, gx);
+    gy.cuts = walkCuts(py, h, gy);
+    return { x: gx, y: gy };
+  }
+
+  // Cell boundaries that follow the image's own edges, so a grid whose cells drift in size
+  // across the image still lines up. Each next boundary is the strongest edge within ±35 %
+  // of a cell (at least 2 px) of where the cell size puts it, or that spot when no edge stands
+  // out. Adapted from the walker in Sprite Fusion Pixel Snapper
+  // (github.com/Hugo-Dz/spritefusion-pixel-snapper, MIT License, Copyright (c) Hugo Duprez).
+  // P[i] is the edge between pixels i and i+1, so a cell starting at pixel c sits on P[c - 1].
+  // Returns pixel positions [0, ..., len]; slivers under half a cell join their neighbour.
+  function walkCuts(P, len, g) {
+    var mean = 0;
+    for (var i = 0; i < P.length; i++) mean += P[i];
+    mean /= P.length || 1;
+    var win = Math.max(2, g.p * 0.35), cuts = [0];
+    // The first boundary: exactly one real one lies 0.5-1.5 cells in, cropped mid-cell or not.
+    var pos = g.p, first = true;
+    while (pos < len - g.p / 2) {
+      var prev = cuts[cuts.length - 1];
+      var lo = Math.max(prev + 1, Math.round(first ? g.p * 0.5 : pos - win));
+      var hi = Math.min(len - 1, Math.round(first ? g.p * 1.5 : pos + win));
+      first = false;
+      var best = -1, bestVal = -1;
+      for (var c = lo; c <= hi; c++) if (P[c - 1] > bestVal) { bestVal = P[c - 1]; best = c; }
+      var cut = best >= 0 && bestVal > mean * 0.5 ? best : Math.max(prev + 1, Math.round(pos));
+      if (len - cut < g.p / 2) break;
+      cuts.push(cut);
+      pos = cut + g.p;
+    }
+    cuts.push(len);
+    return cuts;
+  }
+
+  // [start, end) of each cell along one axis: walked cuts when present, else the uniform grid.
+  function cellSpans(len, g) {
+    if (g.cuts) return g.cuts.slice(1).map(function (b, k) { return [g.cuts[k], b]; });
+    return cellStarts(len, g).map(function (s) { return [s, s + g.p]; });
   }
 
   // Start offsets of the cells along one axis (a cell counts when its center is inside).
@@ -318,14 +387,17 @@
   // exact: take the most common exact color instead, for resizing art that is already one
   // color per cell (a median of two different pixels can mix channels into a new color).
   function sampleGrid(d, w, h, gx, gy, exact) {
-    var xs = cellStarts(w, gx), ys = cellStarts(h, gy);
+    var xs = cellSpans(w, gx), ys = cellSpans(h, gy);
     var out = new Uint8ClampedArray(xs.length * ys.length * 4);
-    var size = (Math.ceil(gx.p / 2) + 2) * (Math.ceil(gy.p / 2) + 2);
+    function widest(spans) { return spans.reduce(function (m, s) { return Math.max(m, s[1] - s[0]); }, 1); }
+    var size = (Math.ceil(widest(xs) / 2) + 2) * (Math.ceil(widest(ys) / 2) + 2);
     var R = new Uint8Array(size), G = new Uint8Array(size), B = new Uint8Array(size);
-    ys.forEach(function (y0, cy) {
-      var ya = Math.max(0, Math.floor(y0 + gy.p * 0.25)), yb = Math.min(h, Math.max(ya + 1, Math.ceil(y0 + gy.p * 0.75)));
-      xs.forEach(function (x0, cx) {
-        var xa = Math.max(0, Math.floor(x0 + gx.p * 0.25)), xb = Math.min(w, Math.max(xa + 1, Math.ceil(x0 + gx.p * 0.75)));
+    ys.forEach(function (sy, cy) {
+      var ph = sy[1] - sy[0];
+      var ya = Math.max(0, Math.floor(sy[0] + ph * 0.25)), yb = Math.min(h, Math.max(ya + 1, Math.ceil(sy[0] + ph * 0.75)));
+      xs.forEach(function (sx, cx) {
+        var pw = sx[1] - sx[0];
+        var xa = Math.max(0, Math.floor(sx[0] + pw * 0.25)), xb = Math.min(w, Math.max(xa + 1, Math.ceil(sx[0] + pw * 0.75)));
         var n = 0, total = 0;
         for (var y = ya; y < yb; y++) {
           for (var x = xa; x < xb; x++) {
@@ -405,11 +477,33 @@
         if (most >= 5) { pattern[i] = best; changed++; }
       }
     }
+    // Then specks floating in empty space: groups of at most 3 beads that touch only empty
+    // cells, e.g. what a JPG's background leaves behind after the background is removed.
+    var seen = new Uint8Array(w * h);
+    for (var start = 0; start < pattern.length; start++) {
+      if (pattern[start] < 0 || seen[start]) continue;
+      var group = [], stack = [start];
+      seen[start] = 1;
+      while (stack.length) {
+        var j = stack.pop();
+        group.push(j);
+        var jx = j % w, jy = (j - jx) / w;
+        [jx > 0 ? j - 1 : -1, jx < w - 1 ? j + 1 : -1, jy > 0 ? j - w : -1, jy < h - 1 ? j + w : -1].forEach(function (k) {
+          if (k >= 0 && !seen[k] && pattern[k] >= 0) { seen[k] = 1; stack.push(k); }
+        });
+      }
+      if (group.length <= 3 && group.length < pattern.length) {
+        group.forEach(function (k) { pattern[k] = -1; });
+        changed += group.length;
+      }
+    }
     return changed;
   }
 
   // Clear the most common color along the edges, filling inward from every edge cell that has it.
-  function removeBackground(pattern, w, h) {
+  // With palette and tol, the fill also crosses colors within tol (CIEDE2000) of that color,
+  // e.g. the several near-whites a JPG's white background turns into.
+  function removeBackground(pattern, w, h, palette, tol) {
     var counts = new Map(), edge = [];
     for (var x = 0; x < w; x++) edge.push(x, (h - 1) * w + x);
     for (var y = 1; y < h - 1; y++) edge.push(y * w, y * w + w - 1);
@@ -417,7 +511,20 @@
     var bg = -1, most = 0;
     counts.forEach(function (c, v) { if (c > most) { most = c; bg = v; } });
     if (bg < 0) return pattern;
-    edge.forEach(function (i) { if (pattern[i] === bg) floodFill(pattern, w, h, i % w, Math.floor(i / w), -1); });
+    var near = {};
+    near[bg] = true;
+    if (palette && tol) palette.forEach(function (c, i) { if (deltaE(c.lab, palette[bg].lab) <= tol) near[i] = true; });
+    var stack = edge.filter(function (i) { return pattern[i] >= 0 && near[pattern[i]]; });
+    while (stack.length) {
+      var i = stack.pop();
+      if (pattern[i] < 0 || !near[pattern[i]]) continue;
+      pattern[i] = -1;
+      var cx = i % w, cy = (i - cx) / w;
+      if (cx > 0) stack.push(i - 1);
+      if (cx < w - 1) stack.push(i + 1);
+      if (cy > 0) stack.push(i - w);
+      if (cy < h - 1) stack.push(i + w);
+    }
     return pattern;
   }
 

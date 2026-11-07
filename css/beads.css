@@ -38,6 +38,13 @@
   border-radius: var(--radius-xs);
 }
 
+/* "Empty" (no bead): the usual transparency checkerboard. */
+.bd-swatch--empty {
+  background-color: #ffffff;
+  background-image: conic-gradient(#d1d5db 25%, transparent 0 50%, #d1d5db 0 75%, transparent 0);
+  background-size: 10px 10px;
+}
+
 .bd-stage {
   max-height: 75vh;
   overflow: auto;

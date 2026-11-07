@@ -119,7 +119,7 @@
       var ctx = c.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0);
       var name = file.name && file.name !== 'image.png' ? file.name.replace(/\.[^.]+$/, '') : 'beads';
-      state.src = { data: ctx.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height, img: img, name: name };
+      state.src = { data: ctx.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height, img: img, name: name, jpeg: /jpe?g/.test(file.type) };
       el.w.value = el.h.value = ''; // a new image starts at its own size
       document.body.classList.add('is-working');
       autoMode();
@@ -170,14 +170,21 @@
 
   // Bead count from the width/height fields; an empty one follows the other's proportions.
   // Both empty: the natural size (nw x nh), or fallbackW wide for photos.
+  // When the side that follows would pass MAX_SIDE, both shrink together to fit (never stretch);
+  // capped: true tells the size note to say so. Two typed sides are used as typed.
   function targetSize(nw, nh, fallbackW) {
     var w = parseInt(el.w.value, 10) || 0, h = parseInt(el.h.value, 10) || 0;
     if (!w && !h) {
       if (!fallbackW) return { w: nw, h: nh };
       w = fallbackW;
     }
+    var follows = !w || !h;
     if (!h) h = Math.max(1, Math.round(w * nh / nw));
     if (!w) w = Math.max(1, Math.round(h * nw / nh));
+    if (follows && Math.max(w, h) > MAX_SIDE) {
+      var k = MAX_SIDE / Math.max(w, h);
+      return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)), capped: true };
+    }
     return { w: w, h: h };
   }
 
@@ -187,6 +194,7 @@
     if (state.mode === 'photo') {
       state.natural = null;
       size = targetSize(s.w, s.h, Math.min(50, s.w));
+      state.capped = !!size.capped;
       if (size.w > MAX_SIDE || size.h > MAX_SIDE) return { w: size.w, h: size.h };
       var c = document.createElement('canvas');
       c.width = size.w;
@@ -207,6 +215,7 @@
     state.natural = { w: cells.w, h: cells.h };
     // A different bead count resamples the art's own grid, one median per new cell.
     size = targetSize(cells.w, cells.h);
+    state.capped = !!size.capped;
     if (size.w === cells.w && size.h === cells.h) return cells;
     if (size.w > MAX_SIDE || size.h > MAX_SIDE) return { w: size.w, h: size.h };
     return C.sampleGrid(cells.data, cells.w, cells.h, { p: cells.w / size.w, o: 0 }, { p: cells.h / size.h, o: 0 }, true);
@@ -228,6 +237,9 @@
       note += ' ' + tpl(state.w < n.w ? 'bd_size_down' : 'bd_size_up', state.w < n.w
         ? 'Shrunk from the art\'s {w} × {h}: thin lines and 1-pixel details may disappear.'
         : 'Enlarged from the art\'s {w} × {h}: each pixel becomes a block of beads.', { w: n.w, h: n.h });
+    }
+    if (state.capped) {
+      note += ' ' + tpl('bd_size_capped', 'Kept within {max} beads per side, so both sides were scaled down together.', { max: MAX_SIDE });
     }
     el.sizeNote.textContent = note;
   }
@@ -254,10 +266,13 @@
       render();
       return;
     }
-    if (state.mode === 'ai') C.mergeSimilar(cells.data, 5);
+    // AI art and JPGs carry noise that would split one color across neighbouring bead shades.
+    // Photos keep their gradients (and stay fast), so "Any image" is left alone.
+    if (state.mode === 'ai' || (state.src.jpeg && state.mode === 'pixel')) C.mergeSimilar(cells.data, 5);
     var pattern = C.mapColors(cells.data, state.palette, allowedColors());
     pattern = C.limitColors(pattern, state.palette, parseInt(el.max.value, 10));
-    if (el.bg.checked) C.removeBackground(pattern, cells.w, cells.h);
+    // Tolerance 6 takes a JPG white's near-white shades along, but not skin or cream tones.
+    if (el.bg.checked) C.removeBackground(pattern, cells.w, cells.h, state.palette, 6);
     state.w = cells.w;
     state.h = cells.h;
     state.pattern = pattern;
@@ -269,7 +284,7 @@
     var weak = state.mode === 'ai' && state.grid && state.grid.x.strength < 1.5;
     setStatus(weak ? t('bd_weak_grid', 'No clear pixel grid found. Check the result, change the cell size, or use "Any image".') : '');
     var counts = C.countColors(pattern, state.palette.length);
-    if (!counts[state.brush]) state.brush = counts.indexOf(Math.max.apply(null, counts));
+    if (state.brush >= 0 && !counts[state.brush]) state.brush = counts.indexOf(Math.max.apply(null, counts));
     if (state.focus) pickNextFocus();
     render();
   }
@@ -356,10 +371,17 @@
     el.stats.textContent = statsText(used);
     el.usedNote.textContent = state.focus
       ? t('bd_used_note_focus', 'Click a color to show only that color. Tick ✓ when its beads are placed; progress is saved in this browser.')
-      : t('bd_used_note', 'Click a color to paint with it. ⇄ replaces every bead of that color with the brush color.');
+      : t('bd_used_note', 'Click a color to paint with it; "Empty" erases, and with Fill clears a whole area. ⇄ replaces every bead of that color with the brush color (with "Empty" as the brush, it removes them).');
     renderProgress(used);
     el.legend.innerHTML = '';
-    used.forEach(function (u) {
+    // "Empty" (no bead) comes first: as the brush it erases, with Fill it clears an area,
+    // and its ⇄ fills every empty cell with the brush color.
+    var entries = used.slice();
+    if (!state.focus) {
+      var placed = used.reduce(function (s, u) { return s + u.n; }, 0);
+      entries.unshift({ i: -1, n: state.pattern.length - placed });
+    }
+    entries.forEach(function (u) {
       var c = state.palette[u.i];
       var row = document.createElement('div');
       row.className = 'bd-color' + (u.i === (state.focus ? state.focusColor : state.brush) ? ' is-active' : '') + (state.focus && state.done.has(u.i) ? ' is-done' : '');
@@ -367,8 +389,9 @@
       pick.type = 'button';
       pick.className = 'bd-color__pick';
       pick.innerHTML = '<span class="bd-swatch"></span><span class="bd-color__code"></span><span class="bd-color__count"></span>';
-      pick.firstChild.style.background = c.hex;
-      pick.children[1].textContent = c.code;
+      if (c) pick.firstChild.style.background = c.hex;
+      else pick.firstChild.classList.add('bd-swatch--empty');
+      pick.children[1].textContent = c ? c.code : t('bd_empty_row', 'Empty (no bead)');
       pick.children[2].textContent = '× ' + u.n;
       pick.addEventListener('click', function () {
         if (state.focus) { state.focusColor = u.i; renderCanvas(); }
@@ -385,18 +408,19 @@
         side.addEventListener('click', function () { toggleDone(u.i); });
       } else {
         side.textContent = '⇄';
-        side.title = tpl('bd_replace', 'Replace all {code} with {brush}', { code: c.code, brush: state.palette[state.brush] ? state.palette[state.brush].code : '' });
-        side.disabled = u.i === state.brush;
+        side.title = tpl('bd_replace', 'Replace all {code} with {brush}', { code: codeOf(u.i), brush: codeOf(state.brush) });
+        side.disabled = u.i === state.brush || !u.n;
         side.addEventListener('click', function () { replaceAll(u.i, state.brush); });
       }
-      side.setAttribute('aria-label', side.title + ' ' + c.code);
+      side.setAttribute('aria-label', side.title);
       row.appendChild(pick);
       row.appendChild(side);
       el.legend.appendChild(row);
     });
     var b = state.palette[state.brush];
-    el.brushSwatch.style.background = b ? b.hex : 'transparent';
-    el.brushCode.textContent = b ? b.code : '';
+    el.brushSwatch.style.background = b ? b.hex : '';
+    el.brushSwatch.classList.toggle('bd-swatch--empty', !b);
+    el.brushCode.textContent = codeOf(state.brush);
     renderPaletteMarks();
     el.undo.disabled = !state.undo.length;
   }
@@ -517,7 +541,10 @@
 
   // ---------- Editing ----------
 
+  // Brush -1 is "empty": painting or filling with it removes beads.
   function setBrush(i) { state.brush = i; renderInfo(); }
+
+  function codeOf(i) { return i >= 0 && state.palette[i] ? state.palette[i].code : t('bd_empty', 'Empty'); }
 
   function setTool(tool) {
     state.tool = tool;
@@ -530,7 +557,7 @@
   }
 
   function replaceAll(from, to) {
-    if (from === to || !state.palette[to]) return;
+    if (from === to || (to >= 0 && !state.palette[to])) return;
     pushUndo();
     for (var i = 0; i < state.pattern.length; i++) if (state.pattern[i] === from) state.pattern[i] = to;
     render();
@@ -559,7 +586,8 @@
     var i = cellAt(e);
     if (i < 0) return;
     if (state.tool === 'pick') {
-      if (state.pattern[i] >= 0) { setBrush(state.pattern[i]); setTool('brush'); }
+      setBrush(state.pattern[i]); // an empty cell picks the "empty" brush
+      setTool('brush');
       return;
     }
     pushUndo();

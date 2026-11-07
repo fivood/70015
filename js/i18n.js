@@ -846,7 +846,7 @@
       "t_beads": "Bead Pattern",
       "d_beads": "Pixel art, AI pixel art or any picture to a fuse bead pattern with MARD color codes and bead counts.",
       "bd_desc": "Turn pixel art, AI pixel art, or any picture into a fuse bead pattern with color codes and bead counts.",
-      "bd_drop_hint": "PNG from Aseprite, an AI image, or a photo. You can also paste (Ctrl+V).",
+      "bd_drop_hint": "Pixel art from Aseprite, an AI image, or a photo, in any common image format. You can also paste (Ctrl+V).",
       "bd_source": "Image type",
       "bd_mode_pixel": "Pixel art",
       "bd_mode_ai": "AI pixel art",
@@ -877,7 +877,7 @@
       "bd_undo": "Undo",
       "bd_show_codes": "Codes",
       "bd_used": "Colors used",
-      "bd_used_note": "Click a color to paint with it. ⇄ replaces every bead of that color with the brush color.",
+      "bd_used_note": "Click a color to paint with it; \"Empty\" erases, and with Fill clears a whole area. ⇄ replaces every bead of that color with the brush color (with \"Empty\" as the brush, it removes them).",
       "bd_all_colors": "All bead colors",
       "bd_export_pixel": "Pixel PNG (1 bead = 1 px)",
       "bd_stats": "{w} × {h} beads · {colors} colors · {total} beads in total",
@@ -912,7 +912,10 @@
       "bd_cm_h": "Height (cm)",
       "bd_size_note": "{w} × {h} beads of {mm} mm ≈ {cw} × {ch} cm. Type a size in cm to get the bead count; leave a bead field empty to keep the proportions.",
       "bd_size_down": "Shrunk from the art's {w} × {h}: thin lines and 1-pixel details may disappear.",
-      "bd_size_up": "Enlarged from the art's {w} × {h}: each pixel becomes a block of beads."
+      "bd_size_up": "Enlarged from the art's {w} × {h}: each pixel becomes a block of beads.",
+      "bd_empty": "Empty",
+      "bd_empty_row": "Empty (no bead)",
+      "bd_size_capped": "Kept within {max} beads per side, so both sides were scaled down together."
     },
 
     zh: {
@@ -1740,7 +1743,7 @@
       "t_beads": "拼豆图纸",
       "d_beads": "像素图、AI 像素图或任意图片转拼豆图纸，带 MARD 色号和用量统计。",
       "bd_desc": "把像素图、AI 生成的像素图或任意图片转成拼豆图纸，标出色号并统计每种颜色的用量。",
-      "bd_drop_hint": "Aseprite 导出的 PNG、AI 图或照片都可以，也能直接粘贴（Ctrl+V）。",
+      "bd_drop_hint": "Aseprite 像素图、AI 图或照片都可以，常见图片格式都支持，也能直接粘贴（Ctrl+V）。",
       "bd_source": "图片类型",
       "bd_mode_pixel": "像素图",
       "bd_mode_ai": "AI 像素图",
@@ -1771,7 +1774,7 @@
       "bd_undo": "撤销",
       "bd_show_codes": "色号",
       "bd_used": "用到的颜色",
-      "bd_used_note": "点颜色即可用它画。⇄ 会把这个颜色全部换成当前画笔色。",
+      "bd_used_note": "点颜色即可用它画；选「空」就是擦除，配合「填充」能一次清空一片。⇄ 会把这个颜色全部换成当前画笔色（画笔是「空」时就是全部去掉）。",
       "bd_all_colors": "全部拼豆颜色",
       "bd_export_pixel": "像素 PNG（1 颗 = 1 像素）",
       "bd_stats": "{w} × {h} 颗 · {colors} 色 · 共 {total} 颗",
@@ -1806,7 +1809,10 @@
       "bd_cm_h": "高（cm）",
       "bd_size_note": "{w} × {h} 颗，{mm}mm 豆约 {cw} × {ch} cm。填厘米会自动换算成颗数；颗数留空一边则按比例。",
       "bd_size_down": "已从原图的 {w} × {h} 缩小：细线和单像素细节可能会丢。",
-      "bd_size_up": "已从原图的 {w} × {h} 放大：每个像素会变成一块豆子。"
+      "bd_size_up": "已从原图的 {w} × {h} 放大：每个像素会变成一块豆子。",
+      "bd_empty": "空",
+      "bd_empty_row": "空（不放豆）",
+      "bd_size_capped": "每边最多 {max} 颗，已按原比例把宽高一起缩小。"
     }
   };
 
