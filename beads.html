@@ -78,7 +78,8 @@
         </div>
       </section>
 
-      <section class="panel card">
+      <div class="bd-layout">
+      <section class="panel card bd-settings">
         <div class="upload" id="bdDrop">
           <input type="file" id="bdInput" class="upload__input" accept="image/*" aria-label="Choose an image" data-i18n-aria-label="choose_image">
           <div class="upload__content">
@@ -112,16 +113,41 @@
                 <button class="btn btn--sm btn--secondary" id="bdRedetect" type="button" data-i18n="bd_redetect">Detect again</button>
               </div>
             </div>
-            <div class="settings__dimensions" id="bdSizeField" hidden>
+          </div>
+
+          <div class="settings__group">
+            <span class="settings__label" data-i18n="bd_size">Finished size</span>
+            <div class="settings__dimensions">
+              <div class="field">
+                <label for="bdPitch" data-i18n="bd_pitch">Bead size (mm)</label>
+                <input type="number" id="bdPitch" min="1" max="20" step="0.1" value="2.6">
+              </div>
+              <div class="field bd-field-btn">
+                <div class="segmented" id="bdPitchPreset">
+                  <button class="segmented__btn" data-value="2.6" type="button">2.6 mm</button>
+                  <button class="segmented__btn" data-value="5" type="button">5 mm</button>
+                </div>
+              </div>
+            </div>
+            <div class="settings__dimensions">
               <div class="field">
                 <label for="bdW" data-i18n="bd_w">Width (beads)</label>
-                <input type="number" id="bdW" min="4" max="200" value="50">
+                <input type="number" id="bdW" min="1" max="200">
               </div>
               <div class="field">
                 <label for="bdH" data-i18n="bd_h">Height (beads)</label>
-                <input type="number" id="bdH" min="4" max="200" placeholder="auto" data-i18n-placeholder="bd_auto">
+                <input type="number" id="bdH" min="1" max="200">
+              </div>
+              <div class="field">
+                <label for="bdCmW" data-i18n="bd_cm_w">Width (cm)</label>
+                <input type="number" id="bdCmW" min="0.5" max="200" step="0.1">
+              </div>
+              <div class="field">
+                <label for="bdCmH" data-i18n="bd_cm_h">Height (cm)</label>
+                <input type="number" id="bdCmH" min="0.5" max="200" step="0.1">
               </div>
             </div>
+            <p class="settings__note" id="bdSizeNote"></p>
           </div>
 
           <div class="settings__group">
@@ -171,7 +197,7 @@
         </div>
       </section>
 
-      <section class="panel card" id="bdResult" hidden>
+      <section class="panel card bd-result" id="bdResult" hidden>
         <p class="aip-status aip-status--warn" id="bdStatus" role="status" aria-live="polite" hidden></p>
         <p class="bd-stats" id="bdStats"></p>
         <p class="bd-progress" id="bdProgress" hidden></p>
@@ -208,10 +234,6 @@
             <label for="bdBoard" data-i18n="bd_board">Pegboard size (beads per side)</label>
             <input type="number" id="bdBoard" min="5" max="200" value="29">
           </div>
-          <div class="field">
-            <label for="bdPitch" data-i18n="bd_pitch">Bead size (mm)</label>
-            <input type="number" id="bdPitch" min="1" max="20" step="0.1" value="5">
-          </div>
         </div>
         <p class="settings__note" data-i18n="bd_print_note">One page per pegboard at real size, after an overview page. Print at "Actual size" / 100%, not "Fit to page", and the grid lines up under a clear pegboard.</p>
         <div class="actions__btns bd-actions">
@@ -221,6 +243,7 @@
         <h2 class="bd-heading" data-i18n="bd_export">Export chart</h2>
         <div class="actions__btns bd-actions" id="bdActions"></div>
       </section>
+      </div>
     </main>
 
     <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>

@@ -189,6 +189,7 @@
       }
       return true;
     });
+    if (accepted.length) document.body.classList.add('is-working');
     if (accepted.length === 0) {
       showToast(t('conv_select_images', 'Please select image files'));
       return;

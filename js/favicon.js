@@ -76,6 +76,7 @@
     icoInfo.textContent = icoSizes().join(', ') + ' px · ' + kb(files[0].blob.size);
     zipInfo.textContent = files.length + ' ' + t('fav_files') + ' · ' + kb(total);
     result.hidden = false;
+    document.body.classList.add('is-working');
   }
 
   input.addEventListener('change', function (e) { load(e.target.files[0]); input.value = ''; });

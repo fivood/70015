@@ -99,6 +99,7 @@
   stitchDrop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) addStitchFiles(e.dataTransfer.files); });
 
   function renderStitchList() {
+    document.body.classList.toggle('is-working', stitchFiles.length > 0);
     if (!stitchFiles.length) {
       stitchList.innerHTML = '<div class="sz-empty">' + escapeHtml(t('sz_stitch_empty')) + '</div>';
       return;

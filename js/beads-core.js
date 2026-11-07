@@ -297,9 +297,12 @@
   }
 
   // Start offsets of the cells along one axis (a cell counts when its center is inside).
+  // Positions come from the index, not a running sum, so a size like 64 / 40 gives exactly 40.
   function cellStarts(len, g) {
     var starts = [];
-    for (var s = g.o - g.p * Math.ceil(g.o / g.p); s + g.p / 2 < len; s += g.p) {
+    for (var i = -Math.ceil(g.o / g.p); ; i++) {
+      var s = g.o + i * g.p;
+      if (s + g.p / 2 >= len) break;
       if (s + g.p / 2 >= 0) starts.push(s);
     }
     return starts;
@@ -312,7 +315,9 @@
 
   // One color per cell: the per-channel median of the cell's middle half, which skips
   // anti-aliased borders and evens out AI/JPEG noise. Mostly transparent cells stay empty.
-  function sampleGrid(d, w, h, gx, gy) {
+  // exact: take the most common exact color instead, for resizing art that is already one
+  // color per cell (a median of two different pixels can mix channels into a new color).
+  function sampleGrid(d, w, h, gx, gy, exact) {
     var xs = cellStarts(w, gx), ys = cellStarts(h, gy);
     var out = new Uint8ClampedArray(xs.length * ys.length * 4);
     var size = (Math.ceil(gx.p / 2) + 2) * (Math.ceil(gy.p / 2) + 2);
@@ -333,9 +338,19 @@
         }
         if (n * 2 <= total) return; // stays 0,0,0,0
         var q = (cy * xs.length + cx) * 4;
-        out[q] = median(R, n);
-        out[q + 1] = median(G, n);
-        out[q + 2] = median(B, n);
+        if (exact) {
+          var counts = new Map(), best = 0, most = 0;
+          for (var k = 0; k < n; k++) {
+            var key = R[k] << 16 | G[k] << 8 | B[k], c = (counts.get(key) || 0) + 1;
+            counts.set(key, c);
+            if (c > most) { most = c; best = key; }
+          }
+          out[q] = best >> 16 & 255; out[q + 1] = best >> 8 & 255; out[q + 2] = best & 255;
+        } else {
+          out[q] = median(R, n);
+          out[q + 1] = median(G, n);
+          out[q + 2] = median(B, n);
+        }
         out[q + 3] = 255;
       });
     });

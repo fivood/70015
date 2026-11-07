@@ -829,6 +829,7 @@
     }
 
     actionsPanel.hidden = false;
+    document.body.classList.add('is-working');
     const readyCount = state.files.filter((f) => f.status === 'ready').length;
     fileCount.textContent = tpl('conv_count_done', '{count} images · {ready}/{count} done', { count, ready: readyCount });
     const total = state.files

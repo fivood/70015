@@ -113,6 +113,7 @@
       state.originalImage = image;
       state.source = image;
       workspace.hidden = false;
+      document.body.classList.add('is-working');
       render();
     };
     image.onerror = () => showToast(t('image_editor_load_failed', 'Could not load this image.'));

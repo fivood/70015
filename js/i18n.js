@@ -882,7 +882,7 @@
       "bd_export_pixel": "Pixel PNG (1 bead = 1 px)",
       "bd_stats": "{w} × {h} beads · {colors} colors · {total} beads in total",
       "bd_replace": "Replace all {code} with {brush}",
-      "bd_too_big": "That makes {w} × {h} beads, more than {max} per side. Use \"Any image\" and set a size, or raise the pixels per bead.",
+      "bd_too_big": "That makes {w} × {h} beads, more than {max} per side. Set a smaller width or height under \"Finished size\" (beads or cm), or raise the pixels per bead.",
       "bd_weak_grid": "No clear pixel grid found. Check the result, change the cell size, or use \"Any image\".",
       "bd_owned_only": "Only use colors I own",
       "bd_owned_note": "{n} colors marked as owned. Mark them under \"All bead colors\" with \"Click to mark owned\"; the list is saved in this browser.",
@@ -906,7 +906,13 @@
       "bd_export": "Export chart",
       "bd_size_cm": "≈ {w} × {h} cm",
       "bd_board_too_big": "A {n}-bead pegboard of {mm} mm beads is bigger than A3. Use a smaller pegboard size.",
-      "bd_board_title": "{name} · Board {n} of {total} (row {r}, column {c}) · columns {x0}–{x1}, rows {y0}–{y1} · {mm} mm beads"
+      "bd_board_title": "{name} · Board {n} of {total} (row {r}, column {c}) · columns {x0}–{x1}, rows {y0}–{y1} · {mm} mm beads",
+      "bd_size": "Finished size",
+      "bd_cm_w": "Width (cm)",
+      "bd_cm_h": "Height (cm)",
+      "bd_size_note": "{w} × {h} beads of {mm} mm ≈ {cw} × {ch} cm. Type a size in cm to get the bead count; leave a bead field empty to keep the proportions.",
+      "bd_size_down": "Shrunk from the art's {w} × {h}: thin lines and 1-pixel details may disappear.",
+      "bd_size_up": "Enlarged from the art's {w} × {h}: each pixel becomes a block of beads."
     },
 
     zh: {
@@ -1770,7 +1776,7 @@
       "bd_export_pixel": "像素 PNG（1 颗 = 1 像素）",
       "bd_stats": "{w} × {h} 颗 · {colors} 色 · 共 {total} 颗",
       "bd_replace": "把全部 {code} 换成 {brush}",
-      "bd_too_big": "这样会得到 {w} × {h} 颗，超过每边 {max} 颗。请改用「普通图片」并设定尺寸，或调大「每格像素」。",
+      "bd_too_big": "这样会得到 {w} × {h} 颗，超过每边 {max} 颗。请在「成品尺寸」里填小一点的宽或高（颗数或厘米都行），或调大「每格像素」。",
       "bd_weak_grid": "没有找到清晰的像素网格。请检查结果、调整「每格像素」，或改用「普通图片」。",
       "bd_owned_only": "只用我有的颜色",
       "bd_owned_note": "已标记 {n} 色为「我有」。在下方「全部拼豆颜色」里切到「点选标记我有」来勾选，记录保存在本浏览器。",
@@ -1794,7 +1800,13 @@
       "bd_export": "导出图纸",
       "bd_size_cm": "约 {w} × {h} cm",
       "bd_board_too_big": "{n} 颗一边、{mm}mm 豆子的豆板比 A3 还大，请调小豆板大小。",
-      "bd_board_title": "{name} · 第 {n}/{total} 块（第 {r} 行第 {c} 列）· 列 {x0}–{x1}，行 {y0}–{y1} · {mm}mm 豆"
+      "bd_board_title": "{name} · 第 {n}/{total} 块（第 {r} 行第 {c} 列）· 列 {x0}–{x1}，行 {y0}–{y1} · {mm}mm 豆",
+      "bd_size": "成品尺寸",
+      "bd_cm_w": "宽（cm）",
+      "bd_cm_h": "高（cm）",
+      "bd_size_note": "{w} × {h} 颗，{mm}mm 豆约 {cw} × {ch} cm。填厘米会自动换算成颗数；颗数留空一边则按比例。",
+      "bd_size_down": "已从原图的 {w} × {h} 缩小：细线和单像素细节可能会丢。",
+      "bd_size_up": "已从原图的 {w} × {h} 放大：每个像素会变成一块豆子。"
     }
   };
 

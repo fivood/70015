@@ -56,6 +56,7 @@
     state.image = null;
     preview.removeAttribute('src');
     panel.hidden = true;
+    document.body.classList.remove('is-working');
     fileName.textContent = '\u2014';
     facts.innerHTML = '';
     table.innerHTML = '';
@@ -123,6 +124,7 @@
       fileName.textContent = file.name;
       renderFacts(file, image);
       panel.hidden = false;
+      document.body.classList.add('is-working');
       status.textContent = t('metadata_reading', 'Reading metadata...');
       status.removeAttribute('data-i18n');
       try {

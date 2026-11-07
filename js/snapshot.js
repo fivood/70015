@@ -125,6 +125,7 @@
 
   function showScreenStage() {
     stage.hidden = false;
+    document.body.classList.add('is-working');
     video.hidden = false;
     pdfCanvas.hidden = true;
     stageControls.hidden = false;
@@ -134,6 +135,7 @@
 
   function showPdfStage() {
     stage.hidden = false;
+    document.body.classList.add('is-working');
     video.hidden = true;
     pdfCanvas.hidden = false;
     stageControls.hidden = true;

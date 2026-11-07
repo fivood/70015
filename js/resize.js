@@ -101,6 +101,7 @@
     cropCanvas.height = Math.round(cNatH * cScale);
     crop = { x: 0, y: 0, w: cropCanvas.width, h: cropCanvas.height };
     cropSettings.hidden = false;
+    document.body.classList.add('is-working');
     cropStageWrap.hidden = false;
     cropActions.hidden = false;
     applyRatioToCrop();
@@ -451,6 +452,7 @@
     scaleWInput.value = sNatW;
     scaleHInput.value = sNatH;
     scaleSettings.hidden = false;
+    document.body.classList.add('is-working');
     scaleActions.hidden = false;
     updateScaleInfo();
   }

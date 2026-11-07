@@ -46,6 +46,50 @@
   border-radius: var(--radius-sm);
 }
 
+/* Workbench once an image is loaded (body.is-working): the pattern comes first on narrow
+   screens; wide screens put the settings in a left column that scrolls on its own. */
+body.is-working .bd-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-working .bd-result {
+  order: -1;
+}
+
+body.is-working .bd-stage {
+  max-height: calc(100vh - 170px);
+}
+
+@media (min-width: 1100px) {
+  body.is-working .app {
+    max-width: 1680px;
+  }
+
+  body.is-working .bd-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    gap: var(--space-lg);
+    align-items: start;
+  }
+
+  body.is-working .bd-result {
+    order: 0;
+  }
+
+  body.is-working .bd-layout > .panel {
+    margin-bottom: 0;
+  }
+
+  body.is-working .bd-settings {
+    position: sticky;
+    top: var(--space);
+    max-height: calc(100vh - 2 * var(--space));
+    overflow-y: auto;
+    padding: var(--space);
+  }
+}
+
 .bd-stage canvas {
   display: block;
   margin: 0 auto;

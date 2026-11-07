@@ -66,6 +66,7 @@
     document.getElementById('aipDims').textContent = w0 + ' × ' + h0 + (s < 1 ? ' → ' + c.width + ' × ' + c.height : '');
     document.getElementById('aipTokens').textContent = '≈ ' + claudeTokens(c.width, c.height).toLocaleString();
     result.hidden = false;
+    document.body.classList.add('is-working');
     return c;
   }
 

@@ -77,6 +77,7 @@
     current = null;
     loadPanel.hidden = true;
     editorPanel.hidden = false;
+    document.body.classList.add('is-working');
     updateUndoRedo();
     render();
     editorPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

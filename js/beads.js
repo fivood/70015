@@ -40,7 +40,8 @@
     drop: $('bdDrop'), input: $('bdInput'),
     mode: $('bdMode'), modeNote: $('bdModeNote'),
     cellField: $('bdCellField'), cell: $('bdCell'), redetectWrap: $('bdRedetectWrap'), redetect: $('bdRedetect'),
-    sizeField: $('bdSizeField'), w: $('bdW'), h: $('bdH'),
+    w: $('bdW'), h: $('bdH'), cmW: $('bdCmW'), cmH: $('bdCmH'),
+    pitch: $('bdPitch'), pitchPreset: $('bdPitchPreset'), sizeNote: $('bdSizeNote'),
     palette: $('bdPalette'), paletteInput: $('bdPaletteInput'), paletteNote: $('bdPaletteNote'),
     ownedOnly: $('bdOwnedOnly'), ownedNote: $('bdOwnedNote'),
     pickMode: $('bdPickMode'), ownAll: $('bdOwnAll'), ownNone: $('bdOwnNone'), paletteGrid: $('bdPaletteGrid'),
@@ -50,7 +51,7 @@
     undo: $('bdUndo'), codes: $('bdCodes'), focus: $('bdFocus'), strays: $('bdStrays'),
     stage: $('bdStage'), canvas: $('bdCanvas'),
     usedNote: $('bdUsedNote'), legend: $('bdLegend'),
-    board: $('bdBoard'), pitch: $('bdPitch'), boardPdf: $('bdBoardPdf'),
+    board: $('bdBoard'), boardPdf: $('bdBoardPdf'),
     actions: $('bdActions')
   };
 
@@ -119,6 +120,8 @@
       ctx.drawImage(img, 0, 0);
       var name = file.name && file.name !== 'image.png' ? file.name.replace(/\.[^.]+$/, '') : 'beads';
       state.src = { data: ctx.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height, img: img, name: name };
+      el.w.value = el.h.value = ''; // a new image starts at its own size
+      document.body.classList.add('is-working');
       autoMode();
       build();
     };
@@ -139,7 +142,6 @@
     if (state.grid && state.grid.x.strength > 2 && state.grid.x.p >= 4 && s.w / state.grid.x.p <= MAX_SIDE) {
       setMode('ai', state.grid.x.p);
     } else {
-      el.w.value = Math.min(50, s.w);
       setMode('photo');
     }
   }
@@ -149,7 +151,6 @@
     setSegmented(el.mode, mode);
     if (cell) state.cell = cell;
     el.cellField.hidden = mode === 'photo';
-    el.sizeField.hidden = mode !== 'photo';
     el.redetectWrap.hidden = mode !== 'ai';
     el.cell.step = mode === 'ai' ? '0.1' : '1';
     el.cell.value = state.cell;
@@ -165,20 +166,35 @@
     el.modeNote.textContent = notes[state.mode];
   }
 
+  function pitch() { return numberIn(el.pitch, 1, 20, 2.6); }
+
+  // Bead count from the width/height fields; an empty one follows the other's proportions.
+  // Both empty: the natural size (nw x nh), or fallbackW wide for photos.
+  function targetSize(nw, nh, fallbackW) {
+    var w = parseInt(el.w.value, 10) || 0, h = parseInt(el.h.value, 10) || 0;
+    if (!w && !h) {
+      if (!fallbackW) return { w: nw, h: nh };
+      w = fallbackW;
+    }
+    if (!h) h = Math.max(1, Math.round(w * nh / nw));
+    if (!w) w = Math.max(1, Math.round(h * nw / nh));
+    return { w: w, h: h };
+  }
+
   // Source -> one RGBA cell per bead.
   function sampleCells() {
-    var s = state.src;
+    var s = state.src, size;
     if (state.mode === 'photo') {
-      var w = Math.max(1, Math.min(MAX_SIDE, parseInt(el.w.value, 10) || 50));
-      var h = parseInt(el.h.value, 10) || Math.max(1, Math.round(w * s.h / s.w));
-      h = Math.min(MAX_SIDE, h);
+      state.natural = null;
+      size = targetSize(s.w, s.h, Math.min(50, s.w));
+      if (size.w > MAX_SIDE || size.h > MAX_SIDE) return { w: size.w, h: size.h };
       var c = document.createElement('canvas');
-      c.width = w;
-      c.height = h;
+      c.width = size.w;
+      c.height = size.h;
       var ctx = c.getContext('2d', { willReadFrequently: true });
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(s.img, 0, 0, w, h);
-      return { w: w, h: h, data: ctx.getImageData(0, 0, w, h).data };
+      ctx.drawImage(s.img, 0, 0, size.w, size.h);
+      return { w: size.w, h: size.h, data: ctx.getImageData(0, 0, size.w, size.h).data };
     }
     var g;
     if (state.mode === 'ai') {
@@ -187,7 +203,33 @@
     } else {
       g = { x: { p: state.cell, o: 0 }, y: { p: state.cell, o: 0 } };
     }
-    return C.sampleGrid(s.data, s.w, s.h, g.x, g.y);
+    var cells = C.sampleGrid(s.data, s.w, s.h, g.x, g.y);
+    state.natural = { w: cells.w, h: cells.h };
+    // A different bead count resamples the art's own grid, one median per new cell.
+    size = targetSize(cells.w, cells.h);
+    if (size.w === cells.w && size.h === cells.h) return cells;
+    if (size.w > MAX_SIDE || size.h > MAX_SIDE) return { w: size.w, h: size.h };
+    return C.sampleGrid(cells.data, cells.w, cells.h, { p: cells.w / size.w, o: 0 }, { p: cells.h / size.h, o: 0 }, true);
+  }
+
+  // Size fields after a build: bead counts as placeholders, centimetres from the bead size.
+  function renderSize() {
+    if (!state.pattern) return;
+    var mm = pitch();
+    el.w.placeholder = String(state.w);
+    el.h.placeholder = String(state.h);
+    if (document.activeElement !== el.cmW) el.cmW.value = (state.w * mm / 10).toFixed(1);
+    if (document.activeElement !== el.cmH) el.cmH.value = (state.h * mm / 10).toFixed(1);
+    var note = tpl('bd_size_note', '{w} × {h} beads of {mm} mm ≈ {cw} × {ch} cm. Type a size in cm to get the bead count; leave a bead field empty to keep the proportions.', {
+      w: state.w, h: state.h, mm: mm, cw: (state.w * mm / 10).toFixed(1), ch: (state.h * mm / 10).toFixed(1)
+    });
+    var n = state.natural;
+    if (n && (state.w !== n.w || state.h !== n.h)) {
+      note += ' ' + tpl(state.w < n.w ? 'bd_size_down' : 'bd_size_up', state.w < n.w
+        ? 'Shrunk from the art\'s {w} × {h}: thin lines and 1-pixel details may disappear.'
+        : 'Enlarged from the art\'s {w} × {h}: each pixel becomes a block of beads.', { w: n.w, h: n.h });
+    }
+    el.sizeNote.textContent = note;
   }
 
   // FNV-1a over the generated pattern: the same image and settings give the same key,
@@ -208,7 +250,7 @@
     el.result.hidden = false;
     if (cells.w > MAX_SIDE || cells.h > MAX_SIDE) {
       state.pattern = null;
-      setStatus(tpl('bd_too_big', 'That makes {w} × {h} beads, more than {max} per side. Use "Any image" and set a size, or raise the pixels per bead.', { w: cells.w, h: cells.h, max: MAX_SIDE }));
+      setStatus(tpl('bd_too_big', 'That makes {w} × {h} beads, more than {max} per side. Set a smaller width or height under "Finished size" (beads or cm), or raise the pixels per bead.', { w: cells.w, h: cells.h, max: MAX_SIDE }));
       render();
       return;
     }
@@ -284,9 +326,12 @@
 
   function previewOpts() { return { codes: el.codes.checked, dim: state.focus && state.focusColor >= 0 }; }
 
+  // Cell size that fits the stage's width and the window's height, so the whole pattern
+  // is usually visible without scrolling.
   function renderCanvas() {
-    var avail = el.stage.clientWidth - 20;
-    state.cs = Math.max(6, Math.min(28, Math.floor(avail / state.w)));
+    var availW = el.stage.clientWidth - 20;
+    var availH = Math.max(240, window.innerHeight - 190);
+    state.cs = Math.max(5, Math.min(32, Math.floor(Math.min(availW / state.w, availH / state.h))));
     el.canvas.width = state.w * state.cs;
     el.canvas.height = state.h * state.cs;
     drawGrid(el.canvas.getContext('2d'), 0, 0, state.cs, previewOpts());
@@ -301,9 +346,9 @@
 
   function statsText(used) {
     var total = used.reduce(function (s, u) { return s + u.n; }, 0);
-    var pitch = numberIn(el.pitch, 1, 20, 5);
+    var mm = pitch();
     return tpl('bd_stats', '{w} × {h} beads · {colors} colors · {total} beads in total', { w: state.w, h: state.h, colors: used.length, total: total }) +
-      ' · ' + tpl('bd_size_cm', '≈ {w} × {h} cm', { w: (state.w * pitch / 10).toFixed(1), h: (state.h * pitch / 10).toFixed(1) });
+      ' · ' + tpl('bd_size_cm', '≈ {w} × {h} cm', { w: (state.w * mm / 10).toFixed(1), h: (state.h * mm / 10).toFixed(1) });
   }
 
   function renderInfo() {
@@ -467,6 +512,7 @@
     }
     renderCanvas();
     renderInfo();
+    renderSize();
   }
 
   // ---------- Editing ----------
@@ -702,7 +748,7 @@
   function boardPdf() {
     if (!state.pattern) return Promise.resolve();
     var board = Math.round(numberIn(el.board, 5, 200, 29));
-    var pitch = numberIn(el.pitch, 1, 20, 5);
+    var pitch = numberIn(el.pitch, 1, 20, 2.6);
     var margin = 10, pxmm = PRINT_DPI / 25.4, cs = pitch * pxmm;
     var bw = Math.min(board, state.w), bh = Math.min(board, state.h);
     var needW = 6 + bw * pitch + margin * 2, needH = 15 + bh * pitch + margin * 2;
@@ -749,7 +795,7 @@
       });
     }, 30);
   });
-  el.pitch.addEventListener('change', function () { if (state.pattern) renderInfo(); });
+  el.board.addEventListener('change', function () { writeStore('70015-beads-board', el.board.value); });
 
   // One pixel per bead, for opening the result back in Aseprite or another pixel editor.
   function pixelCanvas() {
@@ -814,6 +860,27 @@
 
   el.w.addEventListener('change', build);
   el.h.addEventListener('change', build);
+
+  // Bead size only changes the centimetres, not the pattern. Remembered for next time.
+  function setPitch(mm) {
+    el.pitch.value = mm;
+    setSegmented(el.pitchPreset, String(numberIn(el.pitch, 1, 20, 2.6)));
+    writeStore('70015-beads-pitch', el.pitch.value);
+    if (state.pattern) { renderInfo(); renderSize(); }
+  }
+  el.pitch.addEventListener('change', function () { setPitch(el.pitch.value); });
+  onSegmented(el.pitchPreset, setPitch);
+
+  // Centimetres -> bead count for that side; the other side follows the proportions.
+  function fromCm(input, beadField, otherField) {
+    var cm = parseFloat(input.value);
+    if (!(cm > 0)) return;
+    beadField.value = Math.max(1, Math.round(cm * 10 / pitch()));
+    otherField.value = '';
+    build();
+  }
+  el.cmW.addEventListener('change', function () { fromCm(el.cmW, el.w, el.h); });
+  el.cmH.addEventListener('change', function () { fromCm(el.cmH, el.h, el.w); });
 
   function usePalette(id) {
     state.paletteId = id;
@@ -892,6 +959,9 @@
     if (state.pattern) renderInfo();
   };
 
+  el.pitch.value = readStore('70015-beads-pitch', '2.6');
+  setSegmented(el.pitchPreset, String(numberIn(el.pitch, 1, 20, 2.6)));
+  el.board.value = readStore('70015-beads-board', '29');
   el.ownedOnly.checked = readStore('70015-beads-owned-only', false) === true;
   loadOwned();
   setMode('pixel', 1);

@@ -1570,3 +1570,40 @@ body {
   color: var(--text-dim);
   font-size: 12px;
 }
+
+/* Working state: a page adds body.is-working once it holds an image. The title shrinks to
+   one line and the upload box to a thin "drop or click to replace" strip, so the work area
+   starts near the top of the screen. Pages stay usable without it. */
+body.is-working .header {
+  margin-bottom: var(--space-sm);
+}
+
+body.is-working .hero {
+  padding: 0;
+  margin-bottom: var(--space-sm);
+}
+
+body.is-working .hero__title {
+  margin: 0;
+  font-size: 18px;
+}
+
+body.is-working .hero__desc,
+body.is-working .hero__blob {
+  display: none;
+}
+
+body.is-working .upload {
+  min-height: 0;
+  padding: var(--space-sm) var(--space);
+}
+
+body.is-working .upload__icon,
+body.is-working .upload__hint {
+  display: none;
+}
+
+body.is-working .upload__title {
+  margin: 0;
+  font-size: 13px;
+}
