@@ -599,9 +599,9 @@
 
   // Shared PNG/JPG/PDF/copy/print/annotate buttons (js/export.js).
   ImageExport.mountActions(document.getElementById('captureExport'),
-    function () { return lastBlob ? ImageExport.blobToCanvas(lastBlob) : null; }, { name: 'snapshot' });
+    function () { return lastBlob ? ImageExport.blobToCanvas(lastBlob) : null; }, { name: 'snapshot', add: ['beads'] });
   ImageExport.mountActions(document.getElementById('stitchExport'),
-    function () { return stitchCount ? stitchCanvas : null; }, { name: 'stitched' });
+    function () { return stitchCount ? stitchCanvas : null; }, { name: 'stitched', add: ['beads'] });
 
   // ---------- Scroll recording (Method A) ----------
 

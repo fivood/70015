@@ -412,6 +412,10 @@
   stitchExportBtn.addEventListener('click', function () {
     exportCanvas(buildStitchCanvas(), stitchFormat, 0.92, 'stitch');
   });
+  document.getElementById('stitchBeadsBtn').addEventListener('click', function () {
+    var c = buildStitchCanvas();
+    if (c) ImageExport.sendTo('beads', c);
+  });
   document.getElementById('stitchAnnotateBtn').addEventListener('click', function () {
     var c = buildStitchCanvas();
     if (c) ImageExport.sendToAnnotate(c);

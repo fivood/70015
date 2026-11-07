@@ -401,6 +401,10 @@
   cropExportBtn.addEventListener('click', function () {
     exportCanvas(buildCropCanvas(), cropFormat, parseInt(cropQuality.value, 10) / 100, 'crop');
   });
+  document.getElementById('cropBeadsBtn').addEventListener('click', function () {
+    var c = buildCropCanvas();
+    if (c) ImageExport.sendTo('beads', c);
+  });
   document.getElementById('cropAnnotateBtn').addEventListener('click', function () {
     var c = buildCropCanvas();
     if (c) ImageExport.sendToAnnotate(c);
@@ -536,6 +540,10 @@
 
   scaleExportBtn.addEventListener('click', function () {
     exportCanvas(buildScaleCanvas(), scaleFormat, parseInt(scaleQuality.value, 10) / 100, 'resize');
+  });
+  document.getElementById('scaleBeadsBtn').addEventListener('click', function () {
+    var c = buildScaleCanvas();
+    if (c) ImageExport.sendTo('beads', c);
   });
   document.getElementById('scaleAnnotateBtn').addEventListener('click', function () {
     var c = buildScaleCanvas();

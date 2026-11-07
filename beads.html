@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bead Pattern &mdash; 70015</title>
+  <meta name="description" content="Turn pixel art, AI pixel art, or any image into a fuse bead (Perler / Hama / MARD) pattern with color codes and bead counts. Runs in your browser, no upload.">
+  <link rel="canonical" href="https://70015.net/beads">
+  <meta property="og:title" content="Bead Pattern &mdash; 70015">
+  <meta property="og:description" content="Pixel art or any image to a fuse bead pattern with color codes and counts. No upload.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/beads">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "70015 Bead Pattern",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "url": "https://70015.net/beads",
+    "description": "Browser-based fuse bead pattern maker for pixel art, AI pixel art and photos, with MARD color codes and bead counts.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/beads.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <img src="logo.svg" alt="" width="26" height="26">
+        </span>
+        <div><h1 class="header__title" data-i18n="brand">TOOLS</h1></div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 L6 18"/><path d="M6 6 L18 18"/></svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="hero card">
+        <div class="hero__blob" aria-hidden="true"></div>
+        <div class="hero__content">
+          <h1 class="hero__title" data-i18n="t_beads">Bead Pattern</h1>
+          <p class="hero__desc" data-i18n="bd_desc">Turn pixel art, AI pixel art, or any picture into a fuse bead pattern with color codes and bead counts.</p>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="upload" id="bdDrop">
+          <input type="file" id="bdInput" class="upload__input" accept="image/*" aria-label="Choose an image" data-i18n-aria-label="choose_image">
+          <div class="upload__content">
+            <div class="upload__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="6"/><circle cx="32" cy="18" r="6"/><circle cx="46" cy="18" r="6"/>
+                <circle cx="18" cy="32" r="6"/><circle cx="32" cy="32" r="6"/><circle cx="46" cy="32" r="6"/>
+                <circle cx="18" cy="46" r="6"/><circle cx="32" cy="46" r="6"/><circle cx="46" cy="46" r="6"/>
+              </svg>
+            </div>
+            <p class="upload__title" data-i18n="sz_drop_one">Drop an image here or click to upload</p>
+            <p class="upload__hint" data-i18n="bd_drop_hint">PNG from Aseprite, an AI image, or a photo. You can also paste (Ctrl+V).</p>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings__group">
+            <span class="settings__label" data-i18n="bd_source">Image type</span>
+            <div class="segmented" id="bdMode">
+              <button class="segmented__btn is-active" data-value="pixel" type="button" data-i18n="bd_mode_pixel">Pixel art</button>
+              <button class="segmented__btn" data-value="ai" type="button" data-i18n="bd_mode_ai">AI pixel art</button>
+              <button class="segmented__btn" data-value="photo" type="button" data-i18n="bd_mode_photo">Any image</button>
+            </div>
+            <p class="settings__note" id="bdModeNote"></p>
+            <div class="settings__dimensions" id="bdCellField">
+              <div class="field">
+                <label for="bdCell" data-i18n="bd_cell">Pixels per bead</label>
+                <input type="number" id="bdCell" min="1" max="64" step="1" value="1">
+              </div>
+              <div class="field bd-field-btn" id="bdRedetectWrap">
+                <button class="btn btn--sm btn--secondary" id="bdRedetect" type="button" data-i18n="bd_redetect">Detect again</button>
+              </div>
+            </div>
+            <div class="settings__dimensions" id="bdSizeField" hidden>
+              <div class="field">
+                <label for="bdW" data-i18n="bd_w">Width (beads)</label>
+                <input type="number" id="bdW" min="4" max="200" value="50">
+              </div>
+              <div class="field">
+                <label for="bdH" data-i18n="bd_h">Height (beads)</label>
+                <input type="number" id="bdH" min="4" max="200" placeholder="auto" data-i18n-placeholder="bd_auto">
+              </div>
+            </div>
+          </div>
+
+          <div class="settings__group">
+            <span class="settings__label" data-i18n="bd_palette">Bead colors</span>
+            <div class="segmented" id="bdPalette">
+              <button class="segmented__btn is-active" data-value="mard" type="button" data-i18n="bd_pal_mard">MARD 221</button>
+              <button class="segmented__btn" data-value="mard-all" type="button" data-i18n="bd_pal_mard_all">MARD all 291</button>
+              <button class="segmented__btn" data-value="custom" type="button" data-i18n="bd_pal_import">Import…</button>
+            </div>
+            <input type="file" id="bdPaletteInput" accept=".gpl,.hex,.txt,.csv,text/plain" hidden>
+            <p class="settings__note" id="bdPaletteNote" data-i18n="bd_pal_note">Import a .gpl or .hex palette (Aseprite, Lospec), or a text file with one "code,#RRGGBB" per line.</p>
+            <div class="settings__row">
+              <label class="chip">
+                <input type="checkbox" id="bdOwnedOnly">
+                <span data-i18n="bd_owned_only">Only use colors I own</span>
+              </label>
+            </div>
+            <p class="settings__note" id="bdOwnedNote"></p>
+            <details class="bd-palette" id="bdPaletteBox">
+              <summary data-i18n="bd_all_colors">All bead colors</summary>
+              <div class="bd-palette__bar">
+                <div class="segmented" id="bdPickMode">
+                  <button class="segmented__btn is-active" data-value="brush" type="button" data-i18n="bd_pick_brush">Click to paint</button>
+                  <button class="segmented__btn" data-value="owned" type="button" data-i18n="bd_pick_owned">Click to mark owned</button>
+                </div>
+                <button class="btn btn--sm btn--secondary" id="bdOwnAll" type="button" data-i18n="bd_own_all">Mark all</button>
+                <button class="btn btn--sm btn--secondary" id="bdOwnNone" type="button" data-i18n="bd_own_none">Clear</button>
+              </div>
+              <div class="bd-palette__grid" id="bdPaletteGrid"></div>
+            </details>
+          </div>
+
+          <div class="settings__group">
+            <div class="settings__row">
+              <label class="settings__label" for="bdMax"><span data-i18n="bd_max">Max colors</span> <span class="settings__value" id="bdMaxValue"></span></label>
+              <input class="range" type="range" id="bdMax" min="0" max="60" value="0">
+            </div>
+            <p class="settings__note" data-i18n="bd_max_note">Rarely used colors are merged into the closest remaining one, so you buy fewer kinds of beads.</p>
+          </div>
+
+          <div class="settings__row">
+            <label class="chip">
+              <input type="checkbox" id="bdBg">
+              <span data-i18n="bd_bg">Remove background (the main color touching the edges)</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card" id="bdResult" hidden>
+        <p class="aip-status aip-status--warn" id="bdStatus" role="status" aria-live="polite" hidden></p>
+        <p class="bd-stats" id="bdStats"></p>
+        <p class="bd-progress" id="bdProgress" hidden></p>
+
+        <div class="bd-toolbar">
+          <div class="segmented" id="bdTool">
+            <button class="segmented__btn is-active" data-value="brush" type="button" data-i18n="bd_tool_brush">Brush</button>
+            <button class="segmented__btn" data-value="eraser" type="button" data-i18n="bd_tool_eraser">Eraser</button>
+            <button class="segmented__btn" data-value="fill" type="button" data-i18n="bd_tool_fill">Fill</button>
+            <button class="segmented__btn" data-value="pick" type="button" data-i18n="bd_tool_pick">Pick</button>
+          </div>
+          <span class="bd-brush"><span class="bd-swatch" id="bdBrushSwatch"></span><span id="bdBrushCode"></span></span>
+          <button class="btn btn--sm btn--secondary" id="bdUndo" type="button" data-i18n="bd_undo" disabled>Undo</button>
+          <label class="chip">
+            <input type="checkbox" id="bdCodes" checked>
+            <span data-i18n="bd_show_codes">Codes</span>
+          </label>
+          <label class="chip">
+            <input type="checkbox" id="bdFocus">
+            <span data-i18n="bd_focus">One color at a time</span>
+          </label>
+          <button class="btn btn--sm btn--secondary" id="bdStrays" type="button" data-i18n="bd_strays">Clean up strays</button>
+        </div>
+
+        <div class="bd-stage" id="bdStage"><canvas id="bdCanvas"></canvas></div>
+
+        <h2 class="bd-heading" data-i18n="bd_used">Colors used</h2>
+        <p class="settings__note" id="bdUsedNote"></p>
+        <div class="bd-legend" id="bdLegend"></div>
+
+        <h2 class="bd-heading" data-i18n="bd_print">Print by pegboard</h2>
+        <div class="settings__dimensions">
+          <div class="field">
+            <label for="bdBoard" data-i18n="bd_board">Pegboard size (beads per side)</label>
+            <input type="number" id="bdBoard" min="5" max="200" value="29">
+          </div>
+          <div class="field">
+            <label for="bdPitch" data-i18n="bd_pitch">Bead size (mm)</label>
+            <input type="number" id="bdPitch" min="1" max="20" step="0.1" value="5">
+          </div>
+        </div>
+        <p class="settings__note" data-i18n="bd_print_note">One page per pegboard at real size, after an overview page. Print at "Actual size" / 100%, not "Fit to page", and the grid lines up under a clear pegboard.</p>
+        <div class="actions__btns bd-actions">
+          <button class="btn btn--sm btn--primary" id="bdBoardPdf" type="button" data-i18n="bd_board_pdf">Pegboard PDF</button>
+        </div>
+
+        <h2 class="bd-heading" data-i18n="bd_export">Export chart</h2>
+        <div class="actions__btns bd-actions" id="bdActions"></div>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/beads-palettes.js"></script>
+  <script src="js/beads-core.js"></script>
+  <script src="js/beads.js"></script>
+</body>
+</html>

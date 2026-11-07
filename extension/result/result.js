@@ -61,7 +61,8 @@
 
   // Same PNG/JPG/PDF/copy/print/annotate buttons as the tool pages (js/export.js).
   ImageExport.mountActions(actions, function () { return canvas.width > 1 ? canvas : null; }, {
-    name: function () { return baseName; }
+    name: function () { return baseName; },
+    add: ['beads']
   });
 
   compose().catch(function (err) {

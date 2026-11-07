@@ -370,6 +370,11 @@
     }, 'image/png');
   });
 
+  document.getElementById('beadsEditedBtn').addEventListener('click', () => {
+    const output = buildEditedCanvas(false);
+    if (output) ImageExport.sendTo('beads', output);
+  });
+
   input.addEventListener('change', (event) => { loadFile(event.target.files[0]); input.value = ''; });
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => drop.addEventListener(eventName, (event) => { event.preventDefault(); event.stopPropagation(); }));
   ['dragenter', 'dragover'].forEach((eventName) => drop.addEventListener(eventName, () => drop.classList.add('is-dragover')));

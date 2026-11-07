@@ -1,12 +1,13 @@
 // Shared image export for tool pages and the extension: file naming, PNG/JPG/PDF
-// download, clipboard, print, and handing an image to the annotate tool.
+// download, clipboard, print, and handing an image to another tool (annotate, bead pattern).
 // PDF needs js/pdf.js loaded on the page. The extension service worker also imports
 // this file, so nothing at the top level may touch window/document.
 (function () {
   'use strict';
 
   var HANDOFF_DB = '70015-handoff';
-  var HANDOFF_KEY = 'annotate';
+  // Handoff target -> the page that receives it. The target name is also the storage key.
+  var HANDOFF_PAGES = { annotate: 'image-editor', beads: 'beads' };
   var isExtension = /-extension:$/.test(location.protocol); // chrome-extension: / moz-extension:
 
   function tr(key, fallback) {
@@ -114,23 +115,25 @@
     return idb('readwrite', function (s) { var r = s.get(key); s.delete(key); return r; });
   }
 
-  async function sendToAnnotate(canvas) {
+  // Open the target tool in a new tab and give it this canvas as a PNG.
+  async function sendTo(target, canvas) {
+    var page = HANDOFF_PAGES[target];
     // Open the tab while the click's user activation is still valid, then fill it.
-    window.open(isExtension ? '/image-editor.html#handoff' : 'image-editor#handoff', '_blank');
+    window.open(isExtension ? '/' + page + '.html#handoff' : page + '#handoff', '_blank');
     var blob = await toBlob(canvas, 'image/png');
-    await put(HANDOFF_KEY, blob);
+    await put(target, blob);
     var ch = new BroadcastChannel(HANDOFF_DB);
-    ch.postMessage('ready');
+    ch.postMessage(target);
     ch.close();
   }
 
-  // Annotate page: take the handed-off image if we were opened for one.
-  function receiveAnnotateHandoff(callback) {
+  // Target page: take the handed-off image if we were opened for one.
+  function receiveHandoff(target, callback) {
     if (location.hash !== '#handoff' || !window.indexedDB) return;
     var done = false;
     var ch = new BroadcastChannel(HANDOFF_DB);
     function grab() {
-      take(HANDOFF_KEY).then(function (blob) {
+      take(target).then(function (blob) {
         if (!blob || done) return;
         done = true;
         ch.close();
@@ -151,15 +154,18 @@
     { id: 'pdf', key: 'exp_pdf', label: 'PDF', run: function (c, name) { return window.canvasToPdf(c).then(function (b) { download(b, fileName(name, 'pdf')); }); } },
     { id: 'copy', key: 'exp_copy', label: 'Copy', run: function (c) { return copy(c).then(function () { return tr('exp_copied', 'Copied'); }); } },
     { id: 'print', key: 'exp_print', label: 'Print', run: function (c) { return print(c); } },
-    { id: 'annotate', key: 'exp_annotate', label: 'Annotate', run: function (c) { return sendToAnnotate(c); } }
+    { id: 'annotate', key: 'exp_annotate', label: 'Annotate', run: function (c) { return sendTo('annotate', c); } },
+    { id: 'beads', key: 'exp_beads', label: 'Bead pattern', optIn: true, run: function (c) { return sendTo('beads', c); } }
   ];
 
   // Render PNG/JPG/PDF/Copy/Print/Annotate buttons into `container`.
-  // getCanvas may return a canvas or a promise of one; opts.skip lists action ids to omit.
+  // getCanvas may return a canvas or a promise of one; opts.skip lists action ids to omit,
+  // opts.add lists opt-in ones to include (e.g. 'beads').
   function mountActions(container, getCanvas, opts) {
     opts = opts || {};
     ACTIONS.forEach(function (action) {
       if ((opts.skip || []).indexOf(action.id) >= 0) return;
+      if (action.optIn && (opts.add || []).indexOf(action.id) < 0) return;
       if (action.id === 'pdf' && typeof window.canvasToPdf !== 'function') return;
       var btn = document.createElement('button');
       btn.type = 'button';
@@ -198,8 +204,10 @@
     blobToCanvas: blobToCanvas,
     copy: copy,
     print: print,
-    sendToAnnotate: sendToAnnotate,
-    receiveAnnotateHandoff: receiveAnnotateHandoff,
+    sendTo: sendTo,
+    receiveHandoff: receiveHandoff,
+    sendToAnnotate: function (canvas) { return sendTo('annotate', canvas); },
+    receiveAnnotateHandoff: function (callback) { receiveHandoff('annotate', callback); },
     mountActions: mountActions
   };
 })();
