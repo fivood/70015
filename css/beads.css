@@ -82,6 +82,20 @@
   display: none;
 }
 
+/* Select tool's action row; the hint only shows on wide screens. */
+.bd-toolbar .bd-selbar {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.bd-selbar__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* Mirror drawing button: highlighted while a mirror mode is on */
 .bd-sym.is-on {
   background: var(--primary);
@@ -298,11 +312,11 @@ body.is-working .bd-stage {
 /* Phones: tools and colors docked at the bottom, the canvas fills what is left. */
 @media (max-width: 699px) {
   body.is-working .app {
-    padding-bottom: 230px;
+    padding-bottom: 290px;
   }
 
   body.is-working .bd-stage {
-    max-height: max(240px, calc(100dvh - 410px));
+    max-height: max(240px, calc(100dvh - 450px));
   }
 
   body.is-working .bd-dock {
@@ -327,13 +341,31 @@ body.is-working .bd-stage {
     gap: 8px;
   }
 
+  /* Nine tools: two rows of buttons */
   body.is-working .bd-dock .segmented {
     flex: 1 1 100%;
-    flex-wrap: nowrap;
     min-width: 0;
   }
 
   body.is-working .bd-dock .segmented__btn {
+    flex: 1 1 18%;
+    min-width: 0;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+
+  body.is-working .bd-selbar__hint {
+    display: none;
+  }
+
+  /* Select actions: one row of equal buttons */
+  body.is-working .bd-toolbar .bd-selbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  body.is-working .bd-selbar .btn {
+    flex: 1 1 0;
     min-width: 0;
     padding: 0 4px;
     font-size: 12px;

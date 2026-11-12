@@ -47,7 +47,8 @@
     pickMode: $('bdPickMode'), ownAll: $('bdOwnAll'), ownNone: $('bdOwnNone'), paletteGrid: $('bdPaletteGrid'),
     max: $('bdMax'), maxValue: $('bdMaxValue'), bg: $('bdBg'),
     result: $('bdResult'), status: $('bdStatus'), stats: $('bdStats'), progress: $('bdProgress'),
-    tool: $('bdTool'), brushSwatch: $('bdBrushSwatch'), brushCode: $('bdBrushCode'),
+    tool: $('bdTool'), selBar: $('bdSelBar'), selCopy: $('bdSelCopy'), selFlipH: $('bdSelFlipH'),
+    selFlipV: $('bdSelFlipV'), selClear: $('bdSelClear'), selDone: $('bdSelDone'), brushSwatch: $('bdBrushSwatch'), brushCode: $('bdBrushCode'),
     undo: $('bdUndo'), codes: $('bdCodes'), focus: $('bdFocus'), strays: $('bdStrays'),
     stage: $('bdStage'), canvas: $('bdCanvas'),
     usedNote: $('bdUsedNote'), legend: $('bdLegend'),
@@ -90,6 +91,7 @@
     name: 'beads',    // used for file names and chart titles
     workId: '',       // the saved work this pattern belongs to
     zoom: 0,          // preview cell size the user zoomed to; 0 = fit the screen
+    sel: null,        // Select tool box { x, y, w, h } in cells
     sym: 'off',       // mirror drawing: off | h (left-right) | v (top-bottom) | both
     group: 'used',    // which colors the phone strip shows: used | recent | a family like "A"
     recent: [],       // codes picked lately, newest first, per palette family
@@ -440,6 +442,7 @@
     var ctx = el.canvas.getContext('2d');
     drawGrid(ctx, 0, 0, state.cs, previewOpts());
     drawGuides(ctx);
+    drawSelection(ctx);
   }
 
   // Zoom to cell size cs, keeping the pattern point under (cx, cy) on screen where it was.
@@ -745,6 +748,8 @@
   });
 
   function render() {
+    if (lifted && lifted.p !== state.pattern) lifted = null;
+    if (state.sel && !lifted && (!state.pattern || state.sel.x + state.sel.w > state.w || state.sel.y + state.sel.h > state.h)) state.sel = null;
     if (!state.pattern) {
       el.stats.textContent = '';
       el.progress.hidden = true;
@@ -775,13 +780,16 @@
   function codeOf(i) { return i >= 0 && state.palette[i] ? state.palette[i].code : t('bd_empty', 'Empty'); }
 
   function setTool(tool) {
+    if (tool !== state.tool && state.sel) dropSel();
     state.tool = tool;
     setSegmented(el.tool, tool);
+    updateSelBar();
   }
 
   // Snapshots carry the size too: resizing a canvas is undoable like any edit.
   // Every hand edit goes through here, so this is also where edits are noticed.
   function pushUndo() {
+    lifted = null;
     state.undo.push({ p: state.pattern.slice(), w: state.w, h: state.h });
     if (state.undo.length > 50) state.undo.shift();
     state.edited = true;
@@ -817,15 +825,16 @@
   // Pointer samples arrive tens of pixels apart on a fast swipe, so paint every cell on the
   // straight line between two samples (Bresenham), skipping the parts outside the pattern.
   function paintLine(a, b) {
-    var dx = Math.abs(b.x - a.x), dy = -Math.abs(b.y - a.y);
-    var sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1, err = dx + dy, x = a.x, y = a.y;
-    for (;;) {
-      if (x >= 0 && y >= 0 && x < state.w && y < state.h) paint(y * state.w + x);
-      if (x === b.x && y === b.y) break;
-      var e2 = 2 * err;
-      if (e2 >= dy) { err += dy; x += sx; }
-      if (e2 <= dx) { err += dx; y += sy; }
-    }
+    var list = [];
+    inside(C.lineCells(a, b)).forEach(function (i) { list = list.concat(mirrors(i)); });
+    paintCells(list, state.tool === 'eraser' ? -1 : state.brush);
+  }
+
+  // Pattern indexes of the points that fall inside the pattern.
+  function inside(points) {
+    var out = [];
+    points.forEach(function (p) { if (p.x >= 0 && p.y >= 0 && p.x < state.w && p.y < state.h) out.push(p.y * state.w + p.x); });
+    return out;
   }
 
   // Cell i plus its mirror images for the symmetry mode in use.
@@ -839,11 +848,16 @@
   }
 
   function paint(i) {
-    var v = state.tool === 'eraser' ? -1 : state.brush;
+    paintCells(mirrors(i), state.tool === 'eraser' ? -1 : state.brush);
+  }
+
+  // Set cells to v (a number, or a function of the index) and redraw only those cells.
+  function paintCells(list, v) {
     var ctx = el.canvas.getContext('2d'), opts = previewOpts(), changed = false;
-    mirrors(i).forEach(function (k) {
-      if (state.pattern[k] === v) return;
-      state.pattern[k] = v;
+    list.forEach(function (k) {
+      var to = typeof v === 'function' ? v(k) : v;
+      if (state.pattern[k] === to) return;
+      state.pattern[k] = to;
       drawCell(ctx, 0, 0, state.cs, k, opts);
       changed = true;
     });
@@ -851,6 +865,166 @@
     drawMajorLines(ctx, 0, 0, state.cs, wholeGrid());
     drawGuides(ctx);
   }
+
+  // ---------- Line, rectangle, circle ----------
+  // The shape is redrawn on every move over the pattern as it was when the drag started
+  // (mirrored like the brush). Shift keeps rectangles square and circles round.
+  var shape = null; // { a: start cell, base: pattern copy, cells: indexes the shape covers now }
+  var SHAPES = { line: true, rect: true, ellipse: true };
+
+  function drawShape(b, square) {
+    var a = shape.a;
+    if (square && state.tool !== 'line') {
+      var d = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+      b = { x: a.x + (b.x < a.x ? -d : d), y: a.y + (b.y < a.y ? -d : d) };
+    }
+    var pts = state.tool === 'line' ? C.lineCells(a, b) : C.shapeCells(state.tool, a, b), list = [];
+    inside(pts).forEach(function (i) { list = list.concat(mirrors(i)); });
+    var base = shape.base, now = new Set(list);
+    paintCells(shape.cells.filter(function (k) { return !now.has(k); }), function (k) { return base[k]; });
+    paintCells(list, state.brush);
+    shape.cells = list;
+  }
+
+  // ---------- Selection ----------
+  // Drag a box with the Select tool; drag inside it to move what it holds (Alt-drag moves a
+  // copy). A moved selection floats: `lifted` keeps its beads and the pattern under it, and
+  // every move stamps the beads (empty cells see through) onto a copy of that pattern. It is
+  // dropped where it is by the next edit, a tool change or "Done". The lift is one undo step.
+  var lifted = null;  // { p: the pattern array it belongs to, cells: Int16Array, base: Int16Array }
+  var selDrag = null; // { from, x, y } while moving; { a, moved } while drawing a new box
+
+  function clampPos(p) { return { x: Math.max(0, Math.min(state.w - 1, p.x)), y: Math.max(0, Math.min(state.h - 1, p.y)) }; }
+
+  function inSel(p) {
+    var s = state.sel;
+    return s && p.x >= s.x && p.y >= s.y && p.x < s.x + s.w && p.y < s.y + s.h;
+  }
+
+  function selIndexes(fn) {
+    var s = state.sel;
+    for (var y = 0; y < s.h; y++) {
+      for (var x = 0; x < s.w; x++) {
+        var px = s.x + x, py = s.y + y;
+        if (px >= 0 && py >= 0 && px < state.w && py < state.h) fn(py * state.w + px, y * s.w + x);
+      }
+    }
+  }
+
+  function lift(clear) {
+    pushUndo(); // also drops any earlier floating selection
+    var s = state.sel, cells = new Int16Array(s.w * s.h).fill(-1), base = state.pattern.slice();
+    selIndexes(function (i, j) { cells[j] = state.pattern[i]; if (clear) base[i] = -1; });
+    lifted = { p: state.pattern, cells: cells, base: base };
+  }
+
+  function stamp() {
+    state.pattern.set(lifted.base);
+    selIndexes(function (i, j) { if (lifted.cells[j] >= 0) state.pattern[i] = lifted.cells[j]; });
+    renderCanvas();
+  }
+
+  function dropSel() {
+    lifted = null;
+    selDrag = null;
+    state.sel = null;
+    if (state.pattern) renderCanvas();
+    updateSelBar();
+  }
+
+  function drawSelection(ctx) {
+    var s = state.sel, cs = state.cs;
+    if (!s || state.tool !== 'select') return;
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeRect(s.x * cs + 1, s.y * cs + 1, s.w * cs - 2, s.h * cs - 2);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineDashOffset = 5;
+    ctx.strokeRect(s.x * cs + 1, s.y * cs + 1, s.w * cs - 2, s.h * cs - 2);
+    ctx.restore();
+  }
+
+  function updateSelBar() {
+    el.selBar.hidden = state.tool !== 'select';
+    [el.selCopy, el.selFlipH, el.selFlipV, el.selClear, el.selDone].forEach(function (b) { b.disabled = !state.sel; });
+  }
+
+  function selDown(e) {
+    var p = gridPos(e);
+    if (inSel(p)) {
+      if (!lifted || e.altKey) lift(!e.altKey);
+      selDrag = { from: p, x: state.sel.x, y: state.sel.y };
+      return;
+    }
+    lifted = null;
+    var a = clampPos(p);
+    selDrag = { a: a, moved: false };
+    state.sel = { x: a.x, y: a.y, w: 1, h: 1 };
+    renderCanvas();
+  }
+
+  function selMove(e) {
+    var p = gridPos(e), s = state.sel;
+    if (selDrag.from) {
+      var x = selDrag.x + p.x - selDrag.from.x, y = selDrag.y + p.y - selDrag.from.y;
+      if (x === s.x && y === s.y) return;
+      s.x = x;
+      s.y = y;
+      stamp();
+      return;
+    }
+    var b = clampPos(p), a = selDrag.a;
+    var next = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x) + 1, h: Math.abs(b.y - a.y) + 1 };
+    if (next.x === s.x && next.y === s.y && next.w === s.w && next.h === s.h) return;
+    selDrag.moved = true;
+    state.sel = next;
+    renderCanvas();
+  }
+
+  function selUp() {
+    if (selDrag && selDrag.a && !selDrag.moved) state.sel = null; // a click outside clears it
+    selDrag = null;
+    renderCanvas();
+    renderInfo();
+    updateSelBar();
+  }
+
+  function flipSel(horizontal) {
+    if (!state.sel) return;
+    if (!lifted) lift(true);
+    var s = state.sel, src = lifted.cells.slice();
+    for (var y = 0; y < s.h; y++) {
+      for (var x = 0; x < s.w; x++) lifted.cells[y * s.w + x] = src[horizontal ? y * s.w + s.w - 1 - x : (s.h - 1 - y) * s.w + x];
+    }
+    stamp();
+    renderInfo();
+  }
+
+  function clearSel() {
+    if (!state.sel) return;
+    if (lifted) {
+      state.pattern.set(lifted.base);
+      lifted = null;
+    } else {
+      pushUndo();
+      selIndexes(function (i) { state.pattern[i] = -1; });
+    }
+    render();
+  }
+
+  el.selCopy.addEventListener('click', function () {
+    if (!state.sel) return;
+    lift(false);
+    stamp();
+    renderInfo();
+    showToast(t('bd_sel_copied', 'Copied. Drag inside the box to move the copy.'));
+  });
+  el.selFlipH.addEventListener('click', function () { flipSel(true); });
+  el.selFlipV.addEventListener('click', function () { flipSel(false); });
+  el.selClear.addEventListener('click', clearSel);
+  el.selDone.addEventListener('click', dropSel);
 
   var SYMS = ['off', 'h', 'v', 'both'];
   function renderSym() {
@@ -889,6 +1063,8 @@
     if (pointers.size === 2) {
       if (stroke) { restore(state.undo.pop()); stroke = false; render(); }
       painting = false;
+      shape = null;
+      selDrag = null;
       panning = null;
       var info = pinchInfo(), r = el.canvas.getBoundingClientRect();
       pinch = { dist: info.dist, fx: (info.mid.x - r.left) / r.width, fy: (info.mid.y - r.top) / r.height, w: r.width, h: r.height, scale: 1, mid: info.mid };
@@ -897,6 +1073,10 @@
     if (pointers.size > 2 || pinch) return;
     if (state.tool === 'pan') {
       panning = { x: e.clientX, y: e.clientY, left: el.stage.scrollLeft, top: el.stage.scrollTop };
+      return;
+    }
+    if (state.tool === 'select') {
+      selDown(e);
       return;
     }
     var i = cellAt(e);
@@ -911,6 +1091,11 @@
     if (state.tool === 'fill') {
       mirrors(i).forEach(function (k) { C.floodFill(state.pattern, state.w, state.h, k % state.w, Math.floor(k / state.w), state.brush); });
       render();
+      return;
+    }
+    if (SHAPES[state.tool]) {
+      shape = { a: gridPos(e), base: state.pattern.slice(), cells: [] };
+      drawShape(shape.a, e.shiftKey);
       return;
     }
     painting = true;
@@ -939,6 +1124,8 @@
       el.stage.scrollTop = panning.top - (e.clientY - panning.y);
       return;
     }
+    if (selDrag) { selMove(e); return; }
+    if (shape) { drawShape(gridPos(e), e.shiftKey); return; }
     if (!painting) return;
     var p = gridPos(e);
     paintLine(lastPos, p);
@@ -957,6 +1144,11 @@
     if (pointers.size) return;
     panning = null;
     stroke = false;
+    if (selDrag) selUp();
+    if (shape) {
+      shape = null;
+      renderInfo();
+    }
     if (painting) {
       painting = false;
       renderInfo();
@@ -972,6 +1164,10 @@
   }
   el.undo.addEventListener('click', undo);
   document.addEventListener('keydown', function (e) {
+    if (state.tool === 'select' && state.sel && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearSel(); return; }
+      if (e.key === 'Escape' || e.key === 'Enter') { dropSel(); return; }
+    }
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
       e.preventDefault();
       undo();
@@ -1735,6 +1931,7 @@
   el.bg.addEventListener('change', build);
 
   onSegmented(el.tool, setTool);
+  updateSelBar();
   [el.codes, el.round, el.center].forEach(function (box) {
     box.addEventListener('change', function () { if (state.pattern) renderCanvas(); });
   });

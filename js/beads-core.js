@@ -559,7 +559,42 @@
     return pattern;
   }
 
+  // Cells of the straight line from a to b (Bresenham, 8-connected), as {x, y} points.
+  function lineCells(a, b) {
+    var out = [], dx = Math.abs(b.x - a.x), dy = -Math.abs(b.y - a.y);
+    var sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1, err = dx + dy, x = a.x, y = a.y;
+    for (;;) {
+      out.push({ x: x, y: y });
+      if (x === b.x && y === b.y) return out;
+      var e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x += sx; }
+      if (e2 <= dx) { err += dx; y += sy; }
+    }
+  }
+
+  // One-bead outline of the rectangle ('rect') or ellipse ('ellipse') whose bounding box has
+  // corner cells a and b. Ellipse: the cells whose centers lie inside it and that have an
+  // edge neighbour outside, which gives a thin line touching all four sides of the box.
+  function shapeCells(kind, a, b) {
+    var x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
+    var cx = (x0 + x1 + 1) / 2, cy = (y0 + y1 + 1) / 2, rx = (x1 - x0 + 1) / 2, ry = (y1 - y0 + 1) / 2;
+    function inside(x, y) {
+      if (kind === 'rect') return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+      var u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry;
+      return u * u + v * v <= 1;
+    }
+    var out = [];
+    for (var y = y0; y <= y1; y++) {
+      for (var x = x0; x <= x1; x++) {
+        if (inside(x, y) && (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1))) out.push({ x: x, y: y });
+      }
+    }
+    return out;
+  }
+
   var api = {
+    lineCells: lineCells,
+    shapeCells: shapeCells,
     rgbToLab: rgbToLab,
     deltaE: deltaE,
     parsePalette: parsePalette,

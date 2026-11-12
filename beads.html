@@ -232,12 +232,25 @@
                 <button class="segmented__btn is-active" data-value="brush" type="button" data-i18n="bd_tool_brush">Brush</button>
                 <button class="segmented__btn" data-value="eraser" type="button" data-i18n="bd_tool_eraser">Eraser</button>
                 <button class="segmented__btn" data-value="fill" type="button" data-i18n="bd_tool_fill">Fill</button>
+                <button class="segmented__btn" data-value="line" type="button" data-i18n="bd_tool_line">Line</button>
+                <button class="segmented__btn" data-value="rect" type="button" data-i18n="bd_tool_rect">Box</button>
+                <button class="segmented__btn" data-value="ellipse" type="button" data-i18n="bd_tool_ellipse">Circle</button>
+                <button class="segmented__btn" data-value="select" type="button" data-i18n="bd_tool_select">Select</button>
                 <button class="segmented__btn" data-value="pick" type="button" data-i18n="bd_tool_pick">Pick</button>
-                <button class="segmented__btn" data-value="pan" type="button" data-i18n="bd_tool_pan">Move</button>
+                <button class="segmented__btn" data-value="pan" type="button" data-i18n="bd_tool_pan">Pan</button>
               </div>
               <span class="bd-brush"><span class="bd-swatch" id="bdBrushSwatch"></span><span id="bdBrushCode"></span></span>
               <button class="btn btn--sm btn--secondary" id="bdUndo" type="button" data-i18n="bd_undo" disabled>Undo</button>
               <button class="btn btn--sm btn--secondary bd-sym" id="bdSym" type="button"></button>
+            </div>
+            <!-- Select tool: what to do with the box (drag inside it to move what it holds) -->
+            <div class="bd-dock__row bd-selbar" id="bdSelBar" hidden>
+              <button class="btn btn--sm btn--secondary" id="bdSelCopy" type="button" data-i18n="bd_sel_copy">Copy</button>
+              <button class="btn btn--sm btn--secondary" id="bdSelFlipH" type="button" data-i18n="bd_sel_flip_h">Flip ↔</button>
+              <button class="btn btn--sm btn--secondary" id="bdSelFlipV" type="button" data-i18n="bd_sel_flip_v">Flip ↕</button>
+              <button class="btn btn--sm btn--secondary" id="bdSelClear" type="button" data-i18n="bd_sel_clear">Clear</button>
+              <button class="btn btn--sm btn--primary" id="bdSelDone" type="button" data-i18n="bd_sel_done">Done</button>
+              <span class="bd-selbar__hint" data-i18n="bd_sel_hint">Drag a box, then drag inside it to move. Alt-drag moves a copy.</span>
             </div>
           </div>
           <div class="bd-zoom" role="group" aria-label="Zoom" data-i18n-aria-label="bd_zoom">
