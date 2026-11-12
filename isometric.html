@@ -75,6 +75,9 @@
 
           <!-- 绘图工具 -->
           <div class="iso-toolbar__group">
+            <button class="iso-tool-btn" data-tool="select" type="button" data-i18n-title="iso_tool_select" title="Select and move (V)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 7-6 2-2 6z"/></svg>
+            </button>
             <button class="iso-tool-btn is-active" data-tool="box" type="button" data-i18n-title="iso_tool_box" title="3D Box (B)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             </button>
@@ -115,6 +118,20 @@
             </select>
           </div>
 
+          <!-- 画风：平滑 / 像素（放入拼豆作品时自动切到像素） -->
+          <div class="iso-toolbar__group" data-i18n-title="iso_style_tip" title="Style">
+            <span class="iso-step-label" data-i18n="iso_style">Style</span>
+            <button class="iso-tool-btn iso-tool-btn--text is-active" data-style="smooth" type="button" data-i18n="iso_style_smooth">Smooth</button>
+            <button class="iso-tool-btn iso-tool-btn--text" data-style="pixel" type="button" data-i18n="iso_style_pixel">Pixel</button>
+            <select id="pixelSizeSelect" class="iso-step-select" aria-label="Pixel size" data-i18n-aria-label="iso_pixel_size">
+              <option value="2">2px</option>
+              <option value="3">3px</option>
+              <option value="4" selected>4px</option>
+              <option value="6">6px</option>
+              <option value="8">8px</option>
+            </select>
+          </div>
+
           <span class="iso-sep" aria-hidden="true"></span>
 
           <!-- 颜色与 3 面明暗 -->
@@ -148,6 +165,18 @@
 
           <span class="iso-sep" aria-hidden="true"></span>
 
+          <button class="btn btn--secondary btn--sm" id="addBeadsBtn" type="button" data-i18n="iso_add_beads">Add bead work</button>
+
+          <!-- Always shown (enabled while something is selected), so selecting never shifts the canvas -->
+          <div class="iso-toolbar__group" id="selGroup">
+            <button class="iso-tool-btn iso-tool-btn--text" id="selUp" type="button" data-i18n="iso_sel_up">Raise</button>
+            <button class="iso-tool-btn iso-tool-btn--text" id="selDown" type="button" data-i18n="iso_sel_down">Lower</button>
+            <button class="iso-tool-btn iso-tool-btn--text" id="selTurn" type="button" data-i18n="iso_sel_turn">Turn</button>
+            <button class="iso-tool-btn iso-tool-btn--text" id="selDelete" type="button" data-i18n="iso_sel_delete">Delete</button>
+          </div>
+
+          <span class="iso-sep" aria-hidden="true"></span>
+
           <button class="btn btn--primary btn--sm" id="exportBtn" type="button" data-i18n="iso_export_png">Export PNG</button>
           <button class="btn btn--secondary btn--sm" id="lineartBtn" type="button" data-i18n="iso_export_lineart" data-i18n-title="iso_export_lineart">LineArt</button>
         </div>
@@ -160,6 +189,36 @@
           </div>
         </div>
       </section>
+
+      <!-- Pick a bead work (from the Bead Pattern page's recent work) to place in the scene -->
+      <dialog class="iso-beads-dialog card" id="beadsDialog">
+        <form method="dialog">
+          <h2 class="iso-beads-dialog__title" data-i18n="iso_beads_title">Add a bead work</h2>
+          <div class="iso-beads-dialog__opts">
+            <div class="segmented" id="beadsOrient">
+              <button class="segmented__btn" data-value="top" type="button" data-i18n="iso_beads_top">Lying flat</button>
+              <button class="segmented__btn is-active" data-value="right" type="button" data-i18n="iso_beads_right">Standing (right)</button>
+              <button class="segmented__btn" data-value="left" type="button" data-i18n="iso_beads_left">Standing (left)</button>
+            </div>
+            <label class="iso-beads-dialog__per">
+              <span data-i18n="iso_beads_per">Beads per grid cell</span>
+              <select id="beadsPer">
+                <option value="4">4</option>
+                <option value="8" selected>8</option>
+                <option value="16">16</option>
+              </select>
+            </label>
+          </div>
+          <div class="iso-beads-dialog__list" id="beadsList"></div>
+          <p class="iso-beads-dialog__empty" id="beadsEmpty" hidden>
+            <span data-i18n="iso_beads_none">No bead works yet. Make one on the Bead Pattern page; it shows up here automatically.</span>
+            <a href="beads" data-i18n="t_beads">Bead Pattern</a>
+          </p>
+          <div class="iso-beads-dialog__actions">
+            <button class="btn btn--secondary btn--sm" value="cancel" data-i18n="iso_cancel">Cancel</button>
+          </div>
+        </form>
+      </dialog>
     </main>
 
     <footer class="footer">
@@ -171,6 +230,8 @@
   <script src="js/theme.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/menu.js"></script>
+  <script src="js/beads-palettes.js"></script>
+  <script src="js/beads-core.js"></script>
   <script src="js/isometric.js"></script>
 </body>
 </html>

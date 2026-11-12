@@ -49,6 +49,14 @@
   // 画笔笔触
   var currentBrushStroke = [];
 
+  // 画风：'smooth' 普通矢量 | 'pixel' 整个场景按 pixelSize 像素块渲染
+  var renderStyle = 'smooth';
+  var pixelSize = 4;
+
+  // 选择 / 移动
+  var selected = null; // the selected shape object (replaced, never mutated, when it moves)
+  var drag = null;     // { orig, current, start, base } while dragging a selection
+
   // DOM 元素
   var canvas, ctx, container, statusText;
   var toolBtns, viewModeBtns, planeBtns;
@@ -306,11 +314,16 @@
     }
   }
 
-  function isSolid(s) { return s.type === 'box' || s.type === 'plane' || s.type === 'rect_2d'; }
+  function isSolid(s) { return s.type === 'box' || s.type === 'plane' || s.type === 'rect_2d' || s.type === 'beads'; }
 
   // ponytail: painter's sort by gx+gy, overlapping boxes of very different sizes can mis-order
   function isoDepth(s) {
     if (s.type === 'rect_2d') return (s.x + s.y) / 32;
+    if (s.type === 'beads') {
+      // Measured from the piece's middle, so a piece on a desk sorts after the desk.
+      var e = beadsFrame(s).ext;
+      return (s.gx + e[0] / 2) + (s.gy + e[1] / 2) + ((s.gz || 0) + e[2] / 2) * 0.5;
+    }
     return (s.gx + s.gy) + (s.gz || 0) * 0.5;
   }
 
@@ -328,6 +341,7 @@
       else if (s.type === 'brush_stroke') drawBrushStroke(s);
       else if (s.type === 'line') drawLine(s);
       else if (s.type === 'rect_2d') drawRect2DAsIso(s);
+      else if (s.type === 'beads') drawBeads(s);
     });
   }
 
@@ -360,6 +374,11 @@
   function shapeHit(s, world) {
     if (s.type === 'line') return hitsPolyline(world, [s.start, s.end], s.width);
     if (s.type === 'brush_stroke') return viewMode === 'iso' && hitsPolyline(world, s.points, s.size);
+    if (s.type === 'beads') {
+      if (viewMode === 'iso') return pointInPolygon(world, beadsCorners(s, true));
+      var e = beadsFrame(s).ext;
+      return hitsRect(world, s.gx * 32 - 4, s.gy * 32 - 4, e[0] * 32 + 8, e[1] * 32 + 8);
+    }
     if (viewMode === 'iso') {
       if (s.type === 'box') return hitsBoxIso(s, world);
       if (s.type === 'plane') return pointInPolygon(world, getPlaneVertices(s));
@@ -380,6 +399,155 @@
     return null;
   }
 
+  // ==================== 像素画风：直接在像素格上绘制 ====================
+  // Like a pixel editor rather than a filter: shapes are drawn straight onto a grid of
+  // ps x ps blocks, never smooth-drawn and shrunk. A face fills every block whose center lies
+  // inside it (one exact color, no blending); outlines and lines are 1-block Bresenham lines;
+  // strokes drop L-shaped corner blocks, the way Aseprite's "Pixel-perfect" does, so diagonals
+  // stay one block thin. Bead pieces look up, per block, which bead it falls on.
+  // The block grid is tied to the world (pan rounded to whole blocks), so it doesn't shimmer
+  // while panning. Drawn onto `target` in its own pixels (tx, ty = pan, z = zoom).
+
+  function hexRgb(hex, fallback) {
+    return /^#[0-9a-f]{6}$/i.test(hex || '') ? hexToRgb(hex) : hexToRgb(fallback);
+  }
+
+  // A block-space raster: plot / fill / line, all in whole blocks with exact colors.
+  function makeRaster(bw, bh, k, px, py) {
+    var img = new ImageData(bw, bh), d = img.data;
+    function toBlock(p) { return { x: p.x * k + px, y: p.y * k + py }; } // world -> block coords
+    function plot(x, y, c) {
+      if (x < 0 || y < 0 || x >= bw || y >= bh) return;
+      var i = (y * bw + x) * 4;
+      d[i] = c.r; d[i + 1] = c.g; d[i + 2] = c.b; d[i + 3] = 255;
+    }
+    // Every block whose center is inside the polygon (world coords).
+    function fill(poly, c) {
+      var pts = poly.map(toBlock);
+      var x0 = Math.max(0, Math.floor(Math.min.apply(null, pts.map(function (p) { return p.x; }))));
+      var x1 = Math.min(bw - 1, Math.ceil(Math.max.apply(null, pts.map(function (p) { return p.x; }))));
+      var y0 = Math.max(0, Math.floor(Math.min.apply(null, pts.map(function (p) { return p.y; }))));
+      var y1 = Math.min(bh - 1, Math.ceil(Math.max.apply(null, pts.map(function (p) { return p.y; }))));
+      for (var y = y0; y <= y1; y++) {
+        for (var x = x0; x <= x1; x++) if (pointInPolygon({ x: x + 0.5, y: y + 0.5 }, pts)) plot(x, y, c);
+      }
+    }
+    // Blocks a straight line passes through, 8-connected (Bresenham).
+    function lineBlocks(a, b, out) {
+      var p = toBlock(a), q = toBlock(b);
+      var x = Math.floor(p.x), y = Math.floor(p.y), x1 = Math.floor(q.x), y1 = Math.floor(q.y);
+      var dx = Math.abs(x1 - x), dy = -Math.abs(y1 - y), sx = x < x1 ? 1 : -1, sy = y < y1 ? 1 : -1, err = dx + dy;
+      for (;;) {
+        var last = out[out.length - 1];
+        if (!last || last.x !== x || last.y !== y) out.push({ x: x, y: y });
+        if (x === x1 && y === y1) break;
+        var e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x += sx; }
+        if (e2 <= dx) { err += dx; y += sy; }
+      }
+      return out;
+    }
+    // Aseprite-style pixel-perfect: drop a block that only turns an L-shaped corner.
+    function pixelPerfect(pts) {
+      var out = [];
+      for (var i = 0; i < pts.length; i++) {
+        var a = out[out.length - 1], b = pts[i], c = pts[i + 1];
+        if (a && c && (a.x === b.x || a.y === b.y) && (c.x === b.x || c.y === b.y) && a.x !== c.x && a.y !== c.y) continue;
+        out.push(b);
+      }
+      return out;
+    }
+    function polyline(points, closed, c) {
+      var blocks = [];
+      for (var i = 1; i < points.length; i++) lineBlocks(points[i - 1], points[i], blocks);
+      if (closed && points.length > 2) lineBlocks(points[points.length - 1], points[0], blocks);
+      pixelPerfect(blocks).forEach(function (p) { plot(p.x, p.y, c); });
+    }
+    return { img: img, k: k, px: px, py: py, plot: plot, fill: fill, polyline: polyline, toBlock: toBlock };
+  }
+
+  var OUTLINE_FALLBACK = '#1f2937';
+
+  function rasterBox(R, b) {
+    var v = getBoxVertices(b);
+    var faces = [
+      { pts: [v[3], v[2], v[6], v[7]], color: b.leftColor },
+      { pts: [v[2], v[1], v[5], v[6]], color: b.rightColor },
+      { pts: [v[4], v[5], v[6], v[7]], color: b.topColor }
+    ];
+    faces.forEach(function (f) { R.fill(f.pts, hexRgb(f.color, '#888888')); });
+    if (b.hasOutline) {
+      var oc = hexRgb(b.outlineColor, OUTLINE_FALLBACK);
+      faces.forEach(function (f) { R.polyline(f.pts, true, oc); });
+    }
+  }
+
+  // Bead piece: for each block, solve which bead (column, row) its center falls on, first on the
+  // back layer (darker side) then on the front face, so the piece keeps a one-block edge.
+  function rasterBeads(R, b) {
+    var f = beadsFrame(b), s = f.s, th = s * 0.4;
+    var P = function (v) { return gridToScreen(v[0], v[1], v[2]); };
+    var colV = P(f.col), rowV = P(f.row), nV = P(f.n), base = gridToScreen(b.gx, b.gy, b.gz || 0), o = P(f.o);
+    var det = colV.x * rowV.y - colV.y * rowV.x;
+    if (Math.abs(det) < 1e-9) return;
+    var cells;
+    try { cells = decodeCells(b.cells); } catch (e) { return; }
+    var colors = b.colors.map(function (c) { return hexRgb(c, '#888888'); });
+    var sides = b.colors.map(function (c) { return hexRgb(shadeHex(c, 0.7), '#555555'); });
+    [[0, sides], [th, colors]].forEach(function (layer) {
+      var lift = layer[0], pal = layer[1];
+      var ox = base.x + o.x + nV.x * lift, oy = base.y + o.y + nV.y * lift;
+      var corners = [{ x: ox, y: oy }, { x: ox + colV.x * f.u, y: oy + colV.y * f.u },
+        { x: ox + colV.x * f.u + rowV.x * f.v, y: oy + colV.y * f.u + rowV.y * f.v }, { x: ox + rowV.x * f.v, y: oy + rowV.y * f.v }];
+      var bc = corners.map(R.toBlock);
+      var x0 = Math.floor(Math.min.apply(null, bc.map(function (p) { return p.x; })));
+      var x1 = Math.ceil(Math.max.apply(null, bc.map(function (p) { return p.x; })));
+      var y0 = Math.floor(Math.min.apply(null, bc.map(function (p) { return p.y; })));
+      var y1 = Math.ceil(Math.max.apply(null, bc.map(function (p) { return p.y; })));
+      for (var y = y0; y <= y1; y++) {
+        for (var x = x0; x <= x1; x++) {
+          // block center back to world, then into the piece's (column, row) grid units
+          var wx = (x + 0.5 - R.px) / R.k - ox, wy = (y + 0.5 - R.py) / R.k - oy;
+          var a = (wx * rowV.y - wy * rowV.x) / det, c = (colV.x * wy - colV.y * wx) / det;
+          var col = Math.floor(a / s), row = Math.floor(c / s);
+          if (col < 0 || row < 0 || col >= b.bw || row >= b.bh) continue;
+          var v = cells[row * b.bw + col];
+          if (v >= 0 && pal[v]) R.plot(x, y, pal[v]);
+        }
+      }
+    });
+  }
+
+  var pixelBuf = null;
+  function drawPixelArt(target, outW, outH, tx, ty, z, ps, list) {
+    var bw = Math.ceil(outW / ps) + 1, bh = Math.ceil(outH / ps) + 1;
+    var px = Math.round(tx / ps), py = Math.round(ty / ps);
+    var R = makeRaster(bw, bh, z / ps, px, py);
+    isoDrawOrder(list).forEach(function (s) {
+      if (s.type === 'box') rasterBox(R, s);
+      else if (s.type === 'rect_2d') {
+        var sh = compute3Shades(s.fillColor || currentColor);
+        rasterBox(R, { gx: s.x / 32, gy: s.y / 32, gz: 0, gw: s.width / 32, gd: s.height / 32, gh: s.extrudeHeight || 0.25,
+          topColor: sh.topColor, leftColor: sh.leftColor, rightColor: sh.rightColor, hasOutline: true, outlineColor: s.outlineColor || outlineColor });
+      } else if (s.type === 'plane') {
+        var pv = getPlaneVertices(s);
+        R.fill(pv, hexRgb(s.color, '#888888'));
+        if (s.hasOutline) R.polyline(pv, true, hexRgb(s.outlineColor, OUTLINE_FALLBACK));
+      } else if (s.type === 'line') R.polyline([s.start, s.end], false, hexRgb(s.color, OUTLINE_FALLBACK));
+      else if (s.type === 'brush_stroke') R.polyline(s.points, false, hexRgb(s.color, OUTLINE_FALLBACK));
+      else if (s.type === 'beads') rasterBeads(R, s);
+    });
+    pixelBuf = pixelBuf || document.createElement('canvas');
+    pixelBuf.width = bw;
+    pixelBuf.height = bh;
+    pixelBuf.getContext('2d').putImageData(R.img, 0, 0);
+    target.save();
+    target.setTransform(1, 0, 0, 1, 0, 0);
+    target.imageSmoothingEnabled = false;
+    target.drawImage(pixelBuf, tx - px * ps, ty - py * ps, bw * ps, bh * ps);
+    target.restore();
+  }
+
   function render() {
     if (!canvas || !ctx) return;
     themeColors = {};
@@ -398,12 +566,11 @@
     }
 
     if (viewMode === 'iso') {
-      drawIsoScene(shapes);
-
+      var tempBox = null;
       // 实时 3D 盒子高度拉伸
       if (boxExtrudeStage === 'pulling_height' && boxBase) {
         var shades = compute3Shades(currentColor);
-        var tempBox = {
+        tempBox = {
           type: 'box',
           gx: boxBase.gx,
           gy: boxBase.gy,
@@ -417,9 +584,14 @@
           hasOutline: true,
           outlineColor: outlineColor
         };
-        drawBox(tempBox);
-        drawHeightIndicator(tempBox);
       }
+      var paintScene = function () {
+        drawIsoScene(shapes);
+        if (tempBox) drawBox(tempBox);
+      };
+      if (renderStyle === 'pixel') drawPixelArt(ctx, w, h, pan.x, pan.y, zoom, pixelSize, tempBox ? shapes.concat([tempBox]) : shapes);
+      else paintScene();
+      if (tempBox) drawHeightIndicator(tempBox);
     } else {
       // 2D 平面模式：将所有 3D 盒子、平面与 2D 图元渲染为标准的 2D 俯视平面图
       for (var j = 0; j < shapes.length; j++) {
@@ -432,9 +604,15 @@
           drawRect2D(shape);
         } else if (shape.type === 'line') {
           drawLine(shape);
+        } else if (shape.type === 'beads') {
+          drawBeadsIn2DPlan(shape);
         }
       }
     }
+
+    if (selected && shapes.indexOf(selected) < 0) selected = null; // undone or erased
+    if (selected) drawSelection(selected);
+    updateSelUi();
 
     // 拖拽预览
     if (isDragging && !isSpacePressed && !isPanning && boxExtrudeStage !== 'pulling_height') {
@@ -665,6 +843,262 @@
     ctx.restore();
   }
 
+  // ==================== 拼豆作品 (bead works) ====================
+  // A bead piece is one shape: { type: 'beads', name, gx, gy, gz, orient, bw, bh, per, colors, cells }.
+  // colors: '#rrggbb' list; cells: base64 Int16 (index into colors, -1 = no bead), bw x bh beads;
+  // per: beads per grid cell. orient 'top' lies on the floor (columns +gx, rows +gy);
+  // 'left' stands in a plane of constant gx, 'right' in one of constant gy, both facing the
+  // viewer so the art reads as drawn, top row highest.
+
+  function decodeCells(b64) {
+    var s = atob(b64), bytes = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+    return new Int16Array(bytes.buffer);
+  }
+
+  function encodeCells(cells) {
+    var bytes = new Uint8Array(cells.buffer, cells.byteOffset, cells.byteLength), s = '';
+    for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(s);
+  }
+
+  // Origin offset, column / row / normal directions (grid units) and size of a piece.
+  function beadsFrame(b) {
+    var s = 1 / b.per, u = b.bw * s, v = b.bh * s;
+    if (b.orient === 'top') return { o: [0, 0, 0], col: [1, 0, 0], row: [0, 1, 0], n: [0, 0, 1], s: s, u: u, v: v, ext: [u, v, 0] };
+    // Columns toward -gy on a constant-gx wall, so they run left to right on screen.
+    if (b.orient === 'left') return { o: [0, u, v], col: [0, -1, 0], row: [0, 0, -1], n: [1, 0, 0], s: s, u: u, v: v, ext: [0, u, v] };
+    return { o: [0, 0, v], col: [1, 0, 0], row: [0, 0, -1], n: [0, 1, 0], s: s, u: u, v: v, ext: [u, 0, v] };
+  }
+
+  function add3(a, b, k) { return [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]; }
+
+  // Screen-space corners of the piece's face (relative to its anchor unless abs).
+  function beadsCorners(b, abs) {
+    var f = beadsFrame(b), base = abs ? [b.gx, b.gy, b.gz || 0] : [0, 0, 0];
+    var o = add3(base, f.o, 1);
+    return [o, add3(o, f.col, f.u), add3(add3(o, f.col, f.u), f.row, f.v), add3(o, f.row, f.v)]
+      .map(function (p) { return gridToScreen(p[0], p[1], p[2]); });
+  }
+
+  function shadeHex(hex, k) {
+    var c = hexToRgb(hex);
+    return rgbToHex(Math.round(c.r * k), Math.round(c.g * k), Math.round(c.b * k));
+  }
+
+  // The piece drawn once into an offscreen canvas: each bead a short cylinder (darker body,
+  // colored face, hole), nearer beads over farther ones. Projection is linear, so the image
+  // stays valid when the piece moves; it is redrawn only when the grid or the piece changes.
+  function beadsImage(b) {
+    var key = gridMode + '|' + tileSize + '|' + b.orient + '|' + b.per + '|' + b.cells.length + '|' + b.colors.join();
+    if (b._img && b._img.key === key) return b._img;
+    var f = beadsFrame(b), s = f.s, r = s * 0.5, th = s * 0.4;
+    var P = function (v) { return gridToScreen(v[0], v[1], v[2]); };
+    var colV = P(f.col), rowV = P(f.row), nV = P(f.n);
+    var pts = beadsCorners(b, false);
+    pts = pts.concat(pts.map(function (p) { return { x: p.x + nV.x * th, y: p.y + nV.y * th }; }));
+    var minX = Math.min.apply(null, pts.map(function (p) { return p.x; })) - 2;
+    var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - 2;
+    var maxX = Math.max.apply(null, pts.map(function (p) { return p.x; })) + 2;
+    var maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + 2;
+    // 2x for sharp zooming, less for huge pieces (canvas area kept under ~16 M px).
+    var scale = Math.min(2, Math.sqrt(16e6 / Math.max(1, (maxX - minX) * (maxY - minY))));
+    var c = document.createElement('canvas');
+    c.width = Math.ceil((maxX - minX) * scale);
+    c.height = Math.ceil((maxY - minY) * scale);
+    var g = c.getContext('2d');
+    var cells = decodeCells(b.cells), list = [];
+    for (var row = 0; row < b.bh; row++) {
+      for (var col = 0; col < b.bw; col++) {
+        var v = cells[row * b.bw + col];
+        if (v < 0 || !b.colors[v]) continue;
+        var ctr = add3(add3(f.o, f.col, (col + 0.5) * s), f.row, (row + 0.5) * s);
+        list.push({ ctr: ctr, color: b.colors[v], depth: ctr[0] + ctr[1] + ctr[2] * 0.5 });
+      }
+    }
+    list.sort(function (a, bb) { return a.depth - bb.depth; });
+    function disc(center, lift, rad, fill) {
+      var p = P(center);
+      g.setTransform(colV.x * rad * scale, colV.y * rad * scale, rowV.x * rad * scale, rowV.y * rad * scale,
+        (p.x + nV.x * lift - minX) * scale, (p.y + nV.y * lift - minY) * scale);
+      g.beginPath();
+      g.arc(0, 0, 1, 0, Math.PI * 2);
+      g.fillStyle = fill;
+      g.fill();
+    }
+    list.forEach(function (bd) {
+      var side = shadeHex(bd.color, 0.7);
+      disc(bd.ctr, 0, r, side);
+      disc(bd.ctr, th / 2, r, side);
+      disc(bd.ctr, th, r, bd.color);
+      disc(bd.ctr, th, r * 0.36, shadeHex(bd.color, 0.55));
+    });
+    b._img = { key: key, canvas: c, minX: minX, minY: minY, scale: scale };
+    return b._img;
+  }
+
+  function drawBeads(b) {
+    var im;
+    try { im = beadsImage(b); } catch (e) { return; } // damaged saved data: skip the piece
+    var o = gridToScreen(b.gx, b.gy, b.gz || 0);
+    ctx.save();
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(im.canvas, o.x + im.minX, o.y + im.minY, im.canvas.width / im.scale, im.canvas.height / im.scale);
+    ctx.restore();
+  }
+
+  // Plan view: a lying piece shows its art from above; a standing one is a thin strip.
+  function drawBeadsIn2DPlan(b) {
+    var f = beadsFrame(b), x = b.gx * 32, y = b.gy * 32;
+    ctx.save();
+    if (b.orient === 'top') {
+      if (!b._plan || b._plan.cells !== b.cells) {
+        var pc = document.createElement('canvas');
+        pc.width = b.bw;
+        pc.height = b.bh;
+        var pg = pc.getContext('2d'), cells = decodeCells(b.cells);
+        for (var i = 0; i < cells.length; i++) {
+          if (cells[i] < 0) continue;
+          pg.fillStyle = b.colors[cells[i]];
+          pg.fillRect(i % b.bw, Math.floor(i / b.bw), 1, 1);
+        }
+        b._plan = { cells: b.cells, canvas: pc };
+      }
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(b._plan.canvas, x, y, f.u * 32, f.v * 32);
+      ctx.strokeStyle = cssVar('border');
+      ctx.strokeRect(x, y, f.u * 32, f.v * 32);
+    } else {
+      ctx.fillStyle = cssVar('primary');
+      if (b.orient === 'left') ctx.fillRect(x - 2, y, 4, f.u * 32);
+      else ctx.fillRect(x, y - 2, f.u * 32, 4);
+    }
+    ctx.restore();
+  }
+
+  // ==================== 选择与移动 ====================
+
+  // Convex hull (monotone chain) of screen points, for the selection outline.
+  function hull(points) {
+    var p = points.slice().sort(function (a, b) { return a.x - b.x || a.y - b.y; });
+    if (p.length < 3) return p;
+    function cross(o, a, b) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
+    var lower = [], upper = [], i;
+    for (i = 0; i < p.length; i++) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p[i]) <= 0) lower.pop();
+      lower.push(p[i]);
+    }
+    for (i = p.length - 1; i >= 0; i--) {
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p[i]) <= 0) upper.pop();
+      upper.push(p[i]);
+    }
+    return lower.slice(0, -1).concat(upper.slice(0, -1));
+  }
+
+  function outlinePoints(s) {
+    if (viewMode === 'plan') {
+      var e = s.type === 'beads' ? beadsFrame(s).ext : [s.gw || 0, s.gd || 0];
+      if (s.type === 'rect_2d') return [{ x: s.x, y: s.y }, { x: s.x + s.width, y: s.y + s.height }];
+      if (s.type === 'line') return [s.start, s.end];
+      if (s.gx === undefined) return [];
+      return [{ x: s.gx * 32 - 3, y: s.gy * 32 - 3 }, { x: (s.gx + e[0]) * 32 + 3, y: s.gy * 32 - 3 },
+        { x: (s.gx + e[0]) * 32 + 3, y: (s.gy + e[1]) * 32 + 3 }, { x: s.gx * 32 - 3, y: (s.gy + e[1]) * 32 + 3 }];
+    }
+    if (s.type === 'box') return getBoxVertices(s);
+    if (s.type === 'plane') return getPlaneVertices(s);
+    if (s.type === 'beads') return beadsCorners(s, true);
+    if (s.type === 'rect_2d') return getBoxVertices({ gx: s.x / 32, gy: s.y / 32, gz: 0, gw: s.width / 32, gd: s.height / 32, gh: s.extrudeHeight || 0.25 });
+    if (s.type === 'line') return [s.start, s.end];
+    if (s.type === 'brush_stroke') return s.points;
+    return [];
+  }
+
+  function drawSelection(s) {
+    var pts = hull(outlinePoints(s));
+    if (pts.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = cssVar('primary');
+    ctx.lineWidth = 2 / zoom;
+    ctx.setLineDash([6 / zoom, 4 / zoom]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    pts.forEach(function (p) { ctx.lineTo(p.x, p.y); });
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // A moved copy of a shape (grid shapes by grid units, drawn lines by the matching screen offset).
+  function movedShape(s, dx, dy) {
+    if (s.type === 'rect_2d') return Object.assign({}, s, { x: s.x + dx * 32, y: s.y + dy * 32 });
+    if (s.type === 'line' || s.type === 'brush_stroke') {
+      var d = gridToScreen(dx, dy, 0);
+      var off = function (p) { return { x: p.x + d.x, y: p.y + d.y }; };
+      return s.type === 'line'
+        ? Object.assign({}, s, { start: off(s.start), end: off(s.end) })
+        : Object.assign({}, s, { points: s.points.map(off) });
+    }
+    return Object.assign({}, s, { gx: s.gx + dx, gy: s.gy + dy });
+  }
+
+  // Swap one shape for its edited copy as a single undo step, keeping it selected.
+  function replaceSelected(next) {
+    var prev = selected;
+    selected = next;
+    pushState(shapes.map(function (s) { return s === prev ? next : s; }));
+  }
+
+  var selGroup, selTurnBtn;
+  function updateSelUi() {
+    if (!selGroup) return;
+    [].forEach.call(selGroup.querySelectorAll('button'), function (b) {
+      var usable = !!selected;
+      if (b === selTurnBtn) usable = !!selected && selected.type === 'beads';
+      else if (b.id !== 'selDelete') usable = !!selected && selected.gz !== undefined;
+      b.disabled = !usable;
+    });
+  }
+
+  function selRaise(dir) {
+    if (!selected || selected.gz === undefined) return;
+    replaceSelected(Object.assign({}, selected, { gz: Math.max(0, (selected.gz || 0) + dir * snapStep) }));
+  }
+
+  function selTurn() {
+    if (!selected || selected.type !== 'beads') return;
+    var order = ['top', 'right', 'left'];
+    var next = Object.assign({}, selected, { orient: order[(order.indexOf(selected.orient) + 1) % order.length] });
+    delete next._img;
+    // Keep the piece's middle exactly where it was (the footprint changes shape when it turns;
+    // rounding here would make a full turn drift).
+    var was = beadsFrame(selected).ext, now = beadsFrame(next).ext;
+    next.gx = selected.gx + was[0] / 2 - now[0] / 2;
+    next.gy = selected.gy + was[1] / 2 - now[1] / 2;
+    next.gz = restHeight(next, shapes);
+    replaceSelected(next);
+  }
+
+  function selDelete() {
+    if (!selected) return;
+    var gone = selected;
+    selected = null;
+    pushState(shapes.filter(function (s) { return s !== gone; }));
+  }
+
+  // Boxes a piece can rest on: at least one cell each way (floors, desks, shelves), not thin
+  // walls or a monitor's edge.
+  function isSurface(s) { return s.type === 'box' && s.gw >= 1 && s.gd >= 1; }
+
+  // Height a piece rests at: the top of the highest surface under its middle, else the floor.
+  function restHeight(b, others) {
+    var f = beadsFrame(b), cx = b.gx + f.ext[0] / 2, cy = b.gy + f.ext[1] / 2, z = 0;
+    others.forEach(function (s) {
+      if (!isSurface(s) || s === b) return;
+      if (cx >= s.gx && cx <= s.gx + s.gw && cy >= s.gy && cy <= s.gy + s.gd) z = Math.max(z, (s.gz || 0) + s.gh);
+    });
+    return z;
+  }
+
   function drawBrushStroke(st) {
     if (st.points.length < 2) return;
     ctx.save();
@@ -864,6 +1298,7 @@
     historyIndex++;
     updateUndoRedoBtns();
     render();
+    scheduleSceneSave();
   }
 
   function undo() {
@@ -872,6 +1307,7 @@
       shapes = history[historyIndex].slice();
       updateUndoRedoBtns();
       render();
+      scheduleSceneSave();
     }
   }
 
@@ -881,6 +1317,7 @@
       shapes = history[historyIndex].slice();
       updateUndoRedoBtns();
       render();
+      scheduleSceneSave();
     }
   }
 
@@ -963,6 +1400,13 @@
       return;
     }
 
+    if (currentTool === 'select') {
+      selected = shapeAt(rawWorld);
+      if (selected) drag = { orig: selected, current: selected, start: rawWorld, base: shapes };
+      render();
+      return;
+    }
+
     if (currentTool === 'eraser') {
       var hit = shapeAt(rawWorld);
       if (hit) pushState(shapes.filter(function (s) { return s !== hit; }));
@@ -1003,6 +1447,30 @@
     }
 
     var rawWorld = toWorld(sx, sy);
+
+    if (drag) {
+      // Move along the floor by whole snap steps; bead pieces settle onto whatever is under them.
+      var dx, dy;
+      if (viewMode === 'iso') {
+        var g0 = screenToGrid(drag.start.x, drag.start.y), g1 = screenToGrid(rawWorld.x, rawWorld.y);
+        dx = g1.gx - g0.gx;
+        dy = g1.gy - g0.gy;
+      } else {
+        dx = (rawWorld.x - drag.start.x) / 32;
+        dy = (rawWorld.y - drag.start.y) / 32;
+      }
+      var st = snapToGrid ? snapStep : 0.05;
+      dx = Math.round(dx / st) * st;
+      dy = Math.round(dy / st) * st;
+      var moved = movedShape(drag.orig, dx, dy);
+      if (moved.type === 'beads') moved.gz = restHeight(moved, drag.base);
+      shapes = drag.base.map(function (s) { return s === drag.orig ? moved : s; });
+      drag.current = moved;
+      selected = moved;
+      render();
+      return;
+    }
+
     var effPoint = getEffectivePoint(rawWorld);
     hoverPoint = effPoint;
 
@@ -1032,6 +1500,13 @@
 
   function handleMouseUp() {
     if (isPanning) { isPanning = false; return; }
+    if (drag) {
+      // One undo step for the whole move (the array before the drag is still in history).
+      var movedIt = drag.current !== drag.orig;
+      drag = null;
+      if (movedIt) pushState(shapes);
+      return;
+    }
     if (!isDragging) return;
     isDragging = false;
 
@@ -1145,9 +1620,13 @@
     var mouseY = e.clientY - rect.top;
     var zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
     var newZoom = Math.max(0.12, Math.min(4.5, zoom * zoomFactor));
-    pan.x = mouseX - (mouseX - pan.x) * (newZoom / zoom);
-    pan.y = mouseY - (mouseY - pan.y) * (newZoom / zoom);
-    zoom = newZoom;
+    if (renderStyle === 'pixel') {
+      // Whole zoom steps only; always move at least one step per wheel notch.
+      var snapped = snapZoom(newZoom);
+      if (snapped === zoom) snapped = snapZoom(zoom + (e.deltaY < 0 ? 1 : -1) * zoomStep());
+      newZoom = snapped;
+    }
+    zoomAround(newZoom, mouseX, mouseY);
     render();
   }
 
@@ -1182,7 +1661,7 @@
     }
     pushState(sampleShapes);
     pan = { x: canvas.width / 2, y: canvas.height / 2 };
-    zoom = 1.0;
+    zoom = snapZoom(1.0);
     render();
   }
 
@@ -1222,15 +1701,154 @@
         return c;
       });
     }
-    // Reuse the on-screen draw routines against the export context.
-    var screenCtx = ctx;
-    ctx = offCtx;
-    try { drawIsoScene(list); } finally { ctx = screenCtx; }
+    // Reuse the on-screen draw routines against the export context. Pixel style exports the
+    // same pixel look at the export's 2x size (line art stays smooth: it's a reference drawing).
+    if (renderStyle === 'pixel' && format !== 'lineart') {
+      offCtx.setTransform(1, 0, 0, 1, 0, 0);
+      drawPixelArt(offCtx, offCanvas.width, offCanvas.height, pan.x * 2, pan.y * 2, zoom * 2, pixelSize * 2, list);
+    } else {
+      var screenCtx = ctx;
+      ctx = offCtx;
+      try { drawIsoScene(list); } finally { ctx = screenCtx; }
+    }
 
     var link = document.createElement('a');
     link.download = '70015_isometric_' + (format === 'lineart' ? 'lineart_' : '') + Date.now() + '.png';
     link.href = offCanvas.toDataURL('image/png');
     link.click();
+  }
+
+  // ==================== 拼豆作品放入场景 / 场景保存 ====================
+  // The Bead Pattern page saves its works in this site's localStorage, so they can be read
+  // here directly. A placed piece copies its colors and cells, so the scene keeps working even
+  // if the work is later deleted.
+
+  var WORKS_KEY = '70015-beads-works', SCENE_KEY = '70015-iso-scene';
+
+  function readStore(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+  }
+
+  function readWorks() {
+    var w = readStore(WORKS_KEY);
+    return Array.isArray(w) ? w : [];
+  }
+
+  function workToPiece(w, orient, per) {
+    var C = window.BeadsCore;
+    var pal = w.paletteId === 'custom' && w.custom
+      ? C.parsePaletteText(w.custom.text)
+      : C.parsePalette(window.BEAD_PALETTES[w.paletteId] || window.BEAD_PALETTES.mard);
+    var cells = decodeCells(w.pattern), out = new Int16Array(cells.length), slot = {}, colors = [];
+    for (var i = 0; i < cells.length; i++) {
+      var v = cells[i];
+      if (v < 0 || !pal[v]) { out[i] = -1; continue; }
+      if (!(v in slot)) { slot[v] = colors.length; colors.push(pal[v].hex); }
+      out[i] = slot[v];
+    }
+    return { type: 'beads', name: w.name || '', gx: 0, gy: 0, gz: 0, orient: orient, bw: w.w, bh: w.h, per: per, colors: colors, cells: encodeCells(out) };
+  }
+
+  // Put a piece in the middle of the view, on a snap step, resting on whatever is below it.
+  // When the piece wouldn't fit on any surface there but the scene has one (a floor), use the
+  // middle of the largest surface instead, so a new piece never hangs outside the room.
+  function placePiece(piece) {
+    var f = beadsFrame(piece), c = toWorld(canvas.width / 2, canvas.height / 2);
+    var g = viewMode === 'iso' ? screenToGrid(c.x, c.y) : { gx: c.x / 32, gy: c.y / 32 };
+    var surfaces = shapes.filter(isSurface);
+    var x0 = g.gx - f.ext[0] / 2, y0 = g.gy - f.ext[1] / 2;
+    var fits = surfaces.some(function (s) {
+      return x0 >= s.gx && y0 >= s.gy && x0 + f.ext[0] <= s.gx + s.gw && y0 + f.ext[1] <= s.gy + s.gd;
+    });
+    if (!fits && surfaces.length) {
+      var big = surfaces.reduce(function (a, s) { return s.gw * s.gd > a.gw * a.gd ? s : a; });
+      g = { gx: big.gx + big.gw / 2, gy: big.gy + big.gd / 2 };
+    }
+    piece.gx = Math.round((g.gx - f.ext[0] / 2) / snapStep) * snapStep;
+    piece.gy = Math.round((g.gy - f.ext[1] / 2) / snapStep) * snapStep;
+    piece.gz = restHeight(piece, shapes);
+    // The first bead work in a scene turns the scene to pixel style, to match the beads;
+    // switching back to smooth afterwards is kept.
+    var firstBeads = !shapes.some(function (s) { return s.type === 'beads'; });
+    selected = piece;
+    pushState(shapes.concat([piece]));
+    if (firstBeads && renderStyle !== 'pixel') setStyle('pixel');
+    setTool('select');
+  }
+
+  var beadsDialog, beadsOrient = 'right';
+
+  function openBeadsDialog() {
+    var list = document.getElementById('beadsList'), works = readWorks();
+    document.getElementById('beadsEmpty').hidden = works.length > 0;
+    list.innerHTML = '';
+    works.forEach(function (w) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'iso-beads-dialog__work';
+      btn.innerHTML = '<img alt=""><span></span><small></small>';
+      btn.firstChild.src = w.thumb || '';
+      btn.children[1].textContent = w.name && w.name !== 'beads' ? w.name : tr('bd_untitled');
+      btn.children[2].textContent = w.w + ' × ' + w.h;
+      btn.addEventListener('click', function () {
+        var per = parseInt(document.getElementById('beadsPer').value, 10) || 8;
+        try { placePiece(workToPiece(w, beadsOrient, per)); } catch (e) { console.error(e); }
+        beadsDialog.close();
+      });
+      list.appendChild(btn);
+    });
+    if (beadsDialog.showModal) beadsDialog.showModal();
+    else beadsDialog.setAttribute('open', '');
+  }
+
+  // Scene autosave: shapes as JSON, minus the cached images (keys starting with "_").
+  // ponytail: one scene in localStorage; add named scenes if people want several.
+  var sceneTimer;
+  function scheduleSceneSave() {
+    clearTimeout(sceneTimer);
+    sceneTimer = setTimeout(function () {
+      try {
+        localStorage.setItem(SCENE_KEY, JSON.stringify(shapes, function (k, v) { return k.charAt(0) === '_' ? undefined : v; }));
+      } catch (e) { /* storage full or blocked: the scene just isn't kept */ }
+    }, 500);
+  }
+
+  var styleBtns, pixelSizeSelect;
+  // Pixel style draws in the 2:1 isometric pixel artists use (2 blocks across, 1 down, so every
+  // edge steps evenly); smooth style keeps true 30°. In pixel style the zoom snaps to levels
+  // where one grid cell is a whole number of pixel blocks (6 x 3 at 4 px), so steps never vary.
+  function zoomStep() { return pixelSize / (tileSize * 0.25); }
+  function snapZoom(z) {
+    if (renderStyle !== 'pixel') return z;
+    var st = zoomStep();
+    return Math.max(st, Math.min(Math.floor(4.5 / st) * st, Math.round(z / st) * st));
+  }
+  // Change zoom keeping the screen point (cx, cy) fixed.
+  function zoomAround(newZoom, cx, cy) {
+    pan.x = cx - (cx - pan.x) * (newZoom / zoom);
+    pan.y = cy - (cy - pan.y) * (newZoom / zoom);
+    zoom = newZoom;
+  }
+
+  function setStyle(style, size) {
+    renderStyle = style === 'pixel' ? 'pixel' : 'smooth';
+    if (size) pixelSize = size;
+    gridMode = renderStyle === 'pixel' ? 'game_iso_2_1' : 'true_iso_30';
+    if (canvas) zoomAround(snapZoom(zoom), canvas.width / 2, canvas.height / 2);
+    if (styleBtns) styleBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.style === renderStyle); });
+    if (pixelSizeSelect) {
+      pixelSizeSelect.value = String(pixelSize);
+      pixelSizeSelect.disabled = renderStyle !== 'pixel';
+    }
+    try { localStorage.setItem('70015-iso-style', JSON.stringify({ style: renderStyle, size: pixelSize })); } catch (e) { /* not kept */ }
+    render();
+  }
+
+  function setTool(tool) {
+    currentTool = tool;
+    if (tool !== 'select') selected = null;
+    if (toolBtns) toolBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tool === tool); });
+    render();
   }
 
   // ==================== 初始化 ====================
@@ -1266,11 +1884,43 @@
     // 工具按钮
     toolBtns = document.querySelectorAll('[data-tool]');
     toolBtns.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        currentTool = btn.dataset.tool;
-        toolBtns.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
-        render();
-      });
+      btn.addEventListener('click', function () { setTool(btn.dataset.tool); });
+    });
+
+    // Selection toolbar
+    selGroup = document.getElementById('selGroup');
+    selTurnBtn = document.getElementById('selTurn');
+    document.getElementById('selUp').addEventListener('click', function () { selRaise(1); });
+    document.getElementById('selDown').addEventListener('click', function () { selRaise(-1); });
+    selTurnBtn.addEventListener('click', selTurn);
+    document.getElementById('selDelete').addEventListener('click', selDelete);
+
+    // 画风 (style), remembered between visits
+    styleBtns = document.querySelectorAll('[data-style]');
+    pixelSizeSelect = document.getElementById('pixelSizeSelect');
+    styleBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () { setStyle(btn.dataset.style); });
+    });
+    pixelSizeSelect.addEventListener('change', function () { setStyle(renderStyle, parseInt(pixelSizeSelect.value, 10) || 4); });
+    var savedStyle = readStore('70015-iso-style');
+    if (savedStyle) {
+      renderStyle = savedStyle.style === 'pixel' ? 'pixel' : 'smooth';
+      if ([2, 3, 4, 6, 8].indexOf(savedStyle.size) >= 0) pixelSize = savedStyle.size;
+    }
+    styleBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.style === renderStyle); });
+    pixelSizeSelect.value = String(pixelSize);
+    pixelSizeSelect.disabled = renderStyle !== 'pixel';
+    gridMode = renderStyle === 'pixel' ? 'game_iso_2_1' : 'true_iso_30';
+    zoom = snapZoom(zoom);
+
+    // Bead works
+    beadsDialog = document.getElementById('beadsDialog');
+    document.getElementById('addBeadsBtn').addEventListener('click', openBeadsDialog);
+    document.getElementById('beadsOrient').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-value]');
+      if (!btn) return;
+      beadsOrient = btn.dataset.value;
+      [].forEach.call(this.querySelectorAll('[data-value]'), function (b) { b.classList.toggle('is-active', b === btn); });
     });
 
     // 视图切换按钮
@@ -1405,18 +2055,22 @@
     // Keyup is lost if the window loses focus mid-press.
     window.addEventListener('blur', function () { isSpacePressed = false; });
 
-    var TOOL_KEYS = { b: 'box', p: 'plane', d: 'brush', l: 'line', e: 'eraser', i: 'eyedropper' };
+    var TOOL_KEYS = { v: 'select', b: 'box', p: 'plane', d: 'brush', l: 'line', e: 'eraser', i: 'eyedropper' };
 
     window.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (beadsDialog && beadsDialog.open) return;
       // Space pans only over the canvas; elsewhere it must still activate buttons.
       if (e.code === 'Space' && canvasHovered) { isSpacePressed = true; e.preventDefault(); }
-      var toolKey = !e.ctrlKey && !e.metaKey && !e.altKey && TOOL_KEYS[e.key.toLowerCase()];
-      if (toolKey) {
-        currentTool = toolKey;
-        toolBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tool === toolKey); });
-        render();
+      // Selection keys: Delete removes, arrows raise/lower, R turns a bead piece, Esc deselects.
+      if (selected && !e.ctrlKey && !e.metaKey) {
+        if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); selDelete(); return; }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); selRaise(e.key === 'ArrowUp' ? 1 : -1); return; }
+        if (e.key.toLowerCase() === 'r') { selTurn(); return; }
+        if (e.key === 'Escape') { selected = null; render(); return; }
       }
+      var toolKey = !e.ctrlKey && !e.metaKey && !e.altKey && TOOL_KEYS[e.key.toLowerCase()];
+      if (toolKey) setTool(toolKey);
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) redo(); else undo();
@@ -1450,7 +2104,28 @@
 
     updateShadeBoxes();
     updateUndoRedoBtns();
-    loadSampleRoom();
+
+    // The last scene comes back after a reload; the sample room only on the first visit.
+    var saved = readStore(SCENE_KEY);
+    if (Array.isArray(saved) && saved.length) {
+      shapes = saved.filter(function (s) { return s && typeof s.type === 'string'; });
+      history = [shapes.slice()];
+      historyIndex = 0;
+      updateUndoRedoBtns();
+      render();
+    } else {
+      loadSampleRoom();
+    }
+
+    // Opened from the Bead Pattern page's "Show in Isometric Studio": place that work.
+    var m = /^#beads=([\w-]+)$/.exec(location.hash);
+    if (m) {
+      window.history.replaceState(null, '', location.pathname + location.search); // `history` here is the undo list
+      var work = readWorks().filter(function (w) { return w.id === m[1]; })[0];
+      if (work) {
+        try { placePiece(workToPiece(work, 'right', 8)); } catch (e) { console.error(e); }
+      }
+    }
   }
 
   if (document.readyState === 'loading') {

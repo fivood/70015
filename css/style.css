@@ -92,18 +92,37 @@ body {
   text-decoration: none;
 }
 
+/* The logo is 32 x 32 pixel art (the 70015 tuxedo cat): its size is snapped below so each art pixel covers whole
+   screen pixels, and pixelated scaling keeps every pixel sharp. */
 .header__logo {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
 }
 
+/* Whole screen pixels per art pixel on common pixel ratios (1x: 32, 1.5x: 2 per pixel, 2x: 3, ...),
+   so no art pixel comes out wider than its neighbours. */
+:root { --logo-size: 48px; }
+@media (resolution: 1dppx) { :root { --logo-size: 32px; } }
+@media (resolution: 1.25dppx) { :root { --logo-size: 51.2px; } }
+@media (resolution: 1.5dppx) { :root { --logo-size: 42.667px; } }
+@media (resolution: 1.75dppx) { :root { --logo-size: 36.571px; } }
+@media (resolution: 2.5dppx) { :root { --logo-size: 38.4px; } }
+@media (resolution: 3dppx) { :root { --logo-size: 42.667px; } }
+
 .header__logo svg,
 .header__logo img,
 .header__logo-image {
-  width: 46px;
-  height: 46px;
+  width: var(--logo-size);
+  height: var(--logo-size);
+  image-rendering: pixelated;
+}
+
+/* The cat is mostly black: a faint light edge keeps it visible on the dark header. */
+[data-theme="dark"] .header__logo img,
+[data-theme="dark"] .header__logo-image {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.75));
 }
 
 .header__logo-image {

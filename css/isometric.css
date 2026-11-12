@@ -233,3 +233,110 @@
   gap: 8px;
   margin-top: 20px;
 }
+
+/* Bead work picker */
+.iso-beads-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.iso-beads-dialog::backdrop {
+  background: rgba(17, 24, 39, 0.45);
+}
+
+.iso-beads-dialog__title {
+  margin: 0 0 var(--space);
+  font-size: 17px;
+}
+
+.iso-beads-dialog__opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space);
+  margin-bottom: var(--space);
+}
+
+.iso-beads-dialog__per {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.iso-beads-dialog__per select {
+  height: var(--control-h-sm);
+  padding: 0 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+
+.iso-beads-dialog__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--space-sm);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.iso-beads-dialog__work {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.iso-beads-dialog__work:hover {
+  border-color: var(--primary);
+}
+
+.iso-beads-dialog__work img {
+  width: 100%;
+  height: 80px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background-color: #ffffff;
+  border-radius: var(--radius-xs);
+}
+
+.iso-beads-dialog__work span {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.iso-beads-dialog__work small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.iso-beads-dialog__empty {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.iso-beads-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space);
+}
+
+.iso-tool-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
+}

@@ -1443,6 +1443,17 @@
     if (state.pattern) scheduleSave();
   });
 
+  // Save now, then open the Isometric Studio, which reads the work from the same site storage.
+  $('bdToIso').addEventListener('click', function () {
+    if (!state.pattern) return;
+    if (!state.workId) state.workId = newWorkId();
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    saveWork();
+    var page = /-extension:$/.test(location.protocol) ? 'isometric.html' : 'isometric';
+    window.open(page + '#beads=' + state.workId, '_blank');
+  });
+
   el.exportWork.addEventListener('click', function () {
     if (!state.pattern) return;
     var used = usedColors(), slot = {};

@@ -44,6 +44,12 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
+/* 32 x 32 pixel-art cat at whole screen pixels per art pixel (see css/style.css). */
+.popup__mark { width: 32px; height: 32px; image-rendering: pixelated; }
+@media (resolution: 1.25dppx) { .popup__mark { width: 25.6px; height: 25.6px; } }
+@media (resolution: 1.5dppx) { .popup__mark { width: 21.333px; height: 21.333px; } }
+:root[data-theme="dark"] .popup__mark { filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.75)); }
+
 .popup__logo {
   font-weight: 800;
   font-size: 14px;
