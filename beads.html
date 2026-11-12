@@ -222,6 +222,7 @@
           <!-- On phones the dock (color strip + tools) is pinned to the bottom of the screen;
                on wider screens it flows inline with the rest of the toolbar. -->
           <div class="bd-dock" id="bdDock">
+            <div class="bd-groups" id="bdGroups" role="tablist" aria-label="Color groups" data-i18n-aria-label="bd_groups"></div>
             <div class="bd-strip" id="bdStrip" role="listbox" aria-label="Bead colors" data-i18n-aria-label="bd_palette"></div>
             <div class="bd-dock__row">
               <div class="segmented" id="bdTool">
@@ -233,6 +234,7 @@
               </div>
               <span class="bd-brush"><span class="bd-swatch" id="bdBrushSwatch"></span><span id="bdBrushCode"></span></span>
               <button class="btn btn--sm btn--secondary" id="bdUndo" type="button" data-i18n="bd_undo" disabled>Undo</button>
+              <button class="btn btn--sm btn--secondary bd-sym" id="bdSym" type="button"></button>
             </div>
           </div>
           <div class="bd-zoom" role="group" aria-label="Zoom" data-i18n-aria-label="bd_zoom">
@@ -240,10 +242,23 @@
             <button class="btn btn--sm btn--secondary" id="bdZoomFit" type="button" data-i18n="bd_zoom_fit">Fit</button>
             <button class="btn btn--sm btn--secondary" id="bdZoomIn" type="button" aria-label="Zoom in" data-i18n-aria-label="bd_zoom_in">+</button>
           </div>
-          <label class="chip">
-            <input type="checkbox" id="bdCodes" checked>
-            <span data-i18n="bd_show_codes">Codes</span>
-          </label>
+          <details class="bd-view">
+            <summary class="btn btn--sm btn--secondary" data-i18n="bd_view">Show</summary>
+            <div class="bd-view__menu">
+              <label class="chip">
+                <input type="checkbox" id="bdCodes" checked>
+                <span data-i18n="bd_show_codes">Codes</span>
+              </label>
+              <label class="chip">
+                <input type="checkbox" id="bdRound">
+                <span data-i18n="bd_round">Round beads</span>
+              </label>
+              <label class="chip">
+                <input type="checkbox" id="bdCenter">
+                <span data-i18n="bd_center">Center lines</span>
+              </label>
+            </div>
+          </details>
           <label class="chip">
             <input type="checkbox" id="bdFocus">
             <span data-i18n="bd_focus">One color at a time</span>
@@ -256,6 +271,10 @@
         <h2 class="bd-heading" data-i18n="bd_used">Colors used</h2>
         <p class="settings__note" id="bdUsedNote"></p>
         <div class="bd-legend" id="bdLegend"></div>
+        <div class="actions__btns bd-actions">
+          <button class="btn btn--sm btn--secondary" id="bdCopyList" type="button" data-i18n="bd_copy_list">Copy list</button>
+          <button class="btn btn--sm btn--secondary" id="bdCsv" type="button" data-i18n="bd_csv">Download CSV</button>
+        </div>
 
         <h2 class="bd-heading" data-i18n="bd_print">Print by pegboard</h2>
         <div class="settings__dimensions">
@@ -270,6 +289,12 @@
         </div>
 
         <h2 class="bd-heading" data-i18n="bd_export">Export chart</h2>
+        <div class="chips bd-export-opts">
+          <label class="chip"><input type="checkbox" id="bdExGrid" checked><span data-i18n="bd_ex_grid">Grid lines</span></label>
+          <label class="chip"><input type="checkbox" id="bdExCodes" checked><span data-i18n="bd_ex_codes">Color codes</span></label>
+          <label class="chip"><input type="checkbox" id="bdExAxes" checked><span data-i18n="bd_ex_axes">Row and column numbers</span></label>
+          <label class="chip"><input type="checkbox" id="bdExRound"><span data-i18n="bd_ex_round">Round beads</span></label>
+        </div>
         <div class="actions__btns bd-actions" id="bdActions"></div>
       </section>
       </div>

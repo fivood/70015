@@ -56,7 +56,10 @@
     settings: document.querySelector('.bd-settings'),
     newW: $('bdNewW'), newH: $('bdNewH'), newBtn: $('bdNewBtn'),
     works: $('bdWorks'), worksList: $('bdWorksList'),
-    strip: $('bdStrip'), zoomIn: $('bdZoomIn'), zoomOut: $('bdZoomOut'), zoomFit: $('bdZoomFit')
+    strip: $('bdStrip'), zoomIn: $('bdZoomIn'), zoomOut: $('bdZoomOut'), zoomFit: $('bdZoomFit'),
+    groups: $('bdGroups'), sym: $('bdSym'), round: $('bdRound'), center: $('bdCenter'),
+    copyList: $('bdCopyList'), csv: $('bdCsv'),
+    exGrid: $('bdExGrid'), exCodes: $('bdExCodes'), exAxes: $('bdExAxes'), exRound: $('bdExRound')
   };
 
   var builtIn = {};
@@ -84,7 +87,10 @@
     progressKey: '',
     name: 'beads',    // used for file names and chart titles
     workId: '',       // the saved work this pattern belongs to
-    zoom: 0           // preview cell size the user zoomed to; 0 = fit the screen
+    zoom: 0,          // preview cell size the user zoomed to; 0 = fit the screen
+    sym: 'off',       // mirror drawing: off | h (left-right) | v (top-bottom) | both
+    group: 'used',    // which colors the phone strip shows: used | recent | a family like "A"
+    recent: []        // codes picked lately, newest first, per palette family
   };
 
   // ---------- Small UI helpers ----------
@@ -312,25 +318,46 @@
     for (var y = r.y0; y < r.y1; y++) {
       for (var x = r.x0; x < r.x1; x++) drawCell(ctx, ox - r.x0 * cs, oy - r.y0 * cs, cs, y * state.w + x, opts);
     }
-    drawMajorLines(ctx, ox, oy, cs, r);
+    drawMajorLines(ctx, ox, oy, cs, r, opts.grid !== false);
   }
 
   // (ox, oy) is where bead (0, 0) would be drawn.
+  // opts.round: beads as circles with a hole, like the real thing; opts.grid === false: no cell lines.
   function drawCell(ctx, ox, oy, cs, i, opts) {
     var x = i % state.w, y = (i - x) / state.w, v = state.pattern[i];
     var px = ox + x * cs, py = oy + y * cs;
     var c = v >= 0 ? state.palette[v] : null;
     var faded = opts.dim && v !== state.focusColor;
-    ctx.fillStyle = c ? c.hex : '#ffffff';
-    ctx.fillRect(px, py, cs, cs);
+    var labelled = c && !faded && opts.codes && cs >= 14;
+    if (opts.round) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px, py, cs, cs);
+      if (c) {
+        ctx.fillStyle = c.hex;
+        ctx.beginPath();
+        ctx.arc(px + cs / 2, py + cs / 2, cs * 0.47, 0, Math.PI * 2);
+        ctx.fill();
+        if (!labelled) {
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.beginPath();
+          ctx.arc(px + cs / 2, py + cs / 2, cs * 0.15, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    } else {
+      ctx.fillStyle = c ? c.hex : '#ffffff';
+      ctx.fillRect(px, py, cs, cs);
+    }
     if (faded && c) {
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
       ctx.fillRect(px, py, cs, cs);
     }
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 0.5, py + 0.5, cs - 1, cs - 1);
-    if (c && !faded && opts.codes && cs >= 14) {
+    if (opts.grid !== false) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 0.5, py + 0.5, cs - 1, cs - 1);
+    }
+    if (labelled) {
       ctx.fillStyle = textColor(c);
       ctx.font = '600 ' + Math.floor(Math.min(cs * 0.42, cs * 1.5 / c.code.length)) + 'px Inter, system-ui, sans-serif';
       ctx.textAlign = 'center';
@@ -339,19 +366,38 @@
     }
   }
 
-  // Thick lines every 10 beads (counted from the pattern's corner) plus the region outline.
-  function drawMajorLines(ctx, ox, oy, cs, r) {
+  // Thick lines every 10 beads (counted from the pattern's corner) plus the region outline;
+  // with grid off, only the outline.
+  function drawMajorLines(ctx, ox, oy, cs, r, grid) {
     var right = ox + (r.x1 - r.x0) * cs, bottom = oy + (r.y1 - r.y0) * cs;
     ctx.strokeStyle = 'rgba(0,0,0,0.65)';
     ctx.lineWidth = Math.max(1.5, cs / 12);
     ctx.beginPath();
-    for (var x = Math.ceil(r.x0 / 10) * 10; x <= r.x1; x += 10) { var lx = ox + (x - r.x0) * cs; ctx.moveTo(lx, oy); ctx.lineTo(lx, bottom); }
-    for (var y = Math.ceil(r.y0 / 10) * 10; y <= r.y1; y += 10) { var ly = oy + (y - r.y0) * cs; ctx.moveTo(ox, ly); ctx.lineTo(right, ly); }
+    if (grid !== false) {
+      for (var x = Math.ceil(r.x0 / 10) * 10; x <= r.x1; x += 10) { var lx = ox + (x - r.x0) * cs; ctx.moveTo(lx, oy); ctx.lineTo(lx, bottom); }
+      for (var y = Math.ceil(r.y0 / 10) * 10; y <= r.y1; y += 10) { var ly = oy + (y - r.y0) * cs; ctx.moveTo(ox, ly); ctx.lineTo(right, ly); }
+    }
     ctx.rect(ox, oy, right - ox, bottom - oy);
     ctx.stroke();
   }
 
-  function previewOpts() { return { codes: el.codes.checked, dim: state.focus && state.focusColor >= 0 }; }
+  // Preview only: dashed center lines, shown for the mirror axes in use or with "Center lines".
+  function drawGuides(ctx) {
+    var cs = state.cs, vertical = el.center.checked || state.sym === 'h' || state.sym === 'both';
+    var horizontal = el.center.checked || state.sym === 'v' || state.sym === 'both';
+    if (!vertical && !horizontal) return;
+    ctx.save();
+    ctx.strokeStyle = '#e11d48';
+    ctx.lineWidth = Math.max(1.5, cs / 10);
+    ctx.setLineDash([Math.max(4, cs / 2), Math.max(3, cs / 3)]);
+    ctx.beginPath();
+    if (vertical) { ctx.moveTo(state.w * cs / 2, 0); ctx.lineTo(state.w * cs / 2, state.h * cs); }
+    if (horizontal) { ctx.moveTo(0, state.h * cs / 2); ctx.lineTo(state.w * cs, state.h * cs / 2); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function previewOpts() { return { codes: el.codes.checked, round: el.round.checked, dim: state.focus && state.focusColor >= 0 }; }
 
   // Largest cell size whose canvas stays within ~16 M pixels, iOS Safari's canvas limit.
   function maxCs() { return Math.max(4, Math.floor(Math.sqrt(16e6 / (state.w * state.h)))); }
@@ -371,7 +417,9 @@
     el.canvas.height = state.h * state.cs;
     el.canvas.style.width = el.canvas.width + 'px';
     el.canvas.style.height = el.canvas.height + 'px';
-    drawGrid(el.canvas.getContext('2d'), 0, 0, state.cs, previewOpts());
+    var ctx = el.canvas.getContext('2d');
+    drawGrid(ctx, 0, 0, state.cs, previewOpts());
+    drawGuides(ctx);
   }
 
   // Zoom to cell size cs, keeping the pattern point under (cx, cy) on screen where it was.
@@ -482,16 +530,58 @@
 
   // Color strip for the phone dock: "empty", the colors in use (most used first), then the
   // rest of the palette, so every color is one swipe away from the canvas.
+  // Color family from the code's letters: MARD "A12" -> "A", "ZG3" -> "ZG". Numeric codes
+  // (many imported palettes) have none.
+  function familyOf(code) { var m = /^[A-Za-z]+/.exec(code); return m ? m[0].toUpperCase() : ''; }
+
+  function families() {
+    var list = [];
+    state.palette.forEach(function (c) { var f = familyOf(c.code); if (f && list.indexOf(f) < 0) list.push(f); });
+    return list.length > 1 ? list : [];
+  }
+
+  function recentIndexes() {
+    var at = {};
+    state.palette.forEach(function (c, i) { at[c.code] = i; });
+    return state.recent.filter(function (code) { return code in at; }).map(function (code) { return at[code]; });
+  }
+
+  // Phone strip tabs: colors in use, recently picked, then one tab per family.
+  function renderGroups() {
+    var tabs = ['used', 'recent'].concat(families());
+    if (tabs.indexOf(state.group) < 0) state.group = 'used';
+    el.groups.innerHTML = '';
+    tabs.forEach(function (g) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bd-groups__tab' + (g === state.group ? ' is-active' : '');
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', String(g === state.group));
+      btn.textContent = g === 'used' ? t('bd_group_used', 'In use') : g === 'recent' ? t('bd_group_recent', 'Recent') : g;
+      btn.addEventListener('click', function () {
+        state.group = g;
+        renderStrip(usedColors());
+        el.strip.scrollLeft = 0;
+      });
+      el.groups.appendChild(btn);
+    });
+  }
+
   function renderStrip(used) {
-    var order = [-1].concat(used.map(function (u) { return u.i; }));
-    var inUse = new Set(order);
-    state.palette.forEach(function (c, i) { if (!inUse.has(i)) order.push(i); });
+    renderGroups();
+    var order;
+    if (state.group === 'used') order = [-1].concat(used.map(function (u) { return u.i; }));
+    else if (state.group === 'recent') order = [-1].concat(recentIndexes());
+    else {
+      order = [];
+      state.palette.forEach(function (c, i) { if (familyOf(c.code) === state.group) order.push(i); });
+    }
     el.strip.innerHTML = '';
-    order.forEach(function (i, k) {
+    order.forEach(function (i) {
       var c = state.palette[i];
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'bd-strip__item' + (i === state.brush ? ' is-active' : '') + (k === used.length + 1 ? ' bd-strip__item--rest' : '');
+      btn.className = 'bd-strip__item' + (i === state.brush ? ' is-active' : '');
       btn.setAttribute('role', 'option');
       btn.setAttribute('aria-selected', String(i === state.brush));
       btn.innerHTML = '<span class="bd-swatch"></span><span class="bd-strip__code"></span>';
@@ -524,8 +614,10 @@
     return '70015-beads-owned:' + (state.paletteId === 'custom' ? 'custom:' + state.custom.name : 'mard');
   }
 
+  // Owned colors and recently picked colors, both kept per palette family.
   function loadOwned() {
     state.owned = new Set(readStore(ownedKey(), []));
+    state.recent = readStore(ownedKey().replace('-owned:', '-recent:'), []);
   }
 
   // Palette indexes the user marked as owned, or null to use every color.
@@ -543,25 +635,48 @@
       : tpl('bd_owned_note', '{n} colors marked as owned. Mark them under "All bead colors" with "Click to mark owned"; the list is saved in this browser.', { n: n });
   }
 
+  // All colors, with recently picked ones first and a heading per family (A, B, C… for MARD).
   function renderPaletteGrid() {
     el.paletteGrid.innerHTML = '';
-    state.palette.forEach(function (c, i) {
+    function heading(text) {
+      var h = document.createElement('div');
+      h.className = 'bd-palette__head';
+      h.textContent = text;
+      el.paletteGrid.appendChild(h);
+    }
+    function swatch(i) {
+      var c = state.palette[i];
       var btn = document.createElement('button');
       btn.type = 'button';
+      btn.dataset.i = i;
       btn.style.background = c.hex;
       btn.style.color = textColor(c);
       btn.title = c.code + ' ' + c.hex;
       btn.setAttribute('aria-label', c.code);
       btn.addEventListener('click', function () { onPaletteClick(i); });
       el.paletteGrid.appendChild(btn);
-    });
+    }
+    var recent = recentIndexes(), fams = families();
+    if (recent.length) {
+      heading(t('bd_group_recent_long', 'Recently used'));
+      recent.forEach(swatch);
+    }
+    if (fams.length) {
+      fams.forEach(function (f) {
+        heading(f);
+        state.palette.forEach(function (c, i) { if (familyOf(c.code) === f) swatch(i); });
+      });
+    } else {
+      if (recent.length) heading(t('bd_group_all', 'All'));
+      state.palette.forEach(function (c, i) { swatch(i); });
+    }
     renderPaletteMarks();
   }
 
   function renderPaletteMarks() {
     el.paletteGrid.classList.toggle('is-owned-only', el.ownedOnly.checked);
-    [].forEach.call(el.paletteGrid.children, function (btn, i) {
-      var owned = state.owned.has(state.palette[i].code);
+    [].forEach.call(el.paletteGrid.querySelectorAll('button[data-i]'), function (btn) {
+      var i = +btn.dataset.i, owned = state.owned.has(state.palette[i].code);
       btn.classList.toggle('is-active', state.pickMode === 'brush' && i === state.brush);
       btn.classList.toggle('is-owned', owned);
       if (state.pickMode === 'owned') btn.setAttribute('aria-pressed', String(owned));
@@ -624,7 +739,17 @@
   // ---------- Editing ----------
 
   // Brush -1 is "empty": painting or filling with it removes beads.
-  function setBrush(i) { state.brush = i; renderInfo(); }
+  // Picking a color also puts it at the front of the recent list (16 kept, saved per palette).
+  function setBrush(i) {
+    state.brush = i;
+    var c = state.palette[i];
+    if (c && state.recent[0] !== c.code) {
+      state.recent = [c.code].concat(state.recent.filter(function (code) { return code !== c.code; })).slice(0, 16);
+      writeStore(ownedKey().replace('-owned:', '-recent:'), state.recent);
+      renderPaletteGrid();
+    }
+    renderInfo();
+  }
 
   function codeOf(i) { return i >= 0 && state.palette[i] ? state.palette[i].code : t('bd_empty', 'Empty'); }
 
@@ -680,14 +805,46 @@
     }
   }
 
+  // Cell i plus its mirror images for the symmetry mode in use.
+  function mirrors(i) {
+    var x = i % state.w, y = (i - x) / state.w, list = [i];
+    function add(mx, my) { var k = my * state.w + mx; if (list.indexOf(k) < 0) list.push(k); }
+    if (state.sym === 'h' || state.sym === 'both') add(state.w - 1 - x, y);
+    if (state.sym === 'v' || state.sym === 'both') add(x, state.h - 1 - y);
+    if (state.sym === 'both') add(state.w - 1 - x, state.h - 1 - y);
+    return list;
+  }
+
   function paint(i) {
     var v = state.tool === 'eraser' ? -1 : state.brush;
-    if (state.pattern[i] === v) return;
-    state.pattern[i] = v;
-    var ctx = el.canvas.getContext('2d');
-    drawCell(ctx, 0, 0, state.cs, i, previewOpts());
+    var ctx = el.canvas.getContext('2d'), opts = previewOpts(), changed = false;
+    mirrors(i).forEach(function (k) {
+      if (state.pattern[k] === v) return;
+      state.pattern[k] = v;
+      drawCell(ctx, 0, 0, state.cs, k, opts);
+      changed = true;
+    });
+    if (!changed) return;
     drawMajorLines(ctx, 0, 0, state.cs, wholeGrid());
+    drawGuides(ctx);
   }
+
+  var SYMS = ['off', 'h', 'v', 'both'];
+  function renderSym() {
+    var labels = {
+      off: t('bd_sym_off', 'Mirror: off'), h: t('bd_sym_h', 'Mirror: left-right'),
+      v: t('bd_sym_v', 'Mirror: top-bottom'), both: t('bd_sym_both', 'Mirror: 4-way')
+    };
+    el.sym.textContent = labels[state.sym];
+    el.sym.classList.toggle('is-on', state.sym !== 'off');
+    el.sym.setAttribute('aria-pressed', String(state.sym !== 'off'));
+  }
+  el.sym.addEventListener('click', function () {
+    state.sym = SYMS[(SYMS.indexOf(state.sym) + 1) % SYMS.length];
+    writeStore('70015-beads-sym', state.sym);
+    renderSym();
+    if (state.pattern) renderCanvas();
+  });
 
   // One finger (or the mouse) draws, or drags the view with the Move tool. Two fingers pinch
   // to zoom and drag to pan; if the second finger lands mid-stroke, that stroke is undone so a
@@ -729,7 +886,7 @@
     pushUndo();
     stroke = true;
     if (state.tool === 'fill') {
-      C.floodFill(state.pattern, state.w, state.h, i % state.w, Math.floor(i / state.w), state.brush);
+      mirrors(i).forEach(function (k) { C.floodFill(state.pattern, state.w, state.h, k % state.w, Math.floor(k / state.w), state.brush); });
       render();
       return;
     }
@@ -867,8 +1024,9 @@
     ctx.fillText(state.name + ' · ' + statsText(used), pad, head / 2 + pad / 2);
 
     var ox = pad + axis, oy = head + axis;
-    drawAxes(ctx, ox, oy, cs, axis, wholeGrid(), font);
-    drawGrid(ctx, ox, oy, cs, { codes: true });
+    // Export options (the pegboard pages always keep codes and grid, since they are for placing).
+    if (el.exAxes.checked) drawAxes(ctx, ox, oy, cs, axis, wholeGrid(), font);
+    drawGrid(ctx, ox, oy, cs, { codes: el.exCodes.checked, grid: el.exGrid.checked, round: el.exRound.checked });
 
     if (board) {
       var cols = Math.ceil(state.w / board), rows = Math.ceil(state.h / board);
@@ -1030,6 +1188,36 @@
     });
   });
   el.actions.appendChild(pixelBtn);
+
+  // ---------- Color list as text / CSV ----------
+
+  // Plain text to paste into a shopping note: one "code × count" line per color, most used first.
+  function listText() {
+    var used = usedColors();
+    return [state.name + ' · ' + statsText(used)].concat(used.map(function (u) {
+      return state.palette[u.i].code + ' × ' + u.n;
+    })).join('\n');
+  }
+
+  el.copyList.addEventListener('click', function () {
+    if (!state.pattern) return;
+    navigator.clipboard.writeText(listText()).then(function () {
+      showToast(t('bd_copied_list', 'Color list copied.'));
+    }, function () {
+      showToast(t('exp_failed', 'Failed'));
+    });
+  });
+
+  el.csv.addEventListener('click', function () {
+    if (!state.pattern) return;
+    var rows = ['code,hex,count'].concat(usedColors().map(function (u) {
+      var c = state.palette[u.i];
+      return '"' + c.code.replace(/"/g, '""') + '",' + c.hex + ',' + u.n;
+    }));
+    // BOM so Excel opens it as UTF-8 (imported palettes can have non-ASCII codes).
+    var blob = new Blob(['﻿' + rows.join('\r\n') + '\r\n'], { type: 'text/csv' });
+    ImageExport.download(blob, ImageExport.fileName(state.name + '-colors', 'csv'));
+  });
 
   // ---------- Saved work ----------
   // Each pattern is saved in localStorage a moment after every change; the newest
@@ -1349,7 +1537,9 @@
   el.bg.addEventListener('change', build);
 
   onSegmented(el.tool, setTool);
-  el.codes.addEventListener('change', function () { if (state.pattern) renderCanvas(); });
+  [el.codes, el.round, el.center].forEach(function (box) {
+    box.addEventListener('change', function () { if (state.pattern) renderCanvas(); });
+  });
 
   var resizeTimer;
   window.addEventListener('resize', function () {
@@ -1380,12 +1570,16 @@
     renderPaletteNote();
     renderOwnedNote();
     renderWorks();
+    renderSym();
+    renderPaletteGrid();
     if (state.pattern) renderInfo();
   };
 
   el.pitch.value = readStore('70015-beads-pitch', '2.6');
   setSegmented(el.pitchPreset, String(numberIn(el.pitch, 1, 20, 2.6)));
   el.board.value = readStore('70015-beads-board', '29');
+  state.sym = SYMS.indexOf(readStore('70015-beads-sym', 'off')) >= 0 ? readStore('70015-beads-sym', 'off') : 'off';
+  renderSym();
   el.ownedOnly.checked = readStore('70015-beads-owned-only', false) === true;
   loadOwned();
   setMode('pixel', 1);

@@ -29,8 +29,48 @@
   display: contents;
 }
 
-.bd-strip {
+.bd-strip,
+.bd-groups {
   display: none;
+}
+
+/* Mirror drawing button: highlighted while a mirror mode is on */
+.bd-sym.is-on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--active-text);
+}
+
+/* "Show" menu: display toggles in a small popover */
+.bd-view {
+  position: relative;
+}
+
+.bd-view summary {
+  list-style: none;
+}
+
+.bd-view summary::-webkit-details-marker {
+  display: none;
+}
+
+.bd-view__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  display: grid;
+  gap: 6px;
+  padding: var(--space-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+.bd-export-opts {
+  margin-top: var(--space-sm);
 }
 
 .bd-zoom {
@@ -210,11 +250,11 @@ body.is-working .bd-stage {
 /* Phones: tools and colors docked at the bottom, the canvas fills what is left. */
 @media (max-width: 699px) {
   body.is-working .app {
-    padding-bottom: 150px;
+    padding-bottom: 230px;
   }
 
   body.is-working .bd-stage {
-    max-height: max(240px, calc(100dvh - 330px));
+    max-height: max(240px, calc(100dvh - 410px));
   }
 
   body.is-working .bd-dock {
@@ -231,14 +271,17 @@ body.is-working .bd-stage {
     box-shadow: 0 -6px 20px rgba(17, 24, 39, 0.12);
   }
 
+  /* Tools take a full row; brush, undo and mirror share the row below. */
   body.is-working .bd-dock__row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
   }
 
   body.is-working .bd-dock .segmented {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
     min-width: 0;
   }
 
@@ -246,6 +289,14 @@ body.is-working .bd-stage {
     min-width: 0;
     padding: 0 4px;
     font-size: 12px;
+  }
+
+  body.is-working .bd-dock__row .btn {
+    white-space: nowrap;
+  }
+
+  body.is-working .bd-sym {
+    margin-left: auto;
   }
 
   body.is-working .bd-dock #bdBrushCode {
@@ -285,10 +336,32 @@ body.is-working .bd-stage {
     background: var(--surface-2);
   }
 
-  /* Divider between the colors in use and the rest of the palette */
-  .bd-strip__item--rest {
-    margin-left: 6px;
-    box-shadow: -7px 0 0 -6px var(--border);
+  body.is-working .bd-groups {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .bd-groups__tab {
+    flex: none;
+    min-width: 32px;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .bd-groups__tab.is-active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--active-text);
   }
 
   .bd-strip__code {
@@ -421,6 +494,15 @@ body.is-working .bd-stage {
   grid-template-columns: repeat(auto-fill, minmax(26px, 1fr));
   gap: 4px;
   margin-top: var(--space-sm);
+}
+
+/* Family headings (A, B, C…) and "Recently used" span the whole row */
+.bd-palette__head {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
 }
 
 .bd-palette__grid button {

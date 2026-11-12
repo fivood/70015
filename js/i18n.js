@@ -928,7 +928,26 @@
       "bd_zoom": "Zoom",
       "bd_zoom_in": "Zoom in",
       "bd_zoom_out": "Zoom out",
-      "bd_zoom_fit": "Fit"
+      "bd_zoom_fit": "Fit",
+      "bd_sym_off": "Mirror: off",
+      "bd_sym_h": "Mirror: left-right",
+      "bd_sym_v": "Mirror: top-bottom",
+      "bd_sym_both": "Mirror: 4-way",
+      "bd_groups": "Color groups",
+      "bd_group_used": "In use",
+      "bd_group_recent": "Recent",
+      "bd_group_recent_long": "Recently used",
+      "bd_group_all": "All",
+      "bd_view": "Show",
+      "bd_round": "Round beads",
+      "bd_center": "Center lines",
+      "bd_copy_list": "Copy list",
+      "bd_copied_list": "Color list copied.",
+      "bd_csv": "Download CSV",
+      "bd_ex_grid": "Grid lines",
+      "bd_ex_codes": "Color codes",
+      "bd_ex_axes": "Row and column numbers",
+      "bd_ex_round": "Round beads"
     },
 
     zh: {
@@ -1838,7 +1857,26 @@
       "bd_zoom": "缩放",
       "bd_zoom_in": "放大",
       "bd_zoom_out": "缩小",
-      "bd_zoom_fit": "适合"
+      "bd_zoom_fit": "适合",
+      "bd_sym_off": "对称：关",
+      "bd_sym_h": "对称：左右",
+      "bd_sym_v": "对称：上下",
+      "bd_sym_both": "对称：四向",
+      "bd_groups": "颜色分组",
+      "bd_group_used": "在用",
+      "bd_group_recent": "最近",
+      "bd_group_recent_long": "最近使用",
+      "bd_group_all": "全部",
+      "bd_view": "显示",
+      "bd_round": "圆豆预览",
+      "bd_center": "中心线",
+      "bd_copy_list": "复制清单",
+      "bd_copied_list": "用量清单已复制。",
+      "bd_csv": "下载 CSV",
+      "bd_ex_grid": "网格线",
+      "bd_ex_codes": "色号",
+      "bd_ex_axes": "行列号",
+      "bd_ex_round": "圆豆"
     }
   };
 
