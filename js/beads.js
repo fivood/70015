@@ -652,14 +652,33 @@
     render();
   }
 
-  function cellAt(e) {
+  // Grid column/row under the pointer; may lie outside the pattern.
+  function gridPos(e) {
     var r = el.canvas.getBoundingClientRect();
-    var x = Math.floor((e.clientX - r.left) / r.width * state.w);
-    var y = Math.floor((e.clientY - r.top) / r.height * state.h);
-    return x >= 0 && y >= 0 && x < state.w && y < state.h ? y * state.w + x : -1;
+    return { x: Math.floor((e.clientX - r.left) / r.width * state.w), y: Math.floor((e.clientY - r.top) / r.height * state.h) };
+  }
+
+  function cellAt(e) {
+    var p = gridPos(e);
+    return p.x >= 0 && p.y >= 0 && p.x < state.w && p.y < state.h ? p.y * state.w + p.x : -1;
   }
 
   var painting = false;
+  var lastPos = null; // where the stroke was at the previous pointer sample
+
+  // Pointer samples arrive tens of pixels apart on a fast swipe, so paint every cell on the
+  // straight line between two samples (Bresenham), skipping the parts outside the pattern.
+  function paintLine(a, b) {
+    var dx = Math.abs(b.x - a.x), dy = -Math.abs(b.y - a.y);
+    var sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1, err = dx + dy, x = a.x, y = a.y;
+    for (;;) {
+      if (x >= 0 && y >= 0 && x < state.w && y < state.h) paint(y * state.w + x);
+      if (x === b.x && y === b.y) break;
+      var e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x += sx; }
+      if (e2 <= dx) { err += dx; y += sy; }
+    }
+  }
 
   function paint(i) {
     var v = state.tool === 'eraser' ? -1 : state.brush;
@@ -715,6 +734,7 @@
       return;
     }
     painting = true;
+    lastPos = gridPos(e);
     paint(i);
   });
 
@@ -740,8 +760,9 @@
       return;
     }
     if (!painting) return;
-    var i = cellAt(e);
-    if (i >= 0) paint(i);
+    var p = gridPos(e);
+    paintLine(lastPos, p);
+    lastPos = p;
   });
 
   function endPointer(e) {
