@@ -915,7 +915,20 @@
       "bd_size_up": "Enlarged from the art's {w} × {h}: each pixel becomes a block of beads.",
       "bd_empty": "Empty",
       "bd_empty_row": "Empty (no bead)",
-      "bd_size_capped": "Kept within {max} beads per side, so both sides were scaled down together."
+      "bd_size_capped": "Kept within {max} beads per side, so both sides were scaled down together.",
+      "bd_new_title": "Or start from a blank canvas",
+      "bd_new_btn": "New canvas",
+      "bd_works": "Recent work",
+      "bd_works_note": "Saved automatically in this browser. Clearing the site's data removes them.",
+      "bd_untitled": "Untitled",
+      "bd_work_open": "Open {name}",
+      "bd_work_delete": "Delete",
+      "bd_work_delete_confirm": "Delete this saved work? This cannot be undone.",
+      "bd_tool_pan": "Move",
+      "bd_zoom": "Zoom",
+      "bd_zoom_in": "Zoom in",
+      "bd_zoom_out": "Zoom out",
+      "bd_zoom_fit": "Fit"
     },
 
     zh: {
@@ -1812,7 +1825,20 @@
       "bd_size_up": "已从原图的 {w} × {h} 放大：每个像素会变成一块豆子。",
       "bd_empty": "空",
       "bd_empty_row": "空（不放豆）",
-      "bd_size_capped": "每边最多 {max} 颗，已按原比例把宽高一起缩小。"
+      "bd_size_capped": "每边最多 {max} 颗，已按原比例把宽高一起缩小。",
+      "bd_new_title": "或者从空白画布开始",
+      "bd_new_btn": "新建画布",
+      "bd_works": "最近作品",
+      "bd_works_note": "自动保存在本浏览器里，清除网站数据会一起删掉。",
+      "bd_untitled": "未命名",
+      "bd_work_open": "打开 {name}",
+      "bd_work_delete": "删除",
+      "bd_work_delete_confirm": "删除这个作品？删除后无法恢复。",
+      "bd_tool_pan": "移动",
+      "bd_zoom": "缩放",
+      "bd_zoom_in": "放大",
+      "bd_zoom_out": "缩小",
+      "bd_zoom_fit": "适合"
     }
   };
 

@@ -52,7 +52,11 @@
     stage: $('bdStage'), canvas: $('bdCanvas'),
     usedNote: $('bdUsedNote'), legend: $('bdLegend'),
     board: $('bdBoard'), boardPdf: $('bdBoardPdf'),
-    actions: $('bdActions')
+    actions: $('bdActions'),
+    settings: document.querySelector('.bd-settings'),
+    newW: $('bdNewW'), newH: $('bdNewH'), newBtn: $('bdNewBtn'),
+    works: $('bdWorks'), worksList: $('bdWorksList'),
+    strip: $('bdStrip'), zoomIn: $('bdZoomIn'), zoomOut: $('bdZoomOut'), zoomFit: $('bdZoomFit')
   };
 
   var builtIn = {};
@@ -77,7 +81,10 @@
     focus: false,     // one-color-at-a-time view
     focusColor: -1,
     done: new Set(),  // palette indexes placed already (one-color mode)
-    progressKey: ''
+    progressKey: '',
+    name: 'beads',    // used for file names and chart titles
+    workId: '',       // the saved work this pattern belongs to
+    zoom: 0           // preview cell size the user zoomed to; 0 = fit the screen
   };
 
   // ---------- Small UI helpers ----------
@@ -120,8 +127,12 @@
       ctx.drawImage(img, 0, 0);
       var name = file.name && file.name !== 'image.png' ? file.name.replace(/\.[^.]+$/, '') : 'beads';
       state.src = { data: ctx.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height, img: img, name: name, jpeg: /jpe?g/.test(file.type) };
+      state.name = name;
+      state.workId = newWorkId();
+      state.zoom = 0;
       el.w.value = el.h.value = ''; // a new image starts at its own size
       document.body.classList.add('is-working');
+      el.settings.classList.remove('is-blank');
       autoMode();
       build();
     };
@@ -256,6 +267,7 @@
   }
 
   // Rebuilding from settings starts over, so manual edits are dropped.
+  // Without a source image (blank canvas, reopened work) there is nothing to rebuild from.
   function build() {
     if (!state.src) return;
     var cells = sampleCells();
@@ -341,16 +353,57 @@
 
   function previewOpts() { return { codes: el.codes.checked, dim: state.focus && state.focusColor >= 0 }; }
 
-  // Cell size that fits the stage's width and the window's height, so the whole pattern
-  // is usually visible without scrolling.
-  function renderCanvas() {
+  // Largest cell size whose canvas stays within ~16 M pixels, iOS Safari's canvas limit.
+  function maxCs() { return Math.max(4, Math.floor(Math.sqrt(16e6 / (state.w * state.h)))); }
+
+  // Cell size that fits the stage (its width, and its max-height from the CSS), so the
+  // whole pattern is visible without scrolling.
+  function fitCs() {
     var availW = el.stage.clientWidth - 20;
-    var availH = Math.max(240, window.innerHeight - 190);
-    state.cs = Math.max(5, Math.min(32, Math.floor(Math.min(availW / state.w, availH / state.h))));
+    var mh = parseFloat(getComputedStyle(el.stage).maxHeight);
+    var availH = (mh > 0 ? mh : window.innerHeight - 190) - 20;
+    return Math.max(4, Math.min(32, Math.floor(Math.min(availW / state.w, availH / state.h))));
+  }
+
+  function renderCanvas() {
+    state.cs = Math.max(4, Math.min(maxCs(), state.zoom || fitCs()));
     el.canvas.width = state.w * state.cs;
     el.canvas.height = state.h * state.cs;
+    el.canvas.style.width = el.canvas.width + 'px';
+    el.canvas.style.height = el.canvas.height + 'px';
     drawGrid(el.canvas.getContext('2d'), 0, 0, state.cs, previewOpts());
   }
+
+  // Zoom to cell size cs, keeping the pattern point under (cx, cy) on screen where it was.
+  function setZoom(cs, cx, cy) {
+    var r = el.canvas.getBoundingClientRect();
+    if (cx === undefined) {
+      var s = el.stage.getBoundingClientRect();
+      cx = Math.max(r.left, Math.min(r.right, s.left + s.width / 2));
+      cy = Math.max(r.top, Math.min(r.bottom, s.top + s.height / 2));
+    }
+    var fx = (cx - r.left) / r.width, fy = (cy - r.top) / r.height;
+    state.zoom = Math.max(4, Math.min(maxCs(), Math.round(cs)));
+    renderCanvas();
+    keepPoint(fx, fy, cx, cy);
+  }
+
+  // Scroll the stage so the canvas fraction (fx, fy) sits at screen point (cx, cy).
+  function keepPoint(fx, fy, cx, cy) {
+    var r = el.canvas.getBoundingClientRect();
+    el.stage.scrollLeft += r.left + fx * r.width - cx;
+    el.stage.scrollTop += r.top + fy * r.height - cy;
+  }
+
+  el.zoomIn.addEventListener('click', function () { if (state.pattern) setZoom(Math.max(state.cs + 1, state.cs * 1.25)); });
+  el.zoomOut.addEventListener('click', function () { if (state.pattern) setZoom(Math.min(state.cs - 1, state.cs / 1.25)); });
+  el.zoomFit.addEventListener('click', function () { if (state.pattern) { state.zoom = 0; renderCanvas(); } });
+  // Ctrl/⌘ + wheel (and trackpad pinch, which browsers report the same way) zooms.
+  el.stage.addEventListener('wheel', function (e) {
+    if (!state.pattern || !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    setZoom(state.cs * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
+  }, { passive: false });
 
   function usedColors() {
     var counts = C.countColors(state.pattern, state.palette.length), used = [];
@@ -422,7 +475,36 @@
     el.brushSwatch.classList.toggle('bd-swatch--empty', !b);
     el.brushCode.textContent = codeOf(state.brush);
     renderPaletteMarks();
+    renderStrip(used);
     el.undo.disabled = !state.undo.length;
+    scheduleSave();
+  }
+
+  // Color strip for the phone dock: "empty", the colors in use (most used first), then the
+  // rest of the palette, so every color is one swipe away from the canvas.
+  function renderStrip(used) {
+    var order = [-1].concat(used.map(function (u) { return u.i; }));
+    var inUse = new Set(order);
+    state.palette.forEach(function (c, i) { if (!inUse.has(i)) order.push(i); });
+    el.strip.innerHTML = '';
+    order.forEach(function (i, k) {
+      var c = state.palette[i];
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bd-strip__item' + (i === state.brush ? ' is-active' : '') + (k === used.length + 1 ? ' bd-strip__item--rest' : '');
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', String(i === state.brush));
+      btn.innerHTML = '<span class="bd-swatch"></span><span class="bd-strip__code"></span>';
+      if (c) btn.firstChild.style.background = c.hex;
+      else btn.firstChild.classList.add('bd-swatch--empty');
+      btn.lastChild.textContent = codeOf(i);
+      btn.addEventListener('click', function () {
+        if (state.focus && i >= 0) { state.focusColor = i; renderCanvas(); }
+        setBrush(i);
+        if (state.tool !== 'fill') setTool('brush');
+      });
+      el.strip.appendChild(btn);
+    });
   }
 
   function renderProgress(used) {
@@ -551,9 +633,16 @@
     setSegmented(el.tool, tool);
   }
 
+  // Snapshots carry the size too: resizing a canvas is undoable like any edit.
   function pushUndo() {
-    state.undo.push(state.pattern.slice());
+    state.undo.push({ p: state.pattern.slice(), w: state.w, h: state.h });
     if (state.undo.length > 50) state.undo.shift();
+  }
+
+  function restore(snap) {
+    state.pattern = snap.p;
+    state.w = snap.w;
+    state.h = snap.h;
   }
 
   function replaceAll(from, to) {
@@ -581,8 +670,36 @@
     drawMajorLines(ctx, 0, 0, state.cs, wholeGrid());
   }
 
+  // One finger (or the mouse) draws, or drags the view with the Move tool. Two fingers pinch
+  // to zoom and drag to pan; if the second finger lands mid-stroke, that stroke is undone so a
+  // pinch never leaves stray beads.
+  var pointers = new Map(); // pointerId -> { x, y }
+  var stroke = false;       // an edit started by the current touch, undone if it turns into a pinch
+  var panning = null;       // Move tool: { x, y, left, top }
+  var pinch = null;         // { dist, fx, fy, w, h, scale, mid }
+
+  function pinchInfo() {
+    var p = Array.from(pointers.values());
+    return { dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1, mid: { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 } };
+  }
+
   el.canvas.addEventListener('pointerdown', function (e) {
-    if (!state.pattern || e.button > 0) return;
+    if (!state.pattern || (e.pointerType === 'mouse' && e.button > 0)) return;
+    try { el.canvas.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      if (stroke) { restore(state.undo.pop()); stroke = false; render(); }
+      painting = false;
+      panning = null;
+      var info = pinchInfo(), r = el.canvas.getBoundingClientRect();
+      pinch = { dist: info.dist, fx: (info.mid.x - r.left) / r.width, fy: (info.mid.y - r.top) / r.height, w: r.width, h: r.height, scale: 1, mid: info.mid };
+      return;
+    }
+    if (pointers.size > 2 || pinch) return;
+    if (state.tool === 'pan') {
+      panning = { x: e.clientX, y: e.clientY, left: el.stage.scrollLeft, top: el.stage.scrollTop };
+      return;
+    }
     var i = cellAt(e);
     if (i < 0) return;
     if (state.tool === 'pick') {
@@ -591,31 +708,65 @@
       return;
     }
     pushUndo();
+    stroke = true;
     if (state.tool === 'fill') {
       C.floodFill(state.pattern, state.w, state.h, i % state.w, Math.floor(i / state.w), state.brush);
       render();
       return;
     }
     painting = true;
-    el.canvas.setPointerCapture(e.pointerId);
     paint(i);
   });
+
   el.canvas.addEventListener('pointermove', function (e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pointers.size >= 2) {
+      // Scale the canvas with CSS while the fingers move; it is redrawn sharp on release.
+      var info = pinchInfo();
+      var scale = info.dist / pinch.dist;
+      var cs = state.cs * scale;
+      scale = Math.max(4, Math.min(maxCs(), cs)) / state.cs;
+      el.canvas.style.width = pinch.w * scale + 'px';
+      el.canvas.style.height = pinch.h * scale + 'px';
+      keepPoint(pinch.fx, pinch.fy, info.mid.x, info.mid.y);
+      pinch.scale = scale;
+      pinch.mid = info.mid;
+      return;
+    }
+    if (panning) {
+      el.stage.scrollLeft = panning.left - (e.clientX - panning.x);
+      el.stage.scrollTop = panning.top - (e.clientY - panning.y);
+      return;
+    }
     if (!painting) return;
     var i = cellAt(e);
     if (i >= 0) paint(i);
   });
-  function endPaint() {
-    if (!painting) return;
-    painting = false;
-    renderInfo();
+
+  function endPointer(e) {
+    if (!pointers.delete(e.pointerId)) return;
+    if (pinch && pointers.size < 2) {
+      var done = pinch;
+      pinch = null;
+      // Redraw at the new cell size; the point between the fingers stays put.
+      var r = el.canvas.getBoundingClientRect();
+      setZoom(state.cs * done.scale, r.left + done.fx * r.width, r.top + done.fy * r.height);
+    }
+    if (pointers.size) return;
+    panning = null;
+    stroke = false;
+    if (painting) {
+      painting = false;
+      renderInfo();
+    }
   }
-  el.canvas.addEventListener('pointerup', endPaint);
-  el.canvas.addEventListener('pointercancel', endPaint);
+  el.canvas.addEventListener('pointerup', endPointer);
+  el.canvas.addEventListener('pointercancel', endPointer);
 
   function undo() {
     if (!state.undo.length) return;
-    state.pattern = state.undo.pop();
+    restore(state.undo.pop());
     render();
   }
   el.undo.addEventListener('click', undo);
@@ -630,7 +781,7 @@
     if (!state.pattern) return;
     pushUndo();
     var n = C.removeStrays(state.pattern, state.w, state.h);
-    if (!n) state.undo.pop();
+    if (!n) state.undo.pop(); // nothing changed, so drop the snapshot
     showToast(n ? tpl('bd_strays_done', 'Cleaned up {n} stray beads. Undo brings them back.', { n: n }) : t('bd_strays_none', 'No stray beads found.'));
     render();
   });
@@ -692,7 +843,7 @@
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.font = '700 ' + Math.round(cs * 0.6) + 'px ' + font;
-    ctx.fillText(state.src.name + ' · ' + statsText(used), pad, head / 2 + pad / 2);
+    ctx.fillText(state.name + ' · ' + statsText(used), pad, head / 2 + pad / 2);
 
     var ox = pad + axis, oy = head + axis;
     drawAxes(ctx, ox, oy, cs, axis, wholeGrid(), font);
@@ -795,7 +946,7 @@
       for (var k = 0; k < cols; k++) {
         var region = { x0: k * board, y0: r * board, x1: Math.min(state.w, (k + 1) * board), y1: Math.min(state.h, (r + 1) * board) };
         var title = tpl('bd_board_title', '{name} · Board {n} of {total} (row {r}, column {c}) · columns {x0}–{x1}, rows {y0}–{y1} · {mm} mm beads', {
-          name: state.src.name, n: r * cols + k + 1, total: total, r: r + 1, c: k + 1,
+          name: state.name, n: r * cols + k + 1, total: total, r: r + 1, c: k + 1,
           x0: region.x0 + 1, x1: region.x1, y0: region.y0 + 1, y1: region.y1, mm: pitch
         });
         var bc = boardCanvas(region, cs, title);
@@ -804,7 +955,7 @@
       }
     }
     return window.pagesToPdf(pages, 0.88).then(function (blob) {
-      ImageExport.download(blob, ImageExport.fileName(state.src.name + '-boards', 'pdf'));
+      ImageExport.download(blob, ImageExport.fileName(state.name + '-boards', 'pdf'));
     });
   }
 
@@ -843,7 +994,7 @@
   }
 
   ImageExport.mountActions(el.actions, function () { return chartCanvas(0); }, {
-    name: function () { return state.src ? state.src.name + '-beads' : 'beads'; },
+    name: function () { return state.name + '-beads'; },
     skip: ['annotate']
   });
   var pixelBtn = document.createElement('button');
@@ -854,10 +1005,155 @@
   pixelBtn.addEventListener('click', function () {
     if (!state.pattern) return;
     ImageExport.toBlob(pixelCanvas(), 'image/png').then(function (b) {
-      ImageExport.download(b, ImageExport.fileName(state.src.name + '-pixels', 'png'));
+      ImageExport.download(b, ImageExport.fileName(state.name + '-pixels', 'png'));
     });
   });
   el.actions.appendChild(pixelBtn);
+
+  // ---------- Saved work ----------
+  // Each pattern is saved in localStorage a moment after every change; the newest
+  // MAX_WORKS stay. The source image is not kept, so a reopened work edits like a blank canvas.
+  // ponytail: localStorage (~5 MB); a 200 × 200 work is ~110 KB, move to IndexedDB if people keep many big ones.
+
+  var WORKS_KEY = '70015-beads-works', MAX_WORKS = 12;
+
+  function newWorkId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function encodePattern(p) {
+    var bytes = new Uint8Array(p.buffer, p.byteOffset, p.byteLength), s = '';
+    for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(s);
+  }
+
+  function decodePattern(b64) {
+    var s = atob(b64), bytes = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+    return new Int16Array(bytes.buffer);
+  }
+
+  function thumbnail() {
+    var px = pixelCanvas(), k = Math.max(1, Math.floor(72 / Math.max(state.w, state.h)));
+    var c = document.createElement('canvas');
+    c.width = state.w * k;
+    c.height = state.h * k;
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(px, 0, 0, c.width, c.height);
+    return c.toDataURL('image/png');
+  }
+
+  function readWorks() {
+    var works = readStore(WORKS_KEY, []);
+    return Array.isArray(works) ? works : [];
+  }
+
+  function saveWork() {
+    if (!state.pattern || !state.workId) return;
+    var works = readWorks().filter(function (w) { return w.id !== state.workId; });
+    works.unshift({
+      id: state.workId,
+      name: state.name,
+      w: state.w,
+      h: state.h,
+      paletteId: state.paletteId,
+      custom: state.paletteId === 'custom'
+        ? { name: state.custom.name, text: state.custom.colors.map(function (c) { return c.code + ',' + c.hex; }).join('\n') }
+        : null,
+      pattern: encodePattern(state.pattern),
+      done: Array.from(state.done).map(function (k) { return state.palette[k] ? state.palette[k].code : ''; }),
+      updated: Date.now(),
+      thumb: thumbnail()
+    });
+    works = works.slice(0, MAX_WORKS);
+    // When storage is full, keep dropping the oldest until it fits (the current one always stays).
+    while (works.length) {
+      try { localStorage.setItem(WORKS_KEY, JSON.stringify(works)); break; } catch (e) {
+        if (works.length === 1) break;
+        works.pop();
+      }
+    }
+    renderWorks();
+  }
+
+  var saveTimer;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveWork, 800);
+  }
+
+  function openWork(id) {
+    var w = readWorks().filter(function (x) { return x.id === id; })[0];
+    if (!w) return;
+    if (w.paletteId === 'custom' && w.custom) {
+      state.custom = { name: w.custom.name, colors: C.parsePaletteText(w.custom.text) };
+      state.paletteId = 'custom';
+      state.palette = state.custom.colors;
+    } else {
+      state.paletteId = builtIn[w.paletteId] ? w.paletteId : 'mard';
+      state.palette = builtIn[state.paletteId];
+    }
+    setSegmented(el.palette, state.paletteId);
+    loadOwned();
+    renderPaletteNote();
+    renderOwnedNote();
+    renderPaletteGrid();
+    state.src = null;
+    state.natural = null;
+    state.capped = false;
+    state.name = w.name || 'beads';
+    state.workId = w.id;
+    state.w = w.w;
+    state.h = w.h;
+    state.pattern = decodePattern(w.pattern);
+    state.undo = [];
+    state.zoom = 0;
+    state.progressKey = '70015-beads-progress:work-' + w.id;
+    state.done = new Set();
+    state.palette.forEach(function (c, i) { if ((w.done || []).indexOf(c.code) >= 0) state.done.add(i); });
+    if (!state.palette[state.brush]) state.brush = 0;
+    el.w.value = el.h.value = '';
+    setStatus('');
+    enterEditor();
+    render();
+    el.result.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  function deleteWork(id) {
+    if (!window.confirm(t('bd_work_delete_confirm', 'Delete this saved work? This cannot be undone.'))) return;
+    writeStore(WORKS_KEY, readWorks().filter(function (w) { return w.id !== id; }));
+    if (state.workId === id) state.workId = ''; // keep editing, but stop saving it back
+    renderWorks();
+  }
+
+  function renderWorks() {
+    var works = readWorks();
+    el.works.hidden = !works.length;
+    el.worksList.innerHTML = '';
+    works.forEach(function (w) {
+      var item = document.createElement('div');
+      item.className = 'bd-work' + (w.id === state.workId ? ' is-active' : '');
+      var open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'bd-work__open';
+      open.innerHTML = '<img alt=""><span class="bd-work__name"></span><span class="bd-work__meta"></span>';
+      open.firstChild.src = w.thumb || '';
+      var name = w.name && w.name !== 'beads' ? w.name : t('bd_untitled', 'Untitled');
+      open.children[1].textContent = name;
+      open.children[2].textContent = w.w + ' × ' + w.h + ' · ' + new Date(w.updated).toLocaleDateString();
+      open.setAttribute('aria-label', tpl('bd_work_open', 'Open {name}', { name: name }));
+      open.addEventListener('click', function () { openWork(w.id); });
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'bd-work__delete';
+      del.textContent = '×';
+      del.title = t('bd_work_delete', 'Delete');
+      del.setAttribute('aria-label', del.title + ' ' + name);
+      del.addEventListener('click', function () { deleteWork(w.id); });
+      item.appendChild(open);
+      item.appendChild(del);
+      el.worksList.appendChild(item);
+    });
+  }
 
   // ---------- Settings ----------
 
@@ -886,8 +1182,80 @@
     build();
   });
 
-  el.w.addEventListener('change', build);
-  el.h.addEventListener('change', build);
+  // ---------- Blank canvas ----------
+
+  // Show the editor; image-only settings hide when there is no source image.
+  function enterEditor() {
+    document.body.classList.add('is-working');
+    el.settings.classList.toggle('is-blank', !state.src);
+    el.result.hidden = false;
+  }
+
+  function newCanvas(w, h) {
+    w = Math.max(1, Math.min(MAX_SIDE, parseInt(w, 10) || 29));
+    h = Math.max(1, Math.min(MAX_SIDE, parseInt(h, 10) || 29));
+    state.src = null;
+    state.natural = null;
+    state.capped = false;
+    state.name = 'beads';
+    state.workId = newWorkId();
+    state.zoom = 0;
+    state.w = w;
+    state.h = h;
+    state.pattern = new Int16Array(w * h).fill(-1);
+    state.undo = [];
+    state.done = new Set();
+    state.progressKey = '70015-beads-progress:work-' + state.workId;
+    el.w.value = el.h.value = '';
+    // Start with black, the usual first outline color, when the palette has it.
+    var black = state.palette.findIndex(function (c) { return c.hex === '#000000'; });
+    state.brush = black >= 0 ? black : 0;
+    setTool('brush');
+    setStatus('');
+    enterEditor();
+    render();
+  }
+  el.newBtn.addEventListener('click', function () { newCanvas(el.newW.value, el.newH.value); });
+
+  // Without a source image, new width/height resize the canvas itself; beads keep their
+  // place from the top-left corner. Undoable.
+  function resizeCanvas() {
+    var size = targetSize(state.w, state.h);
+    if (size.w === state.w && size.h === state.h) return;
+    if (size.w > MAX_SIDE || size.h > MAX_SIDE) {
+      setStatus(tpl('bd_too_big', 'That makes {w} × {h} beads, more than {max} per side.', { w: size.w, h: size.h, max: MAX_SIDE }));
+      return;
+    }
+    pushUndo();
+    var next = new Int16Array(size.w * size.h).fill(-1);
+    for (var y = 0; y < Math.min(state.h, size.h); y++) {
+      for (var x = 0; x < Math.min(state.w, size.w); x++) next[y * size.w + x] = state.pattern[y * state.w + x];
+    }
+    state.w = size.w;
+    state.h = size.h;
+    state.pattern = next;
+    state.zoom = 0;
+    setStatus('');
+    render();
+  }
+
+  function sizeChanged() {
+    if (state.src) build();
+    else if (state.pattern) resizeCanvas();
+  }
+  el.w.addEventListener('change', sizeChanged);
+  el.h.addEventListener('change', sizeChanged);
+
+  // Without a source image, switching palettes moves each bead to its closest new color.
+  function remapPattern(from, to) {
+    var map = new Map();
+    for (var i = 0; i < state.pattern.length; i++) {
+      var v = state.pattern[i];
+      if (v < 0) continue;
+      if (!map.has(v)) map.set(v, from[v] ? C.nearest(from[v].lab, to) : 0);
+      state.pattern[i] = map.get(v);
+    }
+  }
 
   // Bead size only changes the centimetres, not the pattern. Remembered for next time.
   function setPitch(mm) {
@@ -905,12 +1273,13 @@
     if (!(cm > 0)) return;
     beadField.value = Math.max(1, Math.round(cm * 10 / pitch()));
     otherField.value = '';
-    build();
+    sizeChanged();
   }
   el.cmW.addEventListener('change', function () { fromCm(el.cmW, el.w, el.h); });
   el.cmH.addEventListener('change', function () { fromCm(el.cmH, el.h, el.w); });
 
   function usePalette(id) {
+    var before = state.palette;
     state.paletteId = id;
     state.palette = id === 'custom' ? state.custom.colors : builtIn[id];
     state.brush = 0;
@@ -919,7 +1288,12 @@
     renderPaletteNote();
     renderOwnedNote();
     renderPaletteGrid();
-    build();
+    if (state.src) build();
+    else if (state.pattern) {
+      remapPattern(before, state.palette);
+      state.undo = []; // older snapshots hold the old palette's indexes
+      render();
+    }
   }
 
   function renderPaletteNote() {
@@ -984,6 +1358,7 @@
     renderMax();
     renderPaletteNote();
     renderOwnedNote();
+    renderWorks();
     if (state.pattern) renderInfo();
   };
 
@@ -996,6 +1371,7 @@
   renderMax();
   renderPaletteGrid();
   renderOwnedNote();
+  renderWorks();
 
   // Opened from another tool's "Bead pattern" button (js/export.js).
   ImageExport.receiveHandoff('beads', function (blob) {

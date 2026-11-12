@@ -95,8 +95,24 @@
           </div>
         </div>
 
+        <div class="bd-new">
+          <span class="bd-new__label" data-i18n="bd_new_title">Or start from a blank canvas</span>
+          <div class="bd-new__row">
+            <input type="number" id="bdNewW" min="1" max="200" value="29" aria-label="Width (beads)" data-i18n-aria-label="bd_w">
+            <span aria-hidden="true">×</span>
+            <input type="number" id="bdNewH" min="1" max="200" value="29" aria-label="Height (beads)" data-i18n-aria-label="bd_h">
+            <button class="btn btn--sm btn--secondary" id="bdNewBtn" type="button" data-i18n="bd_new_btn">New canvas</button>
+          </div>
+        </div>
+
+        <div class="bd-works" id="bdWorks" hidden>
+          <span class="settings__label" data-i18n="bd_works">Recent work</span>
+          <div class="bd-works__list" id="bdWorksList"></div>
+          <p class="settings__note" data-i18n="bd_works_note">Saved automatically in this browser. Clearing the site's data removes them.</p>
+        </div>
+
         <div class="settings">
-          <div class="settings__group">
+          <div class="settings__group bd-src-only">
             <span class="settings__label" data-i18n="bd_source">Image type</span>
             <div class="segmented" id="bdMode">
               <button class="segmented__btn is-active" data-value="pixel" type="button" data-i18n="bd_mode_pixel">Pixel art</button>
@@ -180,7 +196,7 @@
             </details>
           </div>
 
-          <div class="settings__group">
+          <div class="settings__group bd-src-only">
             <div class="settings__row">
               <label class="settings__label" for="bdMax"><span data-i18n="bd_max">Max colors</span> <span class="settings__value" id="bdMaxValue"></span></label>
               <input class="range" type="range" id="bdMax" min="0" max="60" value="0">
@@ -188,7 +204,7 @@
             <p class="settings__note" data-i18n="bd_max_note">Rarely used colors are merged into the closest remaining one, so you buy fewer kinds of beads.</p>
           </div>
 
-          <div class="settings__row">
+          <div class="settings__row bd-src-only">
             <label class="chip">
               <input type="checkbox" id="bdBg">
               <span data-i18n="bd_bg">Remove background (the main color touching the edges)</span>
@@ -203,14 +219,27 @@
         <p class="bd-progress" id="bdProgress" hidden></p>
 
         <div class="bd-toolbar">
-          <div class="segmented" id="bdTool">
-            <button class="segmented__btn is-active" data-value="brush" type="button" data-i18n="bd_tool_brush">Brush</button>
-            <button class="segmented__btn" data-value="eraser" type="button" data-i18n="bd_tool_eraser">Eraser</button>
-            <button class="segmented__btn" data-value="fill" type="button" data-i18n="bd_tool_fill">Fill</button>
-            <button class="segmented__btn" data-value="pick" type="button" data-i18n="bd_tool_pick">Pick</button>
+          <!-- On phones the dock (color strip + tools) is pinned to the bottom of the screen;
+               on wider screens it flows inline with the rest of the toolbar. -->
+          <div class="bd-dock" id="bdDock">
+            <div class="bd-strip" id="bdStrip" role="listbox" aria-label="Bead colors" data-i18n-aria-label="bd_palette"></div>
+            <div class="bd-dock__row">
+              <div class="segmented" id="bdTool">
+                <button class="segmented__btn is-active" data-value="brush" type="button" data-i18n="bd_tool_brush">Brush</button>
+                <button class="segmented__btn" data-value="eraser" type="button" data-i18n="bd_tool_eraser">Eraser</button>
+                <button class="segmented__btn" data-value="fill" type="button" data-i18n="bd_tool_fill">Fill</button>
+                <button class="segmented__btn" data-value="pick" type="button" data-i18n="bd_tool_pick">Pick</button>
+                <button class="segmented__btn" data-value="pan" type="button" data-i18n="bd_tool_pan">Move</button>
+              </div>
+              <span class="bd-brush"><span class="bd-swatch" id="bdBrushSwatch"></span><span id="bdBrushCode"></span></span>
+              <button class="btn btn--sm btn--secondary" id="bdUndo" type="button" data-i18n="bd_undo" disabled>Undo</button>
+            </div>
           </div>
-          <span class="bd-brush"><span class="bd-swatch" id="bdBrushSwatch"></span><span id="bdBrushCode"></span></span>
-          <button class="btn btn--sm btn--secondary" id="bdUndo" type="button" data-i18n="bd_undo" disabled>Undo</button>
+          <div class="bd-zoom" role="group" aria-label="Zoom" data-i18n-aria-label="bd_zoom">
+            <button class="btn btn--sm btn--secondary" id="bdZoomOut" type="button" aria-label="Zoom out" data-i18n-aria-label="bd_zoom_out">−</button>
+            <button class="btn btn--sm btn--secondary" id="bdZoomFit" type="button" data-i18n="bd_zoom_fit">Fit</button>
+            <button class="btn btn--sm btn--secondary" id="bdZoomIn" type="button" aria-label="Zoom in" data-i18n-aria-label="bd_zoom_in">+</button>
+          </div>
           <label class="chip">
             <input type="checkbox" id="bdCodes" checked>
             <span data-i18n="bd_show_codes">Codes</span>
