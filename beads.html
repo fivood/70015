@@ -103,6 +103,8 @@
             <input type="number" id="bdNewH" min="1" max="200" value="29" aria-label="Height (beads)" data-i18n-aria-label="bd_h">
             <button class="btn btn--sm btn--secondary" id="bdNewBtn" type="button" data-i18n="bd_new_btn">New canvas</button>
           </div>
+          <button class="btn btn--sm btn--secondary" id="bdImportWork" type="button" data-i18n="bd_import_work">Open a work file…</button>
+          <input type="file" id="bdWorkInput" accept=".json,application/json" hidden>
         </div>
 
         <div class="bd-works" id="bdWorks" hidden>
@@ -215,6 +217,7 @@
 
       <section class="panel card bd-result" id="bdResult" hidden>
         <p class="aip-status aip-status--warn" id="bdStatus" role="status" aria-live="polite" hidden></p>
+        <input class="bd-name" id="bdName" type="text" maxlength="60" placeholder="Untitled" data-i18n-placeholder="bd_untitled" aria-label="Work name" data-i18n-aria-label="bd_name">
         <p class="bd-stats" id="bdStats"></p>
         <p class="bd-progress" id="bdProgress" hidden></p>
 
@@ -264,6 +267,7 @@
             <span data-i18n="bd_focus">One color at a time</span>
           </label>
           <button class="btn btn--sm btn--secondary" id="bdStrays" type="button" data-i18n="bd_strays">Clean up strays</button>
+          <button class="btn btn--sm btn--secondary" id="bdOutline" type="button" data-i18n="bd_outline">Add outline</button>
         </div>
 
         <div class="bd-stage" id="bdStage"><canvas id="bdCanvas"></canvas></div>
@@ -271,6 +275,14 @@
         <h2 class="bd-heading" data-i18n="bd_used">Colors used</h2>
         <p class="settings__note" id="bdUsedNote"></p>
         <div class="bd-legend" id="bdLegend"></div>
+        <div class="bd-buy">
+          <label for="bdWaste" data-i18n="bd_waste">Extra for loss</label>
+          <input type="number" id="bdWaste" min="0" max="100" step="1" value="10">
+          <span>%</span>
+          <label for="bdPack" data-i18n="bd_pack">Beads per bag</label>
+          <input type="number" id="bdPack" min="1" max="100000" step="1" placeholder="—">
+        </div>
+        <p class="settings__note" id="bdBuyNote"></p>
         <div class="actions__btns bd-actions">
           <button class="btn btn--sm btn--secondary" id="bdCopyList" type="button" data-i18n="bd_copy_list">Copy list</button>
           <button class="btn btn--sm btn--secondary" id="bdCsv" type="button" data-i18n="bd_csv">Download CSV</button>
@@ -296,6 +308,12 @@
           <label class="chip"><input type="checkbox" id="bdExRound"><span data-i18n="bd_ex_round">Round beads</span></label>
         </div>
         <div class="actions__btns bd-actions" id="bdActions"></div>
+
+        <h2 class="bd-heading" data-i18n="bd_work_file">Work file</h2>
+        <p class="settings__note" data-i18n="bd_work_file_note">Save this work as a small file to back it up, move it to another device, or share it. Open it again with "Open a work file…".</p>
+        <div class="actions__btns bd-actions">
+          <button class="btn btn--sm btn--secondary" id="bdExportWork" type="button" data-i18n="bd_export_work">Save work file</button>
+        </div>
       </section>
       </div>
     </main>

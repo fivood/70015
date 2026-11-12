@@ -500,6 +500,37 @@
     return changed;
   }
 
+  // One-bead outline in `value` around everything: each empty cell touching a bead, diagonals
+  // included, gets the outline color. When a bead sits on the canvas edge, the canvas first grows
+  // by one cell on every side so the outline fits. Returns { pattern, w, h, added }.
+  function addOutline(pattern, w, h, value) {
+    var touchesEdge = false;
+    for (var x = 0; x < w && !touchesEdge; x++) touchesEdge = pattern[x] >= 0 || pattern[(h - 1) * w + x] >= 0;
+    for (var y = 0; y < h && !touchesEdge; y++) touchesEdge = pattern[y * w] >= 0 || pattern[y * w + w - 1] >= 0;
+    if (touchesEdge) {
+      var grown = new Int16Array((w + 2) * (h + 2)).fill(-1);
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) grown[(y + 1) * (w + 2) + x + 1] = pattern[y * w + x];
+      pattern = grown;
+      w += 2;
+      h += 2;
+    }
+    var src = pattern.slice(), added = 0;
+    for (y = 0; y < h; y++) {
+      for (x = 0; x < w; x++) {
+        if (src[y * w + x] >= 0) continue;
+        var near = false;
+        for (var dy = -1; dy <= 1 && !near; dy++) {
+          for (var dx = -1; dx <= 1 && !near; dx++) {
+            var nx = x + dx, ny = y + dy;
+            near = nx >= 0 && ny >= 0 && nx < w && ny < h && src[ny * w + nx] >= 0;
+          }
+        }
+        if (near) { pattern[y * w + x] = value; added++; }
+      }
+    }
+    return { pattern: pattern, w: w, h: h, added: added };
+  }
+
   // Clear the most common color along the edges, filling inward from every edge cell that has it.
   // With palette and tol, the fill also crosses colors within tol (CIEDE2000) of that color,
   // e.g. the several near-whites a JPG's white background turns into.
@@ -543,6 +574,7 @@
     sampleGrid: sampleGrid,
     floodFill: floodFill,
     removeStrays: removeStrays,
+    addOutline: addOutline,
     removeBackground: removeBackground
   };
   if (typeof module === 'object' && module.exports) module.exports = api;

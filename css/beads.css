@@ -3,6 +3,54 @@
   align-content: end;
 }
 
+/* Work name: looks like a title, edits like a field */
+.bd-name {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 0 4px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.bd-name:hover,
+.bd-name:focus {
+  border-color: var(--border);
+  background: var(--surface-2);
+  outline: none;
+}
+
+/* Shopping list inputs under "Colors used" */
+.bd-buy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: var(--space);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bd-buy input {
+  width: 72px;
+  height: var(--control-h-sm);
+  padding: 0 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.bd-buy label:not(:first-child) {
+  margin-left: 8px;
+}
+
 .bd-stats {
   margin: 0 0 var(--space);
   font-size: 14px;

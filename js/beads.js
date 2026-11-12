@@ -59,7 +59,9 @@
     strip: $('bdStrip'), zoomIn: $('bdZoomIn'), zoomOut: $('bdZoomOut'), zoomFit: $('bdZoomFit'),
     groups: $('bdGroups'), sym: $('bdSym'), round: $('bdRound'), center: $('bdCenter'),
     copyList: $('bdCopyList'), csv: $('bdCsv'),
-    exGrid: $('bdExGrid'), exCodes: $('bdExCodes'), exAxes: $('bdExAxes'), exRound: $('bdExRound')
+    exGrid: $('bdExGrid'), exCodes: $('bdExCodes'), exAxes: $('bdExAxes'), exRound: $('bdExRound'),
+    name: $('bdName'), outline: $('bdOutline'), waste: $('bdWaste'), pack: $('bdPack'), buyNote: $('bdBuyNote'),
+    importWork: $('bdImportWork'), workInput: $('bdWorkInput'), exportWork: $('bdExportWork')
   };
 
   var builtIn = {};
@@ -90,7 +92,8 @@
     zoom: 0,          // preview cell size the user zoomed to; 0 = fit the screen
     sym: 'off',       // mirror drawing: off | h (left-right) | v (top-bottom) | both
     group: 'used',    // which colors the phone strip shows: used | recent | a family like "A"
-    recent: []        // codes picked lately, newest first, per palette family
+    recent: [],       // codes picked lately, newest first, per palette family
+    edited: false     // hand edits since the pattern was last generated from the image
   };
 
   // ---------- Small UI helpers ----------
@@ -126,6 +129,7 @@
     var img = new Image();
     img.onload = function () {
       URL.revokeObjectURL(url);
+      flushSave();
       var c = document.createElement('canvas');
       c.width = img.naturalWidth;
       c.height = img.naturalHeight;
@@ -136,6 +140,9 @@
       state.name = name;
       state.workId = newWorkId();
       state.zoom = 0;
+      state.pattern = null; // a new image: nothing of the previous work to keep
+      state.edited = false;
+      syncName();
       el.w.value = el.h.value = ''; // a new image starts at its own size
       document.body.classList.add('is-working');
       el.settings.classList.remove('is-blank');
@@ -276,6 +283,18 @@
   // Without a source image (blank canvas, reopened work) there is nothing to rebuild from.
   function build() {
     if (!state.src) return;
+    // Hand edits would be lost: keep the edited version as its own saved work first.
+    var keptEdits = false;
+    if (state.pattern && state.edited && state.workId) {
+      clearTimeout(saveTimer);
+      var name = state.name;
+      state.name = tpl('bd_edited_name', '{name} (edited)', { name: name });
+      saveWork();
+      state.name = name;
+      state.workId = newWorkId();
+      keptEdits = true;
+    }
+    state.edited = false;
     var cells = sampleCells();
     el.result.hidden = false;
     if (cells.w > MAX_SIDE || cells.h > MAX_SIDE) {
@@ -305,6 +324,7 @@
     if (state.brush >= 0 && !counts[state.brush]) state.brush = counts.indexOf(Math.max.apply(null, counts));
     if (state.focus) pickNextFocus();
     render();
+    if (keptEdits) showToast(t('bd_edits_kept', 'Your hand edits were saved as a separate work under "Recent work".'));
   }
 
   // ---------- Drawing ----------
@@ -524,6 +544,7 @@
     el.brushCode.textContent = codeOf(state.brush);
     renderPaletteMarks();
     renderStrip(used);
+    renderBuy(used);
     el.undo.disabled = !state.undo.length;
     scheduleSave();
   }
@@ -759,9 +780,11 @@
   }
 
   // Snapshots carry the size too: resizing a canvas is undoable like any edit.
+  // Every hand edit goes through here, so this is also where edits are noticed.
   function pushUndo() {
     state.undo.push({ p: state.pattern.slice(), w: state.w, h: state.h });
     if (state.undo.length > 50) state.undo.shift();
+    state.edited = true;
   }
 
   function restore(snap) {
@@ -961,6 +984,38 @@
     var n = C.removeStrays(state.pattern, state.w, state.h);
     if (!n) state.undo.pop(); // nothing changed, so drop the snapshot
     showToast(n ? tpl('bd_strays_done', 'Cleaned up {n} stray beads. Undo brings them back.', { n: n }) : t('bd_strays_none', 'No stray beads found.'));
+    render();
+  });
+
+  // One-bead outline in the brush color (black when the brush is "empty"), e.g. for keychains.
+  el.outline.addEventListener('click', function () {
+    if (!state.pattern) return;
+    var v = state.brush;
+    if (v < 0) {
+      v = state.palette.findIndex(function (c) { return c.hex === '#000000'; });
+      if (v < 0) v = 0;
+    }
+    var grows = false;
+    pushUndo();
+    var r = C.addOutline(state.pattern, state.w, state.h, v);
+    if (!r.added) {
+      state.undo.pop();
+      showToast(t('bd_outline_none', 'Nothing to outline yet.'));
+      return;
+    }
+    if (r.w > MAX_SIDE || r.h > MAX_SIDE) {
+      state.undo.pop();
+      showToast(tpl('bd_outline_too_big', 'An outline would make the pattern bigger than {max} beads per side.', { max: MAX_SIDE }));
+      return;
+    }
+    grows = r.w !== state.w;
+    state.pattern = r.pattern;
+    state.w = r.w;
+    state.h = r.h;
+    if (grows) state.zoom = 0;
+    showToast(tpl(grows ? 'bd_outline_grew' : 'bd_outline_done', grows
+      ? 'Added {n} {code} beads around the art; the canvas grew by one bead on each side. Undo removes it.'
+      : 'Added {n} {code} beads around the art. Undo removes it.', { n: r.added, code: state.palette[v].code }));
     render();
   });
 
@@ -1192,12 +1247,38 @@
   // ---------- Color list as text / CSV ----------
 
   // Plain text to paste into a shopping note: one "code × count" line per color, most used first.
+  // How many to buy: the count plus the loss allowance (rounded up), and whole bags when a bag
+  // size is set. Every color needs at least one bag of its own.
+  function toBuy(n) {
+    var need = Math.ceil(n * (1 + numberIn(el.waste, 0, 100, 0) / 100));
+    var pack = parseInt(el.pack.value, 10) || 0;
+    return { need: need, bags: pack > 0 ? Math.ceil(need / pack) : 0 };
+  }
+
+  function renderBuy(used) {
+    var need = 0, bags = 0;
+    used.forEach(function (u) { var b = toBuy(u.n); need += b.need; bags += b.bags; });
+    var waste = numberIn(el.waste, 0, 100, 0);
+    el.buyNote.textContent = tpl('bd_buy_note', 'With {w} % extra: about {need} beads to buy.', { w: waste, need: need }) +
+      (bags ? ' ' + tpl('bd_buy_bags', '{bags} bags of {pack} (at least one per color).', { bags: bags, pack: parseInt(el.pack.value, 10) }) : '');
+  }
+
   function listText() {
-    var used = usedColors();
+    var used = usedColors(), waste = numberIn(el.waste, 0, 100, 0);
     return [state.name + ' · ' + statsText(used)].concat(used.map(function (u) {
-      return state.palette[u.i].code + ' × ' + u.n;
+      var b = toBuy(u.n);
+      return state.palette[u.i].code + ' × ' + u.n +
+        (waste ? ' → ' + b.need : '') +
+        (b.bags ? ' · ' + tpl('bd_bags_n', '{n} bag(s)', { n: b.bags }) : '');
     })).join('\n');
   }
+
+  [el.waste, el.pack].forEach(function (input) {
+    input.addEventListener('change', function () {
+      writeStore('70015-beads-buy', { waste: el.waste.value, pack: el.pack.value });
+      if (state.pattern) renderInfo();
+    });
+  });
 
   el.copyList.addEventListener('click', function () {
     if (!state.pattern) return;
@@ -1210,9 +1291,9 @@
 
   el.csv.addEventListener('click', function () {
     if (!state.pattern) return;
-    var rows = ['code,hex,count'].concat(usedColors().map(function (u) {
-      var c = state.palette[u.i];
-      return '"' + c.code.replace(/"/g, '""') + '",' + c.hex + ',' + u.n;
+    var rows = ['code,hex,count,to_buy,bags'].concat(usedColors().map(function (u) {
+      var c = state.palette[u.i], b = toBuy(u.n);
+      return '"' + c.code.replace(/"/g, '""') + '",' + c.hex + ',' + u.n + ',' + b.need + ',' + (b.bags || '');
     }));
     // BOM so Excel opens it as UTF-8 (imported palettes can have non-ASCII codes).
     var blob = new Blob(['﻿' + rows.join('\r\n') + '\r\n'], { type: 'text/csv' });
@@ -1284,21 +1365,28 @@
     renderWorks();
   }
 
-  var saveTimer;
+  var saveTimer = null;
   function scheduleSave() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveWork, 800);
+    saveTimer = setTimeout(function () { saveTimer = null; saveWork(); }, 800);
   }
 
-  function openWork(id) {
-    var w = readWorks().filter(function (x) { return x.id === id; })[0];
-    if (!w) return;
-    if (w.paletteId === 'custom' && w.custom) {
-      state.custom = { name: w.custom.name, colors: C.parsePaletteText(w.custom.text) };
+  // Before switching to another work, save the one being left if a save is still pending.
+  function flushSave() {
+    if (saveTimer === null) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    saveWork();
+  }
+
+  // Switch palettes without remapping (the pattern being loaded already matches it).
+  function applyPalette(id, custom) {
+    if (id === 'custom' && custom) {
+      state.custom = custom;
       state.paletteId = 'custom';
-      state.palette = state.custom.colors;
+      state.palette = custom.colors;
     } else {
-      state.paletteId = builtIn[w.paletteId] ? w.paletteId : 'mard';
+      state.paletteId = builtIn[id] ? id : 'mard';
       state.palette = builtIn[state.paletteId];
     }
     setSegmented(el.palette, state.paletteId);
@@ -1306,6 +1394,10 @@
     renderPaletteNote();
     renderOwnedNote();
     renderPaletteGrid();
+  }
+
+  // Show a saved or imported pattern for editing (no source image).
+  function showWork(w) {
     state.src = null;
     state.natural = null;
     state.capped = false;
@@ -1313,19 +1405,111 @@
     state.workId = w.id;
     state.w = w.w;
     state.h = w.h;
-    state.pattern = decodePattern(w.pattern);
+    state.pattern = w.pattern;
     state.undo = [];
+    state.edited = false;
     state.zoom = 0;
     state.progressKey = '70015-beads-progress:work-' + w.id;
     state.done = new Set();
     state.palette.forEach(function (c, i) { if ((w.done || []).indexOf(c.code) >= 0) state.done.add(i); });
     if (!state.palette[state.brush]) state.brush = 0;
     el.w.value = el.h.value = '';
+    syncName();
     setStatus('');
     enterEditor();
     render();
     el.result.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
+
+  function openWork(id) {
+    flushSave();
+    var w = readWorks().filter(function (x) { return x.id === id; })[0];
+    if (!w) return;
+    applyPalette(w.paletteId, w.paletteId === 'custom' && w.custom
+      ? { name: w.custom.name, colors: C.parsePaletteText(w.custom.text) } : null);
+    showWork({ id: w.id, name: w.name, w: w.w, h: w.h, pattern: decodePattern(w.pattern), done: w.done });
+  }
+
+  // ---------- Work file (export / import) ----------
+  // A small JSON file holding only the colors in use (code + hex) and each cell's index into
+  // that list, so it opens the same way on another device or with another palette loaded.
+
+  var WORK_FILE_APP = '70015-beads';
+
+  function syncName() { el.name.value = state.name === 'beads' ? '' : state.name; }
+
+  el.name.addEventListener('input', function () {
+    state.name = el.name.value.trim() || 'beads';
+    if (state.pattern) scheduleSave();
+  });
+
+  el.exportWork.addEventListener('click', function () {
+    if (!state.pattern) return;
+    var used = usedColors(), slot = {};
+    used.forEach(function (u, k) { slot[u.i] = k; });
+    var cells = new Int16Array(state.pattern.length);
+    for (var i = 0; i < cells.length; i++) cells[i] = state.pattern[i] < 0 ? -1 : slot[state.pattern[i]];
+    var file = {
+      app: WORK_FILE_APP,
+      version: 1,
+      name: state.name,
+      w: state.w,
+      h: state.h,
+      palette: state.paletteId,
+      colors: used.map(function (u) { return [state.palette[u.i].code, state.palette[u.i].hex]; }),
+      cells: encodePattern(cells),
+      done: Array.from(state.done).map(function (k) { return state.palette[k] ? state.palette[k].code : ''; })
+    };
+    var blob = new Blob([JSON.stringify(file)], { type: 'application/json' });
+    ImageExport.download(blob, ImageExport.fileName(state.name + '-work', 'json'));
+  });
+
+  // Untrusted input: check every field before using it.
+  function readWorkFile(text) {
+    var f = JSON.parse(text);
+    var okSize = function (n) { return Number.isInteger(n) && n >= 1 && n <= MAX_SIDE; };
+    if (!f || f.app !== WORK_FILE_APP || !okSize(f.w) || !okSize(f.h) || !Array.isArray(f.colors) || typeof f.cells !== 'string') throw new Error('format');
+    var colors = f.colors.filter(function (c) {
+      return Array.isArray(c) && typeof c[0] === 'string' && c[0].length && c[0].length <= 12 && /^#[0-9a-f]{6}$/i.test(c[1]);
+    });
+    if (colors.length !== f.colors.length || colors.length > 1000) throw new Error('colors');
+    var cells = decodePattern(f.cells);
+    if (cells.length !== f.w * f.h) throw new Error('cells');
+    for (var i = 0; i < cells.length; i++) if (cells[i] < -1 || cells[i] >= colors.length) throw new Error('cells');
+    return { name: typeof f.name === 'string' ? f.name.slice(0, 60) : 'beads', w: f.w, h: f.h, palette: f.palette, colors: colors, cells: cells, done: Array.isArray(f.done) ? f.done.filter(function (c) { return typeof c === 'string'; }) : [] };
+  }
+
+  function importWork(f) {
+    flushSave();
+    // The file's own palette when every code exists there with the same color; otherwise
+    // the file's colors become an imported palette, so nothing changes color.
+    var pal = builtIn[f.palette], at = {}, map = null;
+    if (pal) {
+      pal.forEach(function (c, i) { at[c.code] = i; });
+      map = f.colors.map(function (c) { var i = at[c[0]]; return i !== undefined && pal[i].hex === c[1].toUpperCase() ? i : -2; });
+      if (map.indexOf(-2) >= 0) map = null;
+    }
+    if (map) applyPalette(f.palette, null);
+    else {
+      var colors = C.parsePaletteText(f.colors.map(function (c) { return c[0] + ',' + c[1]; }).join('\n'));
+      applyPalette('custom', { name: f.name, colors: colors });
+      map = colors.map(function (c, i) { return i; });
+    }
+    var pattern = new Int16Array(f.cells.length);
+    for (var i = 0; i < pattern.length; i++) pattern[i] = f.cells[i] < 0 ? -1 : map[f.cells[i]];
+    showWork({ id: newWorkId(), name: f.name, w: f.w, h: f.h, pattern: pattern, done: f.done });
+    scheduleSave();
+  }
+
+  el.importWork.addEventListener('click', function () { el.workInput.click(); });
+  el.workInput.addEventListener('change', function () {
+    var file = el.workInput.files[0];
+    el.workInput.value = '';
+    if (!file) return;
+    file.text().then(function (text) { importWork(readWorkFile(text)); }).catch(function () {
+      showToast(t('bd_work_file_bad', 'This is not a bead work file, or it is damaged.'));
+    });
+  });
 
   function deleteWork(id) {
     if (!window.confirm(t('bd_work_delete_confirm', 'Delete this saved work? This cannot be undone.'))) return;
@@ -1403,12 +1587,15 @@
   function newCanvas(w, h) {
     w = Math.max(1, Math.min(MAX_SIDE, parseInt(w, 10) || 29));
     h = Math.max(1, Math.min(MAX_SIDE, parseInt(h, 10) || 29));
+    flushSave();
     state.src = null;
     state.natural = null;
     state.capped = false;
     state.name = 'beads';
     state.workId = newWorkId();
     state.zoom = 0;
+    state.edited = false;
+    syncName();
     state.w = w;
     state.h = h;
     state.pattern = new Int16Array(w * h).fill(-1);
@@ -1578,6 +1765,9 @@
   el.pitch.value = readStore('70015-beads-pitch', '2.6');
   setSegmented(el.pitchPreset, String(numberIn(el.pitch, 1, 20, 2.6)));
   el.board.value = readStore('70015-beads-board', '29');
+  var buy = readStore('70015-beads-buy', {});
+  if (buy && buy.waste !== undefined) el.waste.value = buy.waste;
+  if (buy && buy.pack !== undefined) el.pack.value = buy.pack;
   state.sym = SYMS.indexOf(readStore('70015-beads-sym', 'off')) >= 0 ? readStore('70015-beads-sym', 'off') : 'off';
   renderSym();
   el.ownedOnly.checked = readStore('70015-beads-owned-only', false) === true;

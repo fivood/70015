@@ -947,7 +947,25 @@
       "bd_ex_grid": "Grid lines",
       "bd_ex_codes": "Color codes",
       "bd_ex_axes": "Row and column numbers",
-      "bd_ex_round": "Round beads"
+      "bd_ex_round": "Round beads",
+      "bd_edited_name": "{name} (edited)",
+      "bd_edits_kept": "Your hand edits were saved as a separate work under \"Recent work\".",
+      "bd_name": "Work name",
+      "bd_import_work": "Open a work file…",
+      "bd_work_file": "Work file",
+      "bd_work_file_note": "Save this work as a small file to back it up, move it to another device, or share it. Open it again with \"Open a work file…\".",
+      "bd_export_work": "Save work file",
+      "bd_work_file_bad": "This is not a bead work file, or it is damaged.",
+      "bd_outline": "Add outline",
+      "bd_outline_done": "Added {n} {code} beads around the art. Undo removes it.",
+      "bd_outline_grew": "Added {n} {code} beads around the art; the canvas grew by one bead on each side. Undo removes it.",
+      "bd_outline_none": "Nothing to outline yet.",
+      "bd_outline_too_big": "An outline would make the pattern bigger than {max} beads per side.",
+      "bd_waste": "Extra for loss",
+      "bd_pack": "Beads per bag",
+      "bd_buy_note": "With {w} % extra: about {need} beads to buy.",
+      "bd_buy_bags": "{bags} bags of {pack} (at least one per color).",
+      "bd_bags_n": "{n} bag(s)"
     },
 
     zh: {
@@ -1876,7 +1894,25 @@
       "bd_ex_grid": "网格线",
       "bd_ex_codes": "色号",
       "bd_ex_axes": "行列号",
-      "bd_ex_round": "圆豆"
+      "bd_ex_round": "圆豆",
+      "bd_edited_name": "{name}（手改版）",
+      "bd_edits_kept": "你的手动修改已另存为一个作品，在「最近作品」里。",
+      "bd_name": "作品名",
+      "bd_import_work": "打开作品文件…",
+      "bd_work_file": "作品文件",
+      "bd_work_file_note": "把这个作品存成一个小文件，用来备份、换设备或分享给朋友。用「打开作品文件…」重新打开。",
+      "bd_export_work": "保存作品文件",
+      "bd_work_file_bad": "这不是拼豆作品文件，或者文件已损坏。",
+      "bd_outline": "加描边",
+      "bd_outline_done": "在图案外围加了 {n} 颗 {code}，可以撤销。",
+      "bd_outline_grew": "在图案外围加了 {n} 颗 {code}，画布四边各扩大了 1 颗，可以撤销。",
+      "bd_outline_none": "还没有可以描边的图案。",
+      "bd_outline_too_big": "加描边后会超过每边 {max} 颗。",
+      "bd_waste": "损耗",
+      "bd_pack": "每包颗数",
+      "bd_buy_note": "加 {w}% 损耗，大约要买 {need} 颗。",
+      "bd_buy_bags": "按每包 {pack} 颗共 {bags} 包（每色至少 1 包）。",
+      "bd_bags_n": "{n} 包"
     }
   };
 
