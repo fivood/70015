@@ -37,7 +37,9 @@
 }
 
 .color-row__pick {
+  flex: none;
   min-height: var(--control-h);
+  white-space: nowrap;
 }
 
 .color-swatch {

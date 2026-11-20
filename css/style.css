@@ -80,7 +80,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
   padding-top: env(safe-area-inset-top, 0);
 }
 
@@ -325,10 +325,11 @@ body {
   overflow: hidden;
 }
 
+/* Title block: title + one-line description, kept short so tools start high (DESIGN.md §1). */
 .hero {
   position: relative;
-  padding: var(--space-lg) 0;
-  margin-bottom: var(--space-lg);
+  padding: 0;
+  margin-bottom: var(--space);
   background: transparent;
   border: none;
   box-shadow: none;
@@ -340,8 +341,8 @@ body {
 }
 
 .hero__title {
-  margin: 0 0 var(--space-sm);
-  font-size: 24px;
+  margin: 0 0 4px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -488,8 +489,8 @@ body {
 
 /* Panel */
 .panel {
-  padding: var(--space-lg);
-  margin-bottom: var(--space-lg);
+  padding: 20px;
+  margin-bottom: var(--space);
 }
 
 /* Upload */
@@ -572,9 +573,19 @@ body {
 
 /* Settings */
 .settings {
-  margin-top: var(--space-lg);
+  margin-top: var(--space);
   display: grid;
-  gap: var(--space-lg);
+  gap: var(--space);
+}
+
+.settings__note:empty {
+  display: none;
+}
+
+/* Option groups are as wide as their options (DESIGN.md §3). */
+.settings__group > .segmented {
+  justify-self: start;
+  max-width: 100%;
 }
 
 .settings__group {
@@ -1470,7 +1481,7 @@ body {
 
 /* Tab bar for pages hosting two tools (js/tabs.js) */
 .page-tabs {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space);
 }
 
 /* Favicon Generator */
@@ -1653,4 +1664,61 @@ html:not([data-lang="zh"]) .pv[lang="zh-CN"] {
 
 .pv .ins-list strong {
   color: var(--text);
+}
+
+/* ---------- Workbench: controls beside the result (DESIGN.md §2) ---------- */
+.workbench {
+  display: grid;
+  gap: var(--space);
+  margin-bottom: var(--space);
+}
+
+.workbench > .card,
+.workbench__side > .card,
+.workbench__main > .card,
+.workbench__side > .settings {
+  margin: 0;
+}
+
+.workbench__side,
+.workbench__main {
+  display: grid;
+  gap: var(--space);
+  align-content: start;
+  min-width: 0;
+}
+
+.workbench__main:not(:has(> :not([hidden]):not(:empty))),
+.workbench__main[hidden] {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .app:has(.workbench) {
+    max-width: 1240px;
+  }
+
+  /* Two columns only once the result side has something to show. */
+  .workbench:has(> .workbench__main:not([hidden]) > :not([hidden]):not(:empty)) {
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .workbench__main--sticky {
+    position: sticky;
+    top: var(--space);
+  }
+}
+
+/* Narrow side column: option buttons shrink to their text instead of wrapping onto a second row. */
+.workbench__side .segmented__btn {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+/* Inside one card the columns sit further apart than between cards. */
+.panel > .workbench,
+.panel.workbench {
+  column-gap: var(--space-lg);
+  margin-bottom: 0;
 }

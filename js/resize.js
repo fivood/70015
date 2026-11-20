@@ -21,15 +21,9 @@
 
   // ---------- Mode switching ----------
   var modeSelector = document.getElementById('modeSelector');
-  var modeNote = document.getElementById('modeNote');
   var cropPanel = document.getElementById('cropPanel');
   var scalePanel = document.getElementById('scalePanel');
   var mode = 'crop';
-
-  var MODE_NOTES = {
-    crop: 'sz_crop_note',
-    scale: 'sz_scale_note'
-  };
 
   function setMode(m) {
     mode = m;
@@ -38,7 +32,6 @@
     });
     cropPanel.hidden = m !== 'crop';
     scalePanel.hidden = m !== 'scale';
-    modeNote.textContent = t(MODE_NOTES[m]);
   }
   modeSelector.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-mode]');
@@ -72,25 +65,28 @@
   var cImg = null;
   var cNatW = 0, cNatH = 0, cScale = 1;
   var cropLoadVersion = 0;
+  var scaleLoadVersion = 0;
   var crop = { x: 0, y: 0, w: 0, h: 0 }; // in canvas (display) px
   var ratio = null; // {w,h} or null=free
   var cropFormat = 'png';
   var drag = null; // { mode: 'draw'|'move'|'resize', handle, startRect, startX, startY }
 
-  function loadCropImage(file) {
+  // One image serves both modes: switching between crop and scale keeps it.
+  function loadImage(file) {
     if (!file || !file.type.startsWith('image/')) { showToast(t('sz_need_image')); return; }
     if (file.size > MAX_FILE_SIZE) { showToast(t('conv_too_large').replace('{name}', file.name)); return; }
-    var version = ++cropLoadVersion;
+    var cropV = ++cropLoadVersion, scaleV = ++scaleLoadVersion;
     var url = URL.createObjectURL(file);
     var image = new Image();
     image.onload = function () {
       URL.revokeObjectURL(url);
-      if (version !== cropLoadVersion) return;
-      setupCropImage(image);
+      if (cropV === cropLoadVersion) setupCropImage(image);
+      if (scaleV === scaleLoadVersion) setupScaleImage(image);
     };
     image.onerror = function () { showToast(t('sz_load_fail')); URL.revokeObjectURL(url); };
     image.src = url;
   }
+  var loadCropImage = loadImage;
 
   function setupCropImage(image) {
     cImg = image;
@@ -106,7 +102,7 @@
     cropActions.hidden = false;
     applyRatioToCrop();
     renderCrop();
-    cropStage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!cropPanel.hidden) cropStage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   cropInput.addEventListener('change', function (e) {
@@ -377,10 +373,7 @@
     applyRatioToCrop();
     renderCrop();
   });
-  cropReplaceBtn.addEventListener('click', function () {
-    cropLoadVersion++;
-    cImg = null; cropSettings.hidden = true; cropStageWrap.hidden = true; cropActions.hidden = true;
-  });
+  cropReplaceBtn.addEventListener('click', clearImage);
 
   function buildCropCanvas() {
     if (!cImg) return null;
@@ -432,18 +425,7 @@
   var scaleExportBtn = document.getElementById('scaleExportBtn');
 
   var sImg = null, sNatW = 0, sNatH = 0, scaleFormat = 'png';
-  var scaleLoadVersion = 0;
-
-  function loadScaleImage(file) {
-    if (!file || !file.type.startsWith('image/')) { showToast(t('sz_need_image')); return; }
-    if (file.size > MAX_FILE_SIZE) { showToast(t('conv_too_large').replace('{name}', file.name)); return; }
-    var version = ++scaleLoadVersion;
-    var url = URL.createObjectURL(file);
-    var image = new Image();
-    image.onload = function () { URL.revokeObjectURL(url); if (version === scaleLoadVersion) setupScaleImage(image); };
-    image.onerror = function () { showToast(t('sz_load_fail')); URL.revokeObjectURL(url); };
-    image.src = url;
-  }
+  var loadScaleImage = loadImage;
 
   function setupScaleImage(image) {
     sImg = image;
@@ -500,7 +482,15 @@
     scaleQualityPanel.hidden = scaleFormat !== 'jpeg';
   });
   scaleQuality.addEventListener('input', function (e) { scaleQualityValue.textContent = e.target.value; });
-  scaleReplaceBtn.addEventListener('click', function () { scaleLoadVersion++; sImg = null; scaleSettings.hidden = true; scaleActions.hidden = true; scalePreviewWrap.hidden = true; });
+  scaleReplaceBtn.addEventListener('click', clearImage);
+
+  // "Replace image": back to the upload box in both modes.
+  function clearImage() {
+    cropLoadVersion++;
+    scaleLoadVersion++;
+    cImg = null; cropSettings.hidden = true; cropStageWrap.hidden = true; cropActions.hidden = true;
+    sImg = null; scaleSettings.hidden = true; scaleActions.hidden = true; scalePreviewWrap.hidden = true;
+  }
 
   var scalePreviewWrap = document.getElementById('scalePreviewWrap');
   var scalePreview = document.getElementById('scalePreview');
@@ -571,8 +561,7 @@
       if (items[i].type && items[i].type.startsWith('image/')) {
         var f = items[i].getAsFile();
         if (f) {
-          if (mode === 'crop') loadCropImage(f);
-          else if (mode === 'scale') loadScaleImage(f);
+          loadImage(f);
           e.preventDefault();
           return;
         }
@@ -585,7 +574,6 @@
 
   // Re-apply dynamic text on language change
   window.onLangChange = function () {
-    modeNote.textContent = t(MODE_NOTES[mode]);
     if (cImg) renderCrop();
     if (sImg) updateScaleInfo();
   };

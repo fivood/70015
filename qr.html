@@ -78,6 +78,8 @@
         </div>
       </section>
 
+      <div class="workbench">
+      <div class="workbench__side">
       <section class="panel card">
         <div class="segmented qr__mode" id="qrModeSelector" role="tablist" aria-label="QR mode" data-i18n-aria-label="qr_mode">
           <button class="segmented__btn is-active" data-mode="generate" type="button" role="tab" aria-selected="true" data-i18n="qr_generate">Generate</button>
@@ -172,7 +174,8 @@
           <canvas id="qrDecodeCanvas" hidden></canvas>
         </div>
       </section>
-
+      </div>
+      <div class="workbench__main workbench__main--sticky">
       <section class="panel card" id="qrGeneratePreview">
         <div class="settings__group">
           <span class="settings__label" data-i18n="qr_preview">Preview</span>
@@ -191,6 +194,8 @@
           <p class="settings__note" id="qrHint" data-i18n="qr_updates">Updates as you type.</p>
         </div>
       </section>
+      </div>
+      </div>
     </main>
 
     <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>

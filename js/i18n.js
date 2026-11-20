@@ -693,6 +693,8 @@
       'sz_export_fail': 'Export failed',
       'sz_download': 'Download',
       'sz_images': 'Images',
+
+      'sz_image': 'Image',
       'sz_stitch_dir': 'Direction',
       'sz_stitch_h': 'Horizontal',
       'sz_stitch_v': 'Vertical',
@@ -1775,6 +1777,8 @@
       'sz_export_fail': '导出失败',
       'sz_download': '下载',
       'sz_images': '图片',
+
+      'sz_image': '图片',
       'sz_stitch_dir': '方向',
       'sz_stitch_h': '横向',
       'sz_stitch_v': '纵向',

@@ -90,9 +90,17 @@
         </div>
       </section>
 
-      <section class="panel card" id="imgToBase64">
+      <div class="segmented page-tabs" id="b64Tabs" role="tablist">
+
+        <button class="segmented__btn is-active" data-tab="encode" type="button" role="tab" aria-controls="imgToBase64" data-i18n="b64_img2b64">Image &rarr; Base64</button>
+
+        <button class="segmented__btn" data-tab="decode" type="button" role="tab" aria-controls="base64ToImg" data-i18n="b64_b642img">Base64 &rarr; Image</button>
+
+      </div>
+
+
+      <section class="panel card" id="imgToBase64" role="tabpanel">
         <div class="settings__group">
-          <span class="settings__label" data-i18n="b64_img2b64">Image &rarr; Base64</span>
           <div class="upload" id="imgUpload">
             <input class="upload__input" id="imgInput" type="file" accept="image/*" multiple>
             <div class="upload__content">
@@ -119,9 +127,8 @@
         <div class="list base64-list" id="base64List"></div>
       </section>
 
-      <section class="panel card" id="base64ToImg">
+      <section class="panel card" id="base64ToImg" role="tabpanel" hidden>
         <div class="settings__group">
-          <span class="settings__label" data-i18n="b64_b642img">Base64 &rarr; Image</span>
           <div class="field">
             <label for="base64Input" data-i18n="b64_paste">Paste Base64 string</label>
             <textarea class="field__textarea" id="base64Input" rows="6" data-i18n-placeholder="b64_placeholder" placeholder="Supports data:image/...;base64,xxx or raw Base64"></textarea>
@@ -150,6 +157,7 @@
   <script src="js/theme.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
+  <script src="js/tabs.js"></script>
   <script src="js/base64.js"></script>
 </body>
 </html>

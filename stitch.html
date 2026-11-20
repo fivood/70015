@@ -79,6 +79,8 @@
       </section>
 
       <section class="panel card sz-panel" id="stitchPanel">
+        <div class="workbench">
+        <div class="workbench__side">
         <div class="settings__group">
           <span class="settings__label" data-i18n="sz_images">Images</span>
           <div class="upload" id="stitchDrop">
@@ -156,6 +158,11 @@
           </div>
         </div>
 
+
+        <section class="list sz-stitch-list" id="stitchList" aria-live="polite"></section>
+        </div>
+        <div class="workbench__main">
+
         <div class="sz-stage-wrap" id="stitchPreviewWrap" hidden>
           <span class="settings__label" data-i18n="st_preview">Preview</span>
           <div class="sz-stage">
@@ -163,9 +170,6 @@
           </div>
           <p class="settings__note" data-i18n="st_preview_hint">Click an image in the preview, or the crop button in the list, to choose which part of it to use.</p>
         </div>
-
-        <section class="list sz-stitch-list" id="stitchList" aria-live="polite"></section>
-
         <div class="sz-stage-wrap" id="stitchCropPanel" hidden>
           <span class="settings__label" id="stitchCropTitle"></span>
           <div class="sz-stage">
@@ -189,6 +193,8 @@
             <button class="btn btn--secondary btn--sm" id="stitchBeadsBtn" type="button" data-i18n="exp_beads">Bead pattern</button>
             <button class="btn btn--primary btn--sm" id="stitchExportBtn" type="button" data-i18n="sz_download">Download</button>
           </div>
+        </div>
+        </div>
         </div>
       </section>
 

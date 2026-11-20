@@ -5,6 +5,8 @@
   const input = document.getElementById('metadataInput');
   const status = document.getElementById('metadataStatus');
   const panel = document.getElementById('metadataPanel');
+  // Clean & download sits beside the upload box and shows with the details panel.
+  const cleaner = document.getElementById('metadataCleaner');
   const preview = document.getElementById('metadataPreview');
   const fileName = document.getElementById('metadataFileName');
   const facts = document.getElementById('metadataFacts');
@@ -56,6 +58,7 @@
     state.image = null;
     preview.removeAttribute('src');
     panel.hidden = true;
+    cleaner.hidden = true;
     document.body.classList.remove('is-working');
     fileName.textContent = '\u2014';
     facts.innerHTML = '';
@@ -124,6 +127,7 @@
       fileName.textContent = file.name;
       renderFacts(file, image);
       panel.hidden = false;
+      cleaner.hidden = false;
       document.body.classList.add('is-working');
       status.textContent = t('metadata_reading', 'Reading metadata...');
       status.removeAttribute('data-i18n');

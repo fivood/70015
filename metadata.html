@@ -76,6 +76,8 @@
         </div>
       </section>
 
+      <div class="workbench">
+      <div class="workbench__side">
       <section class="panel card">
         <div class="upload metadata__drop" id="metadataDrop">
           <input class="upload__input" id="metadataInput" type="file" accept="image/*" data-i18n-aria-label="choose_image">
@@ -88,18 +90,7 @@
           </div>
         </div>
         <p class="settings__note" id="metadataStatus" data-i18n="metadata_empty">No image loaded.</p>
-      </section>
-
-      <section class="panel card metadata__panel" id="metadataPanel" hidden>
-        <div class="metadata__summary">
-          <div class="preview__media metadata__preview-media"><img id="metadataPreview" alt="Image preview"></div>
-          <div class="metadata__file">
-            <h2 id="metadataFileName">&mdash;</h2>
-            <div class="metadata__facts" id="metadataFacts"></div>
-          </div>
-        </div>
-
-        <div class="settings__group metadata__cleaner">
+        <div class="settings__group metadata__cleaner" id="metadataCleaner" hidden>
           <label class="settings__label" data-i18n="metadata_clean_title">Remove metadata</label>
           <div class="segmented" id="metadataFormatSelector">
             <button class="segmented__btn is-active" data-value="png" type="button" data-i18n="metadata_png">PNG</button>
@@ -113,6 +104,18 @@
           <p class="settings__note" data-i18n="metadata_clean_note">Re-encoding removes EXIF, GPS, XMP, and other embedded metadata.</p>
           <button class="btn btn--primary" id="metadataCleanBtn" type="button" data-i18n="metadata_clean_download">Download cleaned image</button>
         </div>
+      </section>
+      </div>
+      <div class="workbench__main">
+      <section class="panel card metadata__panel" id="metadataPanel" hidden>
+        <div class="metadata__summary">
+          <div class="preview__media metadata__preview-media"><img id="metadataPreview" alt="Image preview"></div>
+          <div class="metadata__file">
+            <h2 id="metadataFileName">&mdash;</h2>
+            <div class="metadata__facts" id="metadataFacts"></div>
+          </div>
+        </div>
+
 
         <div class="metadata__details">
           <div class="settings__group">
@@ -121,6 +124,8 @@
           </div>
         </div>
       </section>
+      </div>
+      </div>
     </main>
 
     <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>

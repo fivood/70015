@@ -239,7 +239,7 @@
     if (activeMode === 'screen') {
       hideStage();
       startWrap.hidden = false;
-      hint.textContent = t('snp_hint', 'Click "Start capture" and pick a tab or window to share.');
+      hint.textContent = '';
     }
     dragStart = null;
   }

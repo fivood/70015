@@ -278,4 +278,7 @@
       t = setTimeout(() => fn.apply(this, args), wait);
     };
   }
+
+  // Two tools on one page: Image → Base64 and Base64 → Image (js/tabs.js).
+  initTabs(document.getElementById('b64Tabs'));
 })();

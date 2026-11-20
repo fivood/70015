@@ -78,21 +78,17 @@
         </div>
       </section>
 
-      <section class="panel card">
-        <div class="settings__group">
-          <label class="settings__label" data-i18n="sz_mode">Mode</label>
-          <div class="segmented" id="modeSelector">
+      <div class="segmented page-tabs" id="modeSelector" role="tablist" aria-label="Mode" data-i18n-aria-label="sz_mode">
             <button class="segmented__btn is-active" data-mode="crop" type="button" data-i18n="sz_mode_crop">Crop</button>
             <button class="segmented__btn" data-mode="scale" type="button" data-i18n="sz_mode_scale">Scale</button>
-          </div>
-          <p class="settings__note" id="modeNote" data-i18n="sz_crop_note">Drag on the image to select a crop region. Pick a ratio or set a target size.</p>
-        </div>
-      </section>
+      </div>
 
       <!-- CROP MODE -->
       <section class="panel card sz-panel" id="cropPanel">
+        <div class="workbench">
+        <div class="workbench__side">
         <div class="settings__group">
-          <span class="settings__label" data-i18n="b64_img2b64">Image</span>
+          <span class="settings__label" data-i18n="sz_image">Image</span>
           <div class="upload" id="cropDrop">
             <input type="file" id="cropInput" class="upload__input" accept="image/*" aria-label="Choose an image" data-i18n-aria-label="choose_image">
             <div class="upload__content">
@@ -153,6 +149,8 @@
             </div>
           </div>
         </div>
+        </div>
+        <div class="workbench__main">
 
         <div class="sz-stage-wrap" id="cropStageWrap" hidden>
           <div class="sz-stage" id="cropStage">
@@ -173,12 +171,16 @@
             <button class="btn btn--primary btn--sm" id="cropExportBtn" type="button" data-i18n="sz_download">Download</button>
           </div>
         </div>
+        </div>
+        </div>
       </section>
 
       <!-- SCALE MODE -->
       <section class="panel card sz-panel" id="scalePanel" hidden>
+        <div class="workbench">
+        <div class="workbench__side">
         <div class="settings__group">
-          <span class="settings__label" data-i18n="b64_img2b64">Image</span>
+          <span class="settings__label" data-i18n="sz_image">Image</span>
           <div class="upload" id="scaleDrop">
             <input type="file" id="scaleInput" class="upload__input" accept="image/*" aria-label="Choose an image" data-i18n-aria-label="choose_image">
             <div class="upload__content">
@@ -236,6 +238,8 @@
             </div>
           </div>
         </div>
+        </div>
+        <div class="workbench__main">
 
         <div class="sz-stage-wrap" id="scalePreviewWrap" hidden>
           <div class="sz-stage">
@@ -253,6 +257,8 @@
             <button class="btn btn--secondary btn--sm" id="scaleBeadsBtn" type="button" data-i18n="exp_beads">Bead pattern</button>
             <button class="btn btn--primary btn--sm" id="scaleExportBtn" type="button" data-i18n="sz_download">Download</button>
           </div>
+        </div>
+        </div>
         </div>
       </section>
     </main>
