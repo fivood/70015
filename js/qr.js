@@ -302,5 +302,9 @@
   });
   qrDecodeClearBtn.addEventListener('click', resetDecode);
 
+  // Opened from the extension's right-click menu ("Generate QR code"): qr.html?text=…
+  const fromUrl = new URLSearchParams(location.search).get('text');
+  if (fromUrl) qrText.value = fromUrl;
+
   render();
 })();

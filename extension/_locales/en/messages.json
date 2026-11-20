@@ -8,5 +8,8 @@
   "cmd_pick": {"message":"Pick a color from the page"},
   "pick_hint": {"message":"Click to copy a color. Arrow keys move one pixel (Shift: 10), Enter picks, Esc cancels."},
   "pick_copied": {"message":"Copied $1"},
-  "pick_open": {"message":"Open in color tool"}
+  "pick_open": {"message":"Open in color tool"},
+  "menu_qr_selection": {"message":"Generate QR code for \"%s\""},
+  "menu_qr_link": {"message":"Generate QR code for this link"},
+  "menu_qr_page": {"message":"Generate QR code for this page"}
 }

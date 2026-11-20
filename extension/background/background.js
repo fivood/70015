@@ -157,6 +157,41 @@ if (typeof importScripts === 'function') importScripts('../js/export.js');
     }
   });
 
+  // ---------- Right-click "Generate QR code" ----------
+  // Selected text, a link, or the page itself opens the QR tool with that text filled in.
+  var QR_MENUS = [
+    { id: 'qr-selection', contexts: ['selection'], key: 'menu_qr_selection', title: 'Generate QR code for "%s"' },
+    { id: 'qr-link', contexts: ['link'], key: 'menu_qr_link', title: 'Generate QR code for this link' },
+    { id: 'qr-page', contexts: ['page'], key: 'menu_qr_page', title: 'Generate QR code for this page' }
+  ];
+
+  function createMenus() {
+    chrome.contextMenus.removeAll(function () {
+      QR_MENUS.forEach(function (m) {
+        chrome.contextMenus.create({ id: m.id, contexts: m.contexts, title: chrome.i18n.getMessage(m.key) || m.title });
+      });
+    });
+  }
+  // Menus persist across browser restarts; (re)create them when installed or updated.
+  chrome.runtime.onInstalled.addListener(createMenus);
+
+  // Text the menu item stands for: selection, link address, or the page address.
+  function menuText(info) {
+    if (info.menuItemId === 'qr-selection') return info.selectionText;
+    if (info.menuItemId === 'qr-link') return info.linkUrl;
+    if (info.menuItemId === 'qr-page') return info.pageUrl;
+    return null;
+  }
+
+  chrome.contextMenus.onClicked.addListener(function (info, tab) {
+    var text = menuText(info);
+    if (!text) return;
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('qr.html') + '?text=' + encodeURIComponent(text),
+      index: tab ? tab.index + 1 : undefined
+    });
+  });
+
   var COMMAND_MODES = { 'capture-full': 'full', 'capture-visible': 'visible', 'capture-selection': 'selection', 'pick-color': 'pick' };
   chrome.commands.onCommand.addListener(function (command, tab) {
     if (!COMMAND_MODES[command] || !tab) return;

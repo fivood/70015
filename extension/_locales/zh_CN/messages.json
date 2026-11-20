@@ -8,5 +8,8 @@
   "cmd_pick": {"message":"从网页取色"},
   "pick_hint": {"message":"点击复制颜色。方向键移动 1 像素（按住 Shift 移动 10），Enter 取色，Esc 取消。"},
   "pick_copied": {"message":"已复制 $1"},
-  "pick_open": {"message":"在颜色工具中打开"}
+  "pick_open": {"message":"在颜色工具中打开"},
+  "menu_qr_selection": {"message":"为“%s”生成二维码"},
+  "menu_qr_link": {"message":"为此链接生成二维码"},
+  "menu_qr_page": {"message":"为此页面生成二维码"}
 }

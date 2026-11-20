@@ -954,6 +954,9 @@
 
       'ins_use_6': 'If a screenshot contains QR codes, the result tab lists what each one holds, with safety warnings. Nothing opens until you click.',
 
+
+      'ins_use_7': 'Right-click selected text, a link or the page and choose "Generate QR code": the QR tool opens with that text already filled in.',
+
       'ins_key_pick': 'Pick a color from the page',
       'ins_privacy': 'Your images never leave your device. Screenshots stay in local browser storage only until the result tab reads them, then they are deleted.',
       'ins_source': 'Source code',
@@ -2029,6 +2032,9 @@
       'ins_use_5': '「从网页取色」（Alt+Shift+C）：放大镜跟随鼠标，点击即复制颜色，也可以直接在颜色工具中打开。',
 
       'ins_use_6': '截图里有二维码时，结果页会列出每个二维码的内容和安全提示，你点击之前不会打开任何链接。',
+
+
+      'ins_use_7': '选中一段文字，或在链接、页面上点右键，选择「生成二维码」：二维码工具会打开并自动填好内容。',
 
       'ins_key_pick': '从网页取色',
       "ins_privacy": "图片始终不会离开你的设备。截图仅保存在浏览器本地，结果页读取后即删除。",
