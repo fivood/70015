@@ -60,6 +60,9 @@ function build(target) {
     const html = fs.readFileSync(path.join(root, file), 'utf8')
       .replace(linkRe, (m, name) => 'href="' + (name === './' ? 'index' : name) + '.html"')
       .replace(/\s*<link rel="manifest"[^>]*>/, '') // PWA manifest is meaningless inside an extension
+      // No network requests from extension pages: drop Google Fonts (the CSS falls back to system-ui).
+      .replace(/\s*<link rel="preconnect" href="https:\/\/fonts\.[^"]*"[^>]*>/g, '')
+      .replace(/\s*<link href="https:\/\/fonts\.googleapis\.com\/[^"]*" rel="stylesheet">/g, '')
       // Pages keep a hard-coded version so the site works when deployed as plain
       // files (Cloudflare Pages serves the repo as-is and never runs this script);
       // __VERSION__ lets the built copy carry the manifest's version instead.

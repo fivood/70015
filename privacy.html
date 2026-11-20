@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy &mdash; 70015</title>
+  <meta name="description" content="70015 Image Tools collects no personal data: images and screenshots are processed on your device and never uploaded.">
+  <link rel="canonical" href="https://70015.net/privacy">
+  <meta property="og:title" content="Privacy Policy &mdash; 70015">
+  <meta property="og:description" content="No data collection: images and screenshots stay on your device.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://70015.net/privacy">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.ico" sizes="32x32 128x128 256x256">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#203848" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1c1e" media="(prefers-color-scheme: dark)">
+  <script src="js/i18n-head.js"></script>
+  <script src="js/theme-head.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <a class="header__brand" href="./">
+        <span class="header__logo" aria-hidden="true">
+          <img src="logo.svg" alt="" width="26" height="26">
+        </span>
+        <div>
+          <h1 class="header__title" data-i18n="brand">TOOLS</h1>
+        </div>
+      </a>
+      <div class="header__actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" data-i18n-aria-label="theme">
+          <span class="theme-toggle__icon" aria-hidden="true">
+            <svg class="theme-toggle__light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="theme-toggle__dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" data-i18n-aria-label="menu_open" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="12" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="19" cy="12" r="2"/>
+        </svg>
+      </button>
+      </div>
+    </header>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <div class="menu__header">
+          <span class="menu__title">70015</span>
+          <button class="menu__close" id="menuClose" type="button" aria-label="Close menu" data-i18n-aria-label="menu_close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M18 6 L6 18"/>
+              <path d="M6 6 L18 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="menu__grid" id="menuGrid"></div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <section class="panel card pv" lang="en">
+        <h2 class="ins-heading">Privacy policy</h2>
+        <p class="pv-meta">70015 Image Tools (website and browser extension) · Last updated 2026-11-20</p>
+        <h3>In short</h3>
+        <p>We do not collect, sell or share any personal data. Images, screenshots and colors are processed on your own device and are never uploaded. There are no accounts, no analytics and no ads.</p>
+        <h3>The browser extension</h3>
+        <ul class="ins-list">
+          <li><strong>Screenshots</strong> are taken only after you click the extension button or press one of its shortcuts. They are passed to the result tab through your browser's local storage (IndexedDB) and deleted as soon as that tab has read them.</li>
+          <li><strong>Color picking</strong> takes one screenshot of the visible tab, which stays in that tab's memory and is discarded when you pick a color or press Esc. The picked color is copied to your clipboard.</li>
+          <li><strong>QR codes</strong> found in a screenshot are decoded on your device. Their links are not opened or fetched unless you click "Open".</li>
+          <li><strong>Saved work and settings</strong> (bead patterns, recent colors, preferences) stay in your browser's local storage. Removing the extension deletes them.</li>
+          <li><strong>The extension makes no network requests</strong> of its own and contains no remote code.</li>
+        </ul>
+        <h3>Permissions</h3>
+        <ul class="ins-list">
+          <li><code>activeTab</code>: read the tab you are on, only after you click the button or press a shortcut, to take the screenshot or pick a color.</li>
+          <li><code>scripting</code>: add the scrolling, selection and color-picker overlay to that tab while you use it.</li>
+          <li><code>unlimitedStorage</code>: very long screenshots can exceed the default local storage limit for a moment before they are deleted.</li>
+        </ul>
+        <h3>The website</h3>
+        <p>70015.net is a static site hosted on Cloudflare Pages. All tools run in your browser; files you open are never sent to the server. As with any website, the hosting provider receives the technical data needed to deliver pages (such as your IP address) and handles it under its own policy. The site sets no cookies and uses no analytics. Fonts are loaded from Google Fonts.</p>
+        <h3>Changes and contact</h3>
+        <p>Changes to this policy are published on this page. Questions: open an issue at <a href="https://github.com/fivood/70015/issues" target="_blank" rel="noopener">github.com/fivood/70015</a>.</p>
+      </section>
+      <section class="panel card pv" lang="zh-CN">
+        <h2 class="ins-heading">隐私政策</h2>
+        <p class="pv-meta">70015 图片工具（网站与浏览器插件）· 最后更新 2026-11-20</p>
+        <h3>简要说明</h3>
+        <p>我们不收集、出售或分享任何个人数据。图片、截图和颜色都在你自己的设备上处理，从不上传。没有账号，没有统计分析，没有广告。</p>
+        <h3>浏览器插件</h3>
+        <ul class="ins-list">
+          <li><strong>截图</strong>只在你点击插件按钮或按下快捷键之后进行。截图通过浏览器本地存储（IndexedDB）交给结果页，结果页读取后立即删除。</li>
+          <li><strong>网页取色</strong>会对当前可见区域截一张图，只保存在该标签页的内存里，取色完成或按 Esc 后即丢弃。取到的颜色会复制到你的剪贴板。</li>
+          <li><strong>截图中的二维码</strong>在本机解码。除非你点击「打开」，否则不会打开或访问其中的链接。</li>
+          <li><strong>保存的作品和设置</strong>（拼豆图纸、最近使用的颜色、偏好设置）保存在浏览器本地存储中。移除插件会一并删除这些数据。</li>
+          <li><strong>插件本身不发起任何网络请求</strong>，也不包含远程代码。</li>
+        </ul>
+        <h3>权限说明</h3>
+        <ul class="ins-list">
+          <li><code>activeTab</code>：只在你点击按钮或按快捷键之后读取当前标签页，用于截图或取色。</li>
+          <li><code>scripting</code>：在你使用时，向当前标签页加入滚动、框选和取色的覆盖层。</li>
+          <li><code>unlimitedStorage</code>：超长截图在被删除前，可能短暂超过默认的本地存储上限。</li>
+        </ul>
+        <h3>网站</h3>
+        <p>70015.net 是托管在 Cloudflare Pages 上的静态网站，所有工具都在你的浏览器里运行，你打开的文件不会发送到服务器。与任何网站一样，托管服务商会收到传送网页所需的技术数据（例如 IP 地址），并按其自身的政策处理。本站不设置 Cookie，不使用统计分析。字体从 Google Fonts 加载。</p>
+        <h3>变更与联系</h3>
+        <p>本政策如有变更会发布在此页面。如有问题，请在 <a href="https://github.com/fivood/70015/issues" target="_blank" rel="noopener">github.com/fivood/70015</a> 提交 issue。</p>
+      </section>
+    </main>
+
+    <footer class="footer"><p><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="footer">@70015</a></p></footer>
+  </div>
+
+  <script src="js/menu.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/menu-data.js"></script>
+</body>
+</html>

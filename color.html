@@ -75,7 +75,7 @@
         <div class="hero__blob" aria-hidden="true"></div>
         <div class="hero__content">
           <h1 class="hero__title" data-i18n="t_color">Color Tools</h1>
-          <p class="hero__desc" data-i18n="col_desc">Pick colors from your screen, check WCAG contrast, or extract a palette from images. No upload.</p>
+          <p class="hero__desc" data-i18n="col_desc">Pick colors from your screen, check WCAG contrast and fix it, build shade scales and harmonies, or extract a palette from images. No upload.</p>
         </div>
       </section>
 
@@ -89,30 +89,38 @@
 
         <section class="panel card">
           <div class="settings__group">
-            <span class="settings__label" data-i18n="col_colors">Colors</span>
+            <div class="color-head">
+              <span class="settings__label" data-i18n="col_colors">Colors</span>
+              <button class="btn btn--secondary btn--sm" id="swapBtn" type="button"><span aria-hidden="true">⇅</span> <span data-i18n="col_swap_short">Swap</span></button>
+            </div>
             <div class="color-row" id="fgRow" data-role="fg">
               <div class="color-row__main">
-                <button class="color-swatch" id="fgSwatch" aria-label="Foreground color" data-i18n-aria-label="col_foreground_color"></button>
-                <input type="color" id="fgPicker" class="color-native" value="#203848">
-                <div class="color-row__fields">
-                  <label class="field"><span data-i18n="col_hex">HEX</span><input id="fgHex" type="text" value="#203848"></label>
-                </div>
-                <button class="btn btn--secondary btn--sm color-row__pick" id="fgPick" type="button" data-i18n="col_pick">Pick</button>
+                <span class="color-row__role" data-i18n="col_role_fg">Text</span>
+                <button class="color-swatch" id="fgSwatch" type="button" aria-label="Foreground color" data-i18n-aria-label="col_foreground_color"></button>
+                <input type="color" id="fgPicker" class="color-native" value="#203848" tabindex="-1" aria-hidden="true">
+                <input class="color-row__hex" id="fgHex" type="text" value="#203848" spellcheck="false" autocomplete="off" aria-label="Foreground color" data-i18n-aria-label="col_foreground_color">
+                <button class="btn btn--secondary color-row__pick" id="fgPick" type="button" data-i18n="col_pick">Pick</button>
               </div>
               <div class="color-row__values" id="fgValues"></div>
             </div>
             <div class="color-row" id="bgRow" data-role="bg">
               <div class="color-row__main">
-                <button class="color-swatch" id="bgSwatch" aria-label="Background color" data-i18n-aria-label="col_background_color"></button>
-                <input type="color" id="bgPicker" class="color-native" value="#ffffff">
-                <div class="color-row__fields">
-                  <label class="field"><span data-i18n="col_hex">HEX</span><input id="bgHex" type="text" value="#ffffff"></label>
-                </div>
-                <button class="btn btn--secondary btn--sm color-row__pick" id="bgPick" type="button" data-i18n="col_pick">Pick</button>
+                <span class="color-row__role" data-i18n="col_role_bg">Background</span>
+                <button class="color-swatch" id="bgSwatch" type="button" aria-label="Background color" data-i18n-aria-label="col_background_color"></button>
+                <input type="color" id="bgPicker" class="color-native" value="#ffffff" tabindex="-1" aria-hidden="true">
+                <input class="color-row__hex" id="bgHex" type="text" value="#ffffff" spellcheck="false" autocomplete="off" aria-label="Background color" data-i18n-aria-label="col_background_color">
+                <button class="btn btn--secondary color-row__pick" id="bgPick" type="button" data-i18n="col_pick">Pick</button>
               </div>
               <div class="color-row__values" id="bgValues"></div>
             </div>
-            <p class="settings__note" id="pickHint" data-i18n="col_pick_short_hint">Click a swatch or HEX to choose, or use Pick to grab from the screen.</p>
+            <div class="color-recent" hidden>
+              <div class="color-head">
+                <span class="settings__label" data-i18n="col_recent">Recent</span>
+                <button class="text-btn" id="clearRecent" type="button" data-i18n="col_recent_clear">Clear</button>
+              </div>
+              <div class="swatch-list" id="recentColors"></div>
+            </div>
+            <p class="settings__note" id="pickHint" data-i18n="col_pick_short_hint">Click a swatch for the color picker, or type HEX, rgb(), hsl(), oklch() or a color name. Pick grabs a color from anywhere on screen.</p>
           </div>
         </section>
 
@@ -126,6 +134,7 @@
               </div>
               <div class="contrast__badges" id="badges"></div>
             </div>
+            <div class="contrast-fix" id="fixRow" hidden></div>
             <div class="contrast__preview" id="preview">
               <p class="contrast__sample contrast__sample--lg">Aa Bb Cc 1234</p>
               <p class="contrast__sample" data-i18n="col_sample_sentence">The quick brown fox jumps over the lazy dog.</p>
@@ -136,10 +145,19 @@
 
         <section class="panel card">
           <div class="settings__group">
-            <span class="settings__label" data-i18n="col_swap_short">Swap</span>
-            <div class="settings__row snapshot__controls">
-              <button class="btn btn--secondary btn--sm" id="swapBtn" type="button" data-i18n="col_swap_button">Swap FG &harr; BG</button>
+            <div class="color-head">
+              <span class="settings__label" data-i18n="col_scale_title">Shades &amp; harmonies</span>
+              <div class="segmented" id="baseTabs" role="group" aria-label="Based on" data-i18n-aria-label="col_base">
+                <button class="segmented__btn" data-base="fg" type="button" data-i18n="col_role_fg">Text</button>
+                <button class="segmented__btn" data-base="bg" type="button" data-i18n="col_role_bg">Background</button>
+              </div>
             </div>
+            <div class="swatch-list swatch-list--scale" id="shades"></div>
+            <div class="color-head">
+              <p class="settings__note" data-i18n="col_scale_note">Click any color to copy it or use it as text or background.</p>
+              <button class="btn btn--secondary btn--sm" id="copyVars" type="button" data-i18n="col_copy_vars">Copy CSS variables</button>
+            </div>
+            <div class="harmonies" id="harmonies"></div>
           </div>
         </section>
       </div>
@@ -203,6 +221,8 @@
   <script src="js/i18n.js"></script>
   <script src="js/menu-data.js"></script>
   <script src="js/tabs.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/color-core.js"></script>
   <script src="js/color.js"></script>
   <script src="js/palette.js"></script>
 </body>

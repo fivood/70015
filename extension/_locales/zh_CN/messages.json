@@ -1,8 +1,12 @@
 {
   "ext_name": {"message":"70015 图片工具箱"},
-  "ext_desc": {"message":"整页、可见区域、可滚动选区截图，外加 13 个本地图片工具。所有处理都在本地完成，不上传。"},
+  "ext_desc": {"message":"整页与选区截图、网页取色，外加 14 个本地图片工具。全部在本地处理，不上传。"},
   "cmd_visible": {"message":"截取可见区域"},
   "cmd_full": {"message":"截取整个页面"},
   "cmd_selection": {"message":"截取选定区域"},
-  "scroll_hint": {"message":"拖拽选择区域；滚动鼠标滚轮或拖到边缘可继续延伸。按 Esc 取消。"}
+  "scroll_hint": {"message":"拖拽选择区域；滚动鼠标滚轮或拖到边缘可继续延伸。按 Esc 取消。"},
+  "cmd_pick": {"message":"从网页取色"},
+  "pick_hint": {"message":"点击复制颜色。方向键移动 1 像素（按住 Shift 移动 10），Enter 取色，Esc 取消。"},
+  "pick_copied": {"message":"已复制 $1"},
+  "pick_open": {"message":"在颜色工具中打开"}
 }

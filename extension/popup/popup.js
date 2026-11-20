@@ -22,7 +22,7 @@
 
   async function start(mode) {
     setDisabled(true);
-    if (mode !== 'selection') showStatus(t('ext_capturing'));
+    if (mode !== 'selection' && mode !== 'pick') showStatus(t('ext_capturing'));
     var tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     var res = tabs[0] ? await chrome.runtime.sendMessage({ type: 'start', mode: mode, tabId: tabs[0].id }) : null;
     if (!res || res.error) {

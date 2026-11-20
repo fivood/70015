@@ -103,6 +103,26 @@
     fileInput.value = '';
   });
 
+  // Paste a screenshot anywhere on the page (outside text fields): opens this tab and extracts it.
+  window.addEventListener('paste', (e) => {
+    if (/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+    const files = Array.from((e.clipboardData && e.clipboardData.files) || []).filter((f) => f.type.startsWith('image/'));
+    if (!files.length) return;
+    e.preventDefault();
+    const tab = document.querySelector('[data-tab="palette"]');
+    if (tab && !tab.classList.contains('is-active')) tab.click();
+    handleFiles(files);
+  });
+
+  // A screenshot sent from the extension's result page ("Extract colors", js/export.js).
+  if (window.ImageExport) {
+    ImageExport.receiveHandoff('palette', (blob) => {
+      const tab = document.querySelector('[data-tab="palette"]');
+      if (tab && !tab.classList.contains('is-active')) tab.click();
+      handleFiles([new File([blob], 'screenshot.png', { type: 'image/png' })]);
+    });
+  }
+
   colorCountInput.addEventListener('input', () => {
     state.colorCount = parseInt(colorCountInput.value, 10);
     colorCountValue.textContent = state.colorCount;
@@ -365,8 +385,10 @@
 
     el.querySelectorAll('.palette-swatch').forEach((swatch) => {
       swatch.style.backgroundColor = swatch.dataset.hex; // CSSOM: inline style attrs are blocked by CSP
+      // Same menu as the picker tab (copy / use as text / use as background) when it is loaded.
       swatch.addEventListener('click', () => {
-        copyToClipboard(swatch.dataset.hex);
+        if (window.ColorTool) window.ColorTool.openMenu(swatch, swatch.dataset.hex.toLowerCase());
+        else copyToClipboard(swatch.dataset.hex);
       });
     });
 

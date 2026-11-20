@@ -37,3 +37,77 @@
   z-index: 2147483647;
   pointer-events: none;
 }
+/* Color picker: magnifier beside the pointer, then a toast with the copied color.
+   Page styles can reach these elements, so the key properties are set explicitly. */
+.zimg-ext-loupe {
+  position: fixed;
+  display: none;
+  z-index: 2147483647;
+  padding: 0;
+  margin: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.zimg-ext-loupe canvas {
+  display: block;
+  width: 121px;
+  height: 121px;
+  image-rendering: pixelated;
+}
+.zimg-ext-loupe-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #111827;
+  color: #fff;
+  font: 700 12px/1.2 Consolas, "SF Mono", Menlo, monospace;
+}
+.zimg-ext-loupe-label::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--zimg-swatch, #000);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.zimg-ext-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 2147483647;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 8px 8px 12px;
+  border-radius: 10px;
+  background: #111827;
+  color: #fff;
+  font: 500 14px/1.3 system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.zimg-ext-toast-chip {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.zimg-ext-toast-btn {
+  margin: 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #317fa8;
+  color: #fff;
+  font: 600 13px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+.zimg-ext-toast-btn:hover {
+  background: #286a8d;
+}

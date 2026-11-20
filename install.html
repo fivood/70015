@@ -7,7 +7,7 @@
   <meta name="description" content="Install the 70015 image tools as a Chrome or Edge extension. Full-page, visible-area and scrolling-selection screenshots, plus every tool page, fully offline.">
   <link rel="canonical" href="https://70015.net/install">
   <meta property="og:title" content="Browser Extension &mdash; 70015">
-  <meta property="og:description" content="Full-page screenshots and 13 local image tools, as a Chrome / Edge extension. Nothing is uploaded.">
+  <meta property="og:description" content="Full-page screenshots, color picking and 14 local image tools, as a Chrome / Edge extension. Nothing is uploaded.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://70015.net/install">
   <script type="application/ld+json">
@@ -18,7 +18,7 @@
     "applicationCategory": "BrowserApplication",
     "operatingSystem": "Chrome, Edge",
     "url": "https://70015.net/install",
-    "description": "Chrome and Edge extension offering full-page, visible-area and scrolling-selection screenshots plus 13 offline image tools.",
+    "description": "Chrome and Edge extension offering full-page, visible-area and scrolling-selection screenshots, color picking from any page and 14 offline image tools.",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -95,7 +95,7 @@
           <span class="ins-download__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
           <span data-i18n="ins_download">Download for Chrome / Edge</span>
         </a>
-        <p class="ins-download__meta"><span data-i18n="ins_meta_zip">ZIP archive</span> &middot; <span class="ins-download__ver">v1.11.0 &middot; 783 KB</span> &middot; <span data-i18n="ins_meta_local">nothing is uploaded</span></p>
+        <p class="ins-download__meta"><span data-i18n="ins_meta_zip">ZIP archive</span> &middot; <span class="ins-download__ver">v1.12.0 &middot; 804 KB</span> &middot; <span data-i18n="ins_meta_local">nothing is uploaded</span></p>
         <p class="ins-download__why"><span data-i18n="ins_why">Free and open source. No account, no telemetry, no network requests.</span></p>
         <p class="ins-download__alt"><span data-i18n="ins_unsupported">This download is for Chrome 102+ and Edge 102+.</span></p>
       </section>
@@ -136,12 +136,43 @@
         </ol>
       </section>
 
+      <section class="panel card" id="update">
+        <h2 class="ins-heading" data-i18n="ins_upd_title">Updating to a new version</h2>
+        <p class="ins-step__desc" data-i18n="ins_upd_lede">Installed from a file, the extension does not update itself. Updating in place keeps your saved bead works, colors and settings.</p>
+        <ol class="ins-steps">
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">1</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_u1_t">Download the new archive</h3>
+              <p class="ins-step__desc" data-i18n="ins_u1_d">The latest version number is shown next to the download button.</p>
+            </div>
+          </li>
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">2</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_u2_t">Extract it over the old folder</h3>
+              <p class="ins-step__desc" data-i18n="ins_u2_d">Extract into the same folder you installed from and choose Replace when asked.</p>
+              <p class="ins-step__warn" data-i18n="ins_u2_w">Do not remove the old extension first, and do not use a new folder.</p>
+            </div>
+          </li>
+          <li class="ins-step">
+            <span class="ins-step__num" aria-hidden="true">3</span>
+            <div class="ins-step__body">
+              <h3 class="ins-step__title" data-i18n="ins_u3_t">Reload it</h3>
+              <p class="ins-step__desc" data-i18n="ins_u3_d">On the extensions page, click the reload arrow on the 70015 card.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
       <section class="panel card">
         <h2 class="ins-heading" data-i18n="ins_use_title">How to use</h2>
         <ul class="ins-list">
           <li data-i18n="ins_use_1">Click the extension icon, then pick a mode.</li>
           <li data-i18n="ins_use_2">For a selection, drag a box. Esc cancels.</li>
           <li data-i18n="ins_use_3">The stitched result opens in a new tab.</li>
+          <li data-i18n="ins_use_5">Pick a color from any page with a magnifier.</li>
+          <li data-i18n="ins_use_6">QR codes in a screenshot are listed with safety warnings.</li>
           <li data-i18n="ins_use_4">Every tool from this site sits in the same popup.</li>
         </ul>
         <p class="ins-keys-label" data-i18n="ins_keys">Keyboard shortcuts:</p>
@@ -149,6 +180,7 @@
           <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd><span data-i18n="ins_key_full">Capture entire page</span></li>
           <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd><span data-i18n="ins_key_visible">Capture visible area</span></li>
           <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd><span data-i18n="ins_key_selection">Capture selection</span></li>
+          <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd><span data-i18n="ins_key_pick">Pick a color from the page</span></li>
         </ul>
       </section>
 
@@ -160,7 +192,7 @@
           <li data-i18n="ins_note_3">It will not update itself automatically.</li>
         </ul>
         <p class="ins-privacy"><span data-i18n="ins_privacy">Your images never leave your device.</span></p>
-        <p class="ins-source"><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="ins_source">Source code</a></p>
+        <p class="ins-source"><a href="https://github.com/fivood/70015" target="_blank" rel="noopener" data-i18n="ins_source">Source code</a> &middot; <a href="privacy" data-i18n="ins_privacy_link">Privacy policy</a></p>
       </section>
     </main>
 

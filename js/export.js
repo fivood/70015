@@ -7,7 +7,7 @@
 
   var HANDOFF_DB = '70015-handoff';
   // Handoff target -> the page that receives it. The target name is also the storage key.
-  var HANDOFF_PAGES = { annotate: 'image-editor', beads: 'beads' };
+  var HANDOFF_PAGES = { annotate: 'image-editor', beads: 'beads', palette: 'color' };
   var isExtension = /-extension:$/.test(location.protocol); // chrome-extension: / moz-extension:
 
   function tr(key, fallback) {
@@ -155,7 +155,8 @@
     { id: 'copy', key: 'exp_copy', label: 'Copy', run: function (c) { return copy(c).then(function () { return tr('exp_copied', 'Copied'); }); } },
     { id: 'print', key: 'exp_print', label: 'Print', run: function (c) { return print(c); } },
     { id: 'annotate', key: 'exp_annotate', label: 'Annotate', run: function (c) { return sendTo('annotate', c); } },
-    { id: 'beads', key: 'exp_beads', label: 'Bead pattern', optIn: true, run: function (c) { return sendTo('beads', c); } }
+    { id: 'beads', key: 'exp_beads', label: 'Bead pattern', optIn: true, run: function (c) { return sendTo('beads', c); } },
+    { id: 'palette', key: 'exp_palette', label: 'Extract colors', optIn: true, run: function (c) { return sendTo('palette', c); } }
   ];
 
   // Render PNG/JPG/PDF/Copy/Print/Annotate buttons into `container`.

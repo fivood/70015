@@ -1,8 +1,12 @@
 {
   "ext_name": {"message":"70015 Image Tools"},
-  "ext_desc": {"message":"Full-page, visible and scrolling-selection screenshots plus 13 local image tools. Nothing is uploaded."},
+  "ext_desc": {"message":"Full-page and selection screenshots, color picking from any page, and 14 local image tools. Nothing is uploaded."},
   "cmd_visible": {"message":"Capture visible area"},
   "cmd_full": {"message":"Capture entire page"},
   "cmd_selection": {"message":"Capture selection"},
-  "scroll_hint": {"message":"Drag to select. Scroll with the wheel or drag to an edge to extend. Esc cancels."}
+  "scroll_hint": {"message":"Drag to select. Scroll with the wheel or drag to an edge to extend. Esc cancels."},
+  "cmd_pick": {"message":"Pick a color from the page"},
+  "pick_hint": {"message":"Click to copy a color. Arrow keys move one pixel (Shift: 10), Enter picks, Esc cancels."},
+  "pick_copied": {"message":"Copied $1"},
+  "pick_open": {"message":"Open in color tool"}
 }

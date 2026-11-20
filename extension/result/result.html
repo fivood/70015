@@ -18,13 +18,21 @@
       <span id="statusText"></span>
     </div>
     <div class="result__actions" id="actions" hidden></div>
+    <section class="result__qr" id="qrPanel" hidden aria-live="polite">
+      <h2 class="result__qr-title" id="qrTitle"></h2>
+      <p class="result__qr-note" data-i18n="ext_qr_note">Nothing is opened or fetched until you click. Links open in a new tab, and downloads go through the browser's own safety check.</p>
+      <div class="result__qr-list" id="qrList"></div>
+    </section>
     <div class="result__preview" id="preview" hidden>
-      <canvas id="resultCanvas"></canvas>
+      <div class="result__stage" id="stage">
+        <canvas id="resultCanvas"></canvas>
+      </div>
     </div>
   </div>
   <script src="../js/i18n.js"></script>
   <script src="../js/pdf.js"></script>
   <script src="../js/export.js"></script>
+  <script src="../js/qr-link.js"></script>
   <script src="result.js"></script>
 </body>
 </html>

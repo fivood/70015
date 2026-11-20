@@ -1626,3 +1626,31 @@ body.is-working .upload__title {
   margin: 0;
   font-size: 13px;
 }
+
+/* Privacy page: one language at a time (html[data-lang] comes from js/i18n-head.js). */
+html[data-lang="zh"] .pv[lang="en"],
+html:not([data-lang="zh"]) .pv[lang="zh-CN"] {
+  display: none;
+}
+
+.pv h3 {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pv p {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.pv .pv-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.pv .ins-list strong {
+  color: var(--text);
+}

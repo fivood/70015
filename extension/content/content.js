@@ -267,12 +267,170 @@
     if (e.key === 'Escape') { e.preventDefault(); endSelection(); }
   }
 
+  // ---------- Color picker over a screenshot of the visible tab ----------
+  // The page can't be read pixel by pixel, so the background takes one screenshot and we
+  // sample that: a magnifier follows the pointer, click (or Enter) copies the color.
+
+  var LOUPE_CELLS = 11, LOUPE_ZOOM = 11; // 11 x 11 screenshot pixels, 11x each
+  var picker = null;
+
+  function message(key, fallback, sub) {
+    return (chrome.i18n && chrome.i18n.getMessage(key, sub)) || fallback;
+  }
+
+  function toHex(d) {
+    return '#' + [d[0], d[1], d[2]].map(function (v) { return v.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  function startPick(image) {
+    if (picker || ui) return;
+    var img = new Image();
+    img.onload = function () {
+      var shot = document.createElement('canvas');
+      shot.width = img.width;
+      shot.height = img.height;
+      var sctx = shot.getContext('2d', { willReadFrequently: true });
+      sctx.drawImage(img, 0, 0);
+      var overlay = document.createElement('div');
+      overlay.className = 'zimg-ext-overlay zimg-ext-pick';
+      var loupe = document.createElement('div');
+      loupe.className = 'zimg-ext-loupe';
+      var lc = document.createElement('canvas');
+      lc.width = lc.height = LOUPE_CELLS * LOUPE_ZOOM;
+      var label = document.createElement('div');
+      label.className = 'zimg-ext-loupe-label';
+      loupe.appendChild(lc);
+      loupe.appendChild(label);
+      var hint = document.createElement('div');
+      hint.className = 'zimg-ext-hint';
+      hint.textContent = message('pick_hint', 'Click to copy a color. Arrow keys move one pixel, Enter picks, Esc cancels.');
+      [overlay, loupe, hint].forEach(function (n) { document.documentElement.appendChild(n); });
+      picker = {
+        nodes: [overlay, loupe, hint], shot: shot, sctx: sctx, loupe: loupe, lctx: lc.getContext('2d'), label: label,
+        s: img.width / window.innerWidth, px: -1, py: -1
+      };
+      overlay.addEventListener('mousemove', function (e) { pickMove(Math.floor(e.clientX * picker.s), Math.floor(e.clientY * picker.s)); });
+      overlay.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      overlay.addEventListener('click', function (e) { e.preventDefault(); pickMove(Math.floor(e.clientX * picker.s), Math.floor(e.clientY * picker.s)); pickDone(); });
+      overlay.addEventListener('wheel', function (e) { e.preventDefault(); }, { passive: false }); // the screenshot can't scroll
+      document.addEventListener('keydown', onPickKey, true);
+    };
+    img.src = image;
+  }
+
+  function endPick() {
+    if (!picker) return;
+    picker.nodes.forEach(function (n) { n.remove(); });
+    document.removeEventListener('keydown', onPickKey, true);
+    picker = null;
+  }
+
+  // Screenshot pixel (px, py) under the loupe: redraw it magnified and move it beside the pointer.
+  function pickMove(px, py) {
+    var p = picker;
+    p.px = Math.max(0, Math.min(p.shot.width - 1, px));
+    p.py = Math.max(0, Math.min(p.shot.height - 1, py));
+    var half = (LOUPE_CELLS - 1) / 2, size = LOUPE_CELLS * LOUPE_ZOOM, c = p.lctx;
+    c.imageSmoothingEnabled = false;
+    c.fillStyle = '#808080';
+    c.fillRect(0, 0, size, size);
+    c.drawImage(p.shot, p.px - half, p.py - half, LOUPE_CELLS, LOUPE_CELLS, 0, 0, size, size);
+    c.strokeStyle = 'rgba(0,0,0,0.12)';
+    c.lineWidth = 1;
+    c.beginPath();
+    for (var i = 1; i < LOUPE_CELLS; i++) { c.moveTo(i * LOUPE_ZOOM + 0.5, 0); c.lineTo(i * LOUPE_ZOOM + 0.5, size); c.moveTo(0, i * LOUPE_ZOOM + 0.5); c.lineTo(size, i * LOUPE_ZOOM + 0.5); }
+    c.stroke();
+    var o = half * LOUPE_ZOOM;
+    c.strokeStyle = '#000';
+    c.strokeRect(o - 0.5, o - 0.5, LOUPE_ZOOM + 1, LOUPE_ZOOM + 1);
+    c.strokeStyle = '#fff';
+    c.strokeRect(o - 1.5, o - 1.5, LOUPE_ZOOM + 3, LOUPE_ZOOM + 3);
+    var hex = toHex(p.sctx.getImageData(p.px, p.py, 1, 1).data);
+    p.hex = hex;
+    p.label.textContent = hex.toUpperCase();
+    p.label.style.setProperty('--zimg-swatch', hex);
+    // Beside the pointer, flipped near the right and bottom edges.
+    var x = p.px / p.s, y = p.py / p.s, w = p.loupe.offsetWidth, h = p.loupe.offsetHeight;
+    p.loupe.style.left = (x + 20 + w > window.innerWidth ? x - 20 - w : x + 20) + 'px';
+    p.loupe.style.top = (y + 20 + h > window.innerHeight ? y - 20 - h : y + 20) + 'px';
+    p.loupe.style.display = 'block';
+  }
+
+  function onPickKey(e) {
+    if (!picker) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (step) {
+      var n = e.shiftKey ? 10 : 1;
+      if (picker.px < 0) pickMove(Math.floor(picker.shot.width / 2), Math.floor(picker.shot.height / 2));
+      else pickMove(picker.px + step[0] * n, picker.py + step[1] * n);
+    } else if (e.key === 'Enter' && picker.hex) pickDone();
+    else if (e.key === 'Escape') endPick();
+  }
+
+  function pickDone() {
+    var hex = picker.hex;
+    endPick();
+    copyText(hex.toUpperCase()).then(function (ok) { showPicked(hex, ok); });
+  }
+
+  function copyText(text) {
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.documentElement.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { /* blocked */ }
+      ta.remove();
+      return ok;
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }, fallback);
+    }
+    return Promise.resolve(fallback());
+  }
+
+  // Result toast: the color, whether it was copied, and a way into the color tool.
+  function showPicked(hex, copied) {
+    var old = document.querySelector('.zimg-ext-toast');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.className = 'zimg-ext-toast';
+    var chip = document.createElement('span');
+    chip.className = 'zimg-ext-toast-chip';
+    chip.style.background = hex;
+    var text = document.createElement('span');
+    text.textContent = copied
+      ? message('pick_copied', 'Copied ' + hex.toUpperCase(), [hex.toUpperCase()])
+      : hex.toUpperCase();
+    var open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'zimg-ext-toast-btn';
+    open.textContent = message('pick_open', 'Open in color tool');
+    open.addEventListener('click', function () {
+      chrome.runtime.sendMessage({ type: 'openColor', hex: hex });
+      box.remove();
+    });
+    box.appendChild(chip);
+    box.appendChild(text);
+    box.appendChild(open);
+    document.documentElement.appendChild(box);
+    setTimeout(function () { box.remove(); }, 8000);
+  }
+
   // ---------- Messages from the background worker ----------
 
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     switch (msg.type) {
       case 'startSelection':
         startSelection();
+        sendResponse({ ok: true });
+        break;
+      case 'startPick':
+        startPick(msg.image);
         sendResponse({ ok: true });
         break;
       case 'plan':

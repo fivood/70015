@@ -148,3 +148,177 @@ body {
 .result__actions .btn svg {
   flex-shrink: 0;
 }
+
+/* ---------- QR codes found in the screenshot ---------- */
+.result__stage {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.result__qr {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.result__qr[hidden] { display: none; }
+
+.result__qr-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.result__qr-note {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.result__qr-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.result__qr-num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--primary);
+  color: #fff;
+  font: 700 12px/1 system-ui, sans-serif;
+}
+
+.result__qr-mark {
+  position: absolute;
+  border: 3px solid var(--primary);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.result__qr-mark .result__qr-num {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+}
+
+.result__qr-mark.is-flash {
+  animation: qrFlash 0.4s ease-in-out 3;
+}
+
+@keyframes qrFlash {
+  50% { border-color: #f59e0b; transform: scale(1.06); }
+}
+
+.qr-item {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.qr-item.is-risky {
+  border-color: rgba(220, 38, 38, 0.45);
+}
+
+.qr-item__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.qr-item__locate {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qr-item__site {
+  font-size: 13px;
+}
+
+.qr-item__site strong {
+  font-size: 15px;
+  word-break: break-all;
+}
+
+.qr-item__text {
+  display: block;
+  max-height: 120px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.1);
+  font: 12px/1.45 Consolas, "SF Mono", Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.qr-item__file {
+  font-size: 13px;
+}
+
+.qr-item__warn {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+  font-size: 13px;
+}
+
+.qr-item.is-risky .qr-item__warn {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+
+:root[data-theme="dark"] .qr-item__warn { color: #fbbf24; }
+:root[data-theme="dark"] .qr-item.is-risky .qr-item__warn { color: #fca5a5; }
+
+.qr-item__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.qr-item .btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: 600 13px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.qr-item .btn--primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.qr-item .btn--danger {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
+
+@media print {
+  .result__qr, .result__qr-mark { display: none !important; }
+}

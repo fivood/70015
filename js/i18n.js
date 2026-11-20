@@ -26,7 +26,7 @@
       'home_title': '70015 \u2014 Online image tools',
       'home_og_desc': 'Browser-based image tools. Convert, edit, and export images locally. No upload.',
       'home_tools': 'Tools',
-      'home_count': '13 tools',
+      'home_count': '14 tools',
       'home_intro': 'A small set of browser-based image tools. Everything runs locally \u2014 no uploads, no servers.',
       't_converter': 'Image Converter',
       'm_aiprep': 'AI Image Prep',
@@ -57,7 +57,7 @@
       't_snapshot': 'Web Snapshot',
       'd_snapshot': 'Screenshot a web page or PDF region. Screen share or open a PDF, drag to select, export PNG.',
       't_color': 'Color Tools',
-      'd_color': 'Pick colors from the screen, check WCAG contrast, and extract palettes from images.',
+      'd_color': 'Pick colors, check and fix WCAG contrast, build shade scales and harmonies, extract palettes from images.',
       't_qr': 'QR Code',
       'd_qr': 'Turn a link or text into a QR. Pick size, margin, colors, export PNG or SVG.',
       't_editor': 'SVG Editor',
@@ -177,7 +177,7 @@
       'pal_drop': 'Drop images here or click to upload',
       'pal_hint': 'Multiple images supported',
       'pal_drop_folder': 'Drop images or a folder here, or click to upload',
-      'pal_hint_extract': 'Extracts dominant colors automatically',
+      'pal_hint_extract': 'Extracts dominant colors automatically. You can also paste a screenshot (Ctrl+V).',
       'pal_count': 'Color count',
       'pal_precision': 'Sample precision',
       'pal_export': 'Export JSON',
@@ -198,7 +198,7 @@
       // Color & Contrast
       'col_title': 'Color & Contrast \u2014 70015',
       'col_hero': 'Color & Contrast',
-      'col_desc': 'Pick colors from your screen, check WCAG contrast, or extract a palette from images. No upload.',
+      'col_desc': 'Pick colors from your screen, check WCAG contrast and fix it, build shade scales and harmonies, or extract a palette from images. No upload.',
       'col_tab_contrast': 'Picker & Contrast',
       'col_tab_palette': 'Palette from image',
       'col_fg': 'Foreground',
@@ -212,13 +212,36 @@
       'col_aa_l': 'AA large',
       'col_aaa_n': 'AAA normal',
       'col_aaa_l': 'AAA large',
-      'col_pick_hint': 'Screen picker needs desktop Chrome/Edge. Click a swatch or HEX to choose colors.',
+      'col_pick_hint': 'Screen picker needs desktop Chrome/Edge. Click a swatch, or type HEX, rgb(), hsl() or a color name.',
       'col_colors': 'Colors',
+      'col_role_fg': 'Text',
+      'col_role_bg': 'Background',
+      'ext_pick_color': 'Pick a color from this page',
+      'exp_palette': 'Extract colors',
+      'col_recent': 'Recent',
+      'col_recent_clear': 'Clear',
+      'col_menu_copy': 'Copy HEX',
+      'col_menu_fg': 'Use as text color',
+      'col_menu_bg': 'Use as background',
+      'col_set_fg': 'Text color: {hex}',
+      'col_set_bg': 'Background: {hex}',
+      'col_cmyk_note': 'Approximate, without a color profile',
+      'col_fix_lead': 'Closest text color that passes:',
+      'col_fix_none': '{level}: not reachable by changing the text color',
+      'col_fix_apply': 'Apply to the text color',
+      'col_scale_title': 'Shades & harmonies',
+      'col_base': 'Based on',
+      'col_scale_note': 'Click any color to copy it or use it as text or background.',
+      'col_copy_vars': 'Copy CSS variables',
+      'col_harmony_comp': 'Complementary',
+      'col_harmony_analog': 'Analogous',
+      'col_harmony_triad': 'Triadic',
+      'col_harmony_split': 'Split complementary',
       'col_hex': 'HEX',
       'col_pick': 'Pick',
       'col_foreground_color': 'Foreground color',
       'col_background_color': 'Background color',
-      'col_pick_short_hint': 'Click a swatch or HEX to choose, or use Pick to grab from the screen.',
+      'col_pick_short_hint': 'Click a swatch for the color picker, or type HEX, rgb(), hsl(), oklch() or a color name. Pick grabs a color from anywhere on screen.',
       'col_contrast': 'Contrast',
       'col_sample_sentence': 'The quick brown fox jumps over the lazy dog.',
       'col_sample_bold': 'Bold text sample',
@@ -777,6 +800,56 @@
       'ext_select_region': 'Capture selection',
       'ext_capturing': 'Capturing…',
       'ext_cannot_capture': 'This page can\'t be captured (browser or Web Store pages).',
+
+      'ext_qr_title': 'QR codes in this screenshot ({n})',
+
+      'ext_qr_note': 'Nothing is opened or fetched until you click. Links open in a new tab, and downloads go through the browser\'s own safety check.',
+
+      'ext_qr_locate': 'Show',
+
+      'ext_qr_kind_link': 'Web link',
+
+      'ext_qr_kind_file': 'File download link',
+
+      'ext_qr_kind_text': 'Text',
+
+      'ext_qr_kind_blocked': 'Blocked link',
+
+      'ext_qr_site': 'Site:',
+
+      'ext_qr_file': 'File: {name}',
+
+      'ext_qr_blocked': 'Links of this kind ({scheme}) can run code or open local files, so they are not opened from here.',
+
+      'ext_qr_open': 'Open link',
+
+      'ext_qr_open_file': 'Open / download',
+
+      'ext_qr_open_confirm': 'Click again to open',
+
+      'ext_qr_copy': 'Copy',
+
+      'ext_qr_copied': 'Copied',
+
+      'ext_qr_w_http': 'Not encrypted (http): what you download can be swapped on the way.',
+
+      'ext_qr_w_userinfo': 'The address hides the real site: the part before "@" is ignored, it goes to {host}.',
+
+      'ext_qr_w_ip': 'Goes to a bare IP address instead of a named site.',
+
+      'ext_qr_w_punycode': 'The site name uses look-alike characters (xn--) and may imitate another site.',
+
+      'ext_qr_w_port': 'Uses an unusual port ({port}).',
+
+      'ext_qr_w_short': 'Short link: where it finally leads can\'t be seen before opening it.',
+
+      'ext_qr_w_exec': 'A program or installer (.{ext}). Run it only if you trust whoever made this QR code.',
+
+      'ext_qr_w_macro': 'An Office file with macros (.{ext}); macros can run code.',
+
+      'ext_qr_w_archive': 'A compressed archive (.{ext}); check what is inside before opening anything.',
+
+      'ext_qr_w_bidi': 'The file name contains hidden characters that reverse text, a trick to disguise the real file type.',
       'ext_tools': 'Tools',
       'iso_step_tip': 'Snap step / thin-wall precision',
       'iso_no_boxes': 'Draw some walls in 2D Plan first, then extrude them to 3D.',
@@ -824,9 +897,9 @@
 
       // Install page
       'ins_title': 'Browser Extension \u2014 70015',
-      'ins_desc': 'Install the 70015 image tools as a Chrome or Edge extension. Full-page, visible-area, and scrolling-selection screenshots, plus every tool page, all offline.',
+      'ins_desc': 'Install the 70015 image tools as a Chrome or Edge extension: full-page, visible-area and scrolling-selection screenshots, color picking from any page, plus every tool page, all offline.',
       'ins_h1': 'Browser Extension',
-      'ins_lede': 'The whole toolbox, plus three screenshot modes that work on any page.',
+      'ins_lede': 'The whole toolbox, plus screenshots and color picking that work on any page.',
       'ins_download': 'Download for Chrome / Edge',
       'ins_meta_zip': 'ZIP archive',
       'ins_meta_local': 'nothing is uploaded',
@@ -857,9 +930,35 @@
       'ins_note_title': 'Good to know',
       'ins_note_1': 'Browser-internal pages (chrome://, the Web Store, the built-in PDF viewer) cannot be captured \u2014 the browser forbids it.',
       'ins_note_2': 'After a restart the browser may show a developer-mode warning. Dismiss it; nothing is wrong.',
-      'ins_note_3': 'Because it is installed from a file rather than the Web Store, the browser will not update it automatically. Come back here and repeat these steps for a newer version.',
+      'ins_note_3': 'It does not update itself. Follow "Updating to a new version" above so your saved data is kept.',
+
+      'ins_upd_title': 'Updating to a new version',
+
+      'ins_upd_lede': 'Installed from a file, the extension does not update itself. Updating it in place keeps your saved bead works, recent colors and settings.',
+
+      'ins_u1_t': 'Download the new archive',
+
+      'ins_u1_d': 'Use the download button above; the latest version number is shown next to it.',
+
+      'ins_u2_t': 'Extract it over the old folder',
+
+      'ins_u2_d': 'Extract into the same folder you installed from and choose Replace when asked. Forgot where it is? Click Details on the 70015 card: the page shows the folder it was loaded from.',
+
+      'ins_u2_w': 'Do not remove the old extension first, and do not pick a new folder: removing it also deletes everything it saved, and a new folder installs a second, empty copy.',
+
+      'ins_u3_t': 'Reload it',
+
+      'ins_u3_d': 'On the extensions page, click the reload arrow (↻) on the 70015 card. The version number on the card changes to the new one.',
+
+      'ins_use_5': 'Pick a color from this page (Alt+Shift+C): a magnifier follows the pointer, a click copies the color, and you can open it in the color tool.',
+
+      'ins_use_6': 'If a screenshot contains QR codes, the result tab lists what each one holds, with safety warnings. Nothing opens until you click.',
+
+      'ins_key_pick': 'Pick a color from the page',
       'ins_privacy': 'Your images never leave your device. Screenshots stay in local browser storage only until the result tab reads them, then they are deleted.',
       'ins_source': 'Source code',
+
+      'ins_privacy_link': 'Privacy policy',
       "m_beads": "Bead Pattern",
       "t_beads": "Bead Pattern",
       "d_beads": "Pixel art, AI pixel art or any picture to a fuse bead pattern with MARD color codes and bead counts.",
@@ -1015,7 +1114,7 @@
       'home_title': '70015 \u2014 \u5728\u7ebf\u56fe\u7247\u5de5\u5177',
       'home_og_desc': '\u6d4f\u89c8\u5668\u7aef\u56fe\u7247\u5de5\u5177\u3002\u8f6c\u6362\u3001\u7f16\u8f91\u3001\u5bfc\u51fa\u56fe\u7247\uff0c\u5168\u90e8\u672c\u5730\u8fd0\u884c\uff0c\u65e0\u4e0a\u4f20\u3002',
       'home_tools': '\u5de5\u5177',
-      'home_count': '13 个工具',
+      'home_count': '14 个工具',
       'home_intro': '\u4e00\u5957\u57fa\u4e8e\u6d4f\u89c8\u5668\u7684\u56fe\u7247\u5de5\u5177\u3002\u5168\u90e8\u672c\u5730\u8fd0\u884c\uff0c\u65e0\u4e0a\u4f20\uff0c\u65e0\u670d\u52a1\u5668\u3002',
       'mobile_snapshot_notice': '\u79fb\u52a8\u7aef\u4e0a\u5c4f\u5e55\u5171\u4eab\u53ef\u80fd\u4e0d\u53ef\u7528\uff0c\u533a\u57df\u9009\u62e9\u4e5f\u66f4\u96be\u64cd\u4f5c\u3002\u5efa\u8bae\u5207\u6362\u4e3a PDF \u6a21\u5f0f\u6216\u4f7f\u7528\u684c\u9762\u6d4f\u89c8\u5668\u3002',
       'mobile_color_notice': '\u79fb\u52a8\u7aef\u901a\u5e38\u65e0\u6cd5\u4f7f\u7528\u5c4f\u5e55\u53d6\u8272\uff0c\u8bf7\u6539\u7528\u8272\u5757\u6216 HEX \u8f93\u5165\u3002',
@@ -1050,7 +1149,7 @@
       't_snapshot': '\u7f51\u9875\u622a\u56fe',
       'd_snapshot': '\u622a\u53d6\u7f51\u9875\u6216 PDF \u533a\u57df\u3002\u5c4f\u5e55\u5171\u4eab\u6216\u6253\u5f00 PDF\uff0c\u62d6\u62fd\u9009\u533a\uff0c\u5bfc\u51fa PNG\u3002',
       't_color': '颜色工具',
-      'd_color': '屏幕取色、检查 WCAG 对比度，以及从图片提取调色板。',
+      'd_color': '取色、检查并修正 WCAG 对比度，生成色阶与配色方案，从图片提取调色板。',
       't_qr': '\u4e8c\u7ef4\u7801',
       'd_qr': '\u5c06\u94fe\u63a5\u6216\u6587\u672c\u751f\u6210\u4e8c\u7ef4\u7801\u3002\u53ef\u8c03\u5c3a\u5bf8\u3001\u8fb9\u8ddd\u3001\u989c\u8272\uff0c\u5bfc\u51fa PNG \u6216 SVG\u3002',
       't_editor': 'SVG 编辑器',
@@ -1164,7 +1263,7 @@
       'pal_drop': '\u62d6\u62fd\u56fe\u7247\u5230\u6b64\u5904\u6216\u70b9\u51fb\u4e0a\u4f20',
       'pal_hint': '\u652f\u6301\u591a\u5f20\u56fe\u7247',
       'pal_drop_folder': '\u62d6\u62fd\u56fe\u7247\u6216\u6587\u4ef6\u5939\u5230\u6b64\u5904\uff0c\u6216\u70b9\u51fb\u4e0a\u4f20',
-      'pal_hint_extract': '\u81ea\u52a8\u63d0\u53d6\u4e3b\u8272',
+      'pal_hint_extract': '自动提取主色，也可以直接 Ctrl+V（⌘V）粘贴截图。',
       'pal_count': '\u989c\u8272\u6570\u91cf',
       'pal_precision': '\u91c7\u6837\u7cbe\u5ea6',
       'pal_export': '\u5bfc\u51fa JSON',
@@ -1184,7 +1283,7 @@
 
       'col_title': '\u989c\u8272\u5bf9\u6bd4 \u2014 70015',
       'col_hero': '\u989c\u8272\u5bf9\u6bd4',
-      'col_desc': '屏幕取色、检查 WCAG 对比度，或从图片提取调色板。无需上传。',
+      'col_desc': '屏幕取色、检查并修正 WCAG 对比度、生成色阶与配色方案，或从图片提取调色板。无需上传。',
       'col_tab_contrast': '取色与对比度',
       'col_tab_palette': '图片调色板',
       'col_fg': '\u524d\u666f',
@@ -1198,13 +1297,36 @@
       'col_aa_l': 'AA \u5927\u5b57',
       'col_aaa_n': 'AAA \u6b63\u5e38',
       'col_aaa_l': 'AAA \u5927\u5b57',
-      'col_pick_hint': '\u5c4f\u5e55\u53d6\u8272\u9700\u8981\u684c\u9762\u7248 Chrome/Edge\u3002\u70b9\u51fb\u8272\u5757\u6216 HEX \u6765\u9009\u8272\u3002',
+      'col_pick_hint': '屏幕取色需要桌面版 Chrome/Edge。点色块打开调色盘，或填 HEX、rgb()、hsl() 或颜色名。',
       'col_colors': '颜色',
+      'col_role_fg': '文字',
+      'col_role_bg': '背景',
+      'ext_pick_color': '从网页取色',
+      'exp_palette': '提取配色',
+      'col_recent': '最近使用',
+      'col_recent_clear': '清空',
+      'col_menu_copy': '复制 HEX',
+      'col_menu_fg': '设为文字色',
+      'col_menu_bg': '设为背景色',
+      'col_set_fg': '文字色已设为 {hex}',
+      'col_set_bg': '背景色已设为 {hex}',
+      'col_cmyk_note': '近似值，未使用色彩配置文件',
+      'col_fix_lead': '最接近且达标的文字色：',
+      'col_fix_none': '{level}：只改文字色无法达到',
+      'col_fix_apply': '应用到文字色',
+      'col_scale_title': '色阶与配色',
+      'col_base': '基于',
+      'col_scale_note': '点任意颜色可复制，或设为文字色/背景色。',
+      'col_copy_vars': '复制 CSS 变量',
+      'col_harmony_comp': '互补色',
+      'col_harmony_analog': '类似色',
+      'col_harmony_triad': '三角色',
+      'col_harmony_split': '分裂互补',
       'col_hex': 'HEX',
       'col_pick': '取色',
       'col_foreground_color': '前景色',
       'col_background_color': '背景色',
-      'col_pick_short_hint': '点击色块或 HEX 选择颜色，也可用取色从屏幕抓取。',
+      'col_pick_short_hint': '点色块打开调色盘，或在输入框填 HEX、rgb()、hsl()、oklch() 或颜色名；「取色」可抓取屏幕上任意位置的颜色。',
       'col_contrast': '对比度',
       'col_sample_sentence': '这是一段用于预览对比度的文字。',
       'col_sample_bold': '粗体文字示例',
@@ -1721,6 +1843,56 @@
       'ext_select_region': '截取选定区域',
       'ext_capturing': '截取中…',
       'ext_cannot_capture': '无法截取此页面（浏览器内置页或应用商店页面）。',
+
+      'ext_qr_title': '截图中的二维码（{n}）',
+
+      'ext_qr_note': '在你点击之前不会打开或访问任何网址。链接在新标签页打开，下载由浏览器自带的安全检查处理。',
+
+      'ext_qr_locate': '定位',
+
+      'ext_qr_kind_link': '网页链接',
+
+      'ext_qr_kind_file': '文件下载链接',
+
+      'ext_qr_kind_text': '文本内容',
+
+      'ext_qr_kind_blocked': '已拦截的链接',
+
+      'ext_qr_site': '网站：',
+
+      'ext_qr_file': '文件：{name}',
+
+      'ext_qr_blocked': '这类链接（{scheme}）可能运行代码或打开本机文件，不会从这里打开。',
+
+      'ext_qr_open': '打开链接',
+
+      'ext_qr_open_file': '打开 / 下载',
+
+      'ext_qr_open_confirm': '再点一次确认打开',
+
+      'ext_qr_copy': '复制',
+
+      'ext_qr_copied': '已复制',
+
+      'ext_qr_w_http': '未加密（http）：下载的内容可能在传输途中被替换。',
+
+      'ext_qr_w_userinfo': '地址里有「@」：前面的部分会被忽略，实际去往 {host}。',
+
+      'ext_qr_w_ip': '指向 IP 地址，而不是网站域名。',
+
+      'ext_qr_w_punycode': '域名含特殊字符（xn--），可能在冒充别的网站。',
+
+      'ext_qr_w_port': '使用了不常见的端口（{port}）。',
+
+      'ext_qr_w_short': '短链接：打开之前看不到最终会跳到哪里。',
+
+      'ext_qr_w_exec': '这是程序或安装包（.{ext}），只有信任二维码的来源才运行。',
+
+      'ext_qr_w_macro': '带宏的 Office 文件（.{ext}），宏可以运行代码。',
+
+      'ext_qr_w_archive': '压缩包（.{ext}），解压后先确认里面的文件再打开。',
+
+      'ext_qr_w_bidi': '文件名里有反转文字方向的隐藏字符，常用来伪装真实的文件类型。',
       'ext_tools': '工具',
       'iso_step_tip': '吸附网格步长/薄墙精度',
       'iso_no_boxes': '请先在 2D 平面图中画出墙体，再拉伸为 3D。',
@@ -1804,9 +1976,9 @@
 
       // 安装页
       "ins_title": "浏览器插件 — 70015",
-      "ins_desc": "把 70015 图片工具装成 Chrome / Edge 插件：整页、可见区域、可滚动选区截图，加上全部工具页，完全离线可用。",
+      "ins_desc": "把 70015 图片工具装成 Chrome / Edge 插件：整页、可见区域、可滚动选区截图，网页取色，加上全部工具页，完全离线可用。",
       "ins_h1": "浏览器插件",
-      "ins_lede": "整套工具箱，再加三种适用于任何网页的截图模式。",
+      "ins_lede": "整套工具箱，加上适用于任何网页的截图和取色。",
       "ins_download": "下载 Chrome / Edge 版",
       "ins_meta_zip": "ZIP 压缩包",
       "ins_meta_local": "不上传任何文件",
@@ -1834,9 +2006,35 @@
       "ins_note_title": "注意事项",
       "ins_note_1": "浏览器内置页面（chrome:// 、应用商店、内置 PDF 阅读器）无法截图，这是浏览器本身的限制。",
       "ins_note_2": "重启后浏览器可能提示开发者模式警告，关掉即可，不影响使用。",
-      "ins_note_3": "因为是从文件而非应用商店安装，浏览器不会自动更新。需要新版本时回到本页重复上述步骤。",
+      "ins_note_3": "插件不会自动更新，请按上面「更新到新版本」的方法操作，这样已保存的数据会保留。",
+
+      'ins_upd_title': '更新到新版本',
+
+      'ins_upd_lede': '从文件安装的插件不会自动更新。按下面的方法原地更新，已保存的拼豆作品、最近使用的颜色和各项设置都会保留。',
+
+      'ins_u1_t': '下载新版压缩包',
+
+      'ins_u1_d': '用上方的下载按钮，按钮旁边显示的就是最新版本号。',
+
+      'ins_u2_t': '解压覆盖到原来的文件夹',
+
+      'ins_u2_d': '解压到当初安装时的同一个文件夹，提示重名时选「替换」。忘了是哪个文件夹？在扩展页面点 70015 卡片上的「详细信息」，里面会显示加载来源的路径。',
+
+      'ins_u2_w': '不要先移除旧插件，也不要换新文件夹：移除插件会连同它保存的数据一起删除，换文件夹则会装出第二个空白的插件。',
+
+      'ins_u3_t': '刷新插件',
+
+      'ins_u3_d': '在扩展页面的 70015 卡片上点刷新箭头（↻），卡片上的版本号会变成新版本。',
+
+      'ins_use_5': '「从网页取色」（Alt+Shift+C）：放大镜跟随鼠标，点击即复制颜色，也可以直接在颜色工具中打开。',
+
+      'ins_use_6': '截图里有二维码时，结果页会列出每个二维码的内容和安全提示，你点击之前不会打开任何链接。',
+
+      'ins_key_pick': '从网页取色',
       "ins_privacy": "图片始终不会离开你的设备。截图仅保存在浏览器本地，结果页读取后即删除。",
       "ins_source": "源码",
+
+      'ins_privacy_link': '隐私政策',
       "m_beads": "拼豆图纸",
       "t_beads": "拼豆图纸",
       "d_beads": "像素图、AI 像素图或任意图片转拼豆图纸，带 MARD 色号和用量统计。",

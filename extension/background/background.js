@@ -118,6 +118,15 @@ if (typeof importScripts === 'function') importScripts('../js/export.js');
   async function prepare(tab, mode) {
     chrome.action.setBadgeText({ tabId: tab.id, text: '' });
     await injectContentScript(tab.id);
+    if (mode === 'pick') {
+      // One shot of the visible tab; the page shows a magnifier over it (content.js).
+      var wait = lastCaptureAt + MIN_CAPTURE_GAP - Date.now();
+      if (wait > 0) await sleep(wait);
+      lastCaptureAt = Date.now();
+      var image = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+      await send(tab, { type: 'startPick', image: image });
+      return null;
+    }
     if (mode === 'selection') {
       await send(tab, { type: 'startSelection' });
       return null;
@@ -142,9 +151,13 @@ if (typeof importScripts === 'function') importScripts('../js/export.js');
     if (msg.type === 'selectionDone' && sender.tab) {
       runCapture(sender.tab, msg.plan).catch(function (err) { flagError(sender.tab, err); });
     }
+    // "Open in color tool" after picking a color on a page.
+    if (msg.type === 'openColor' && sender.tab && /^#[0-9a-f]{6}$/i.test(msg.hex)) {
+      chrome.tabs.create({ url: chrome.runtime.getURL('color.html?fg=' + msg.hex.slice(1)), index: sender.tab.index + 1 });
+    }
   });
 
-  var COMMAND_MODES = { 'capture-full': 'full', 'capture-visible': 'visible', 'capture-selection': 'selection' };
+  var COMMAND_MODES = { 'capture-full': 'full', 'capture-visible': 'visible', 'capture-selection': 'selection', 'pick-color': 'pick' };
   chrome.commands.onCommand.addListener(function (command, tab) {
     if (!COMMAND_MODES[command] || !tab) return;
     start(tab, COMMAND_MODES[command]).catch(function (err) { flagError(tab, err); });
